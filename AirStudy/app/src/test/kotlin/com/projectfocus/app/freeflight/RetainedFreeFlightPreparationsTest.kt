@@ -64,7 +64,7 @@ class RetainedFreeFlightPreparationsTest {
                 effects.incrementAndGet();throw FreeFlightRuntimePending("Explicit test dispatch awaiting platform confirmation")
             }, graph.presence(), app.admissionApplicationScope)
         return RetainedFreeFlightPreparations(app, hosts, app.database.airportDao(), settings, store, eligibility,
-            repository, app.admissionApplicationScope, graph.preparationOperations())
+            repository, app.admissionApplicationScope, graph.preparationOperations(), graph.registry())
     }
     private class Allowed : FreeFlightPreparationAdmission {
         val calls = AtomicInteger()
@@ -81,12 +81,16 @@ class RetainedFreeFlightPreparationsTest {
     }
     private class ControlledFormal : FreeFlightAdmission {
         val calls = AtomicInteger();val acknowledgements = AtomicInteger()
+        var failAcknowledgement = false
         val callback = CompletableDeferred<(FreeFlightAdmissionEvent) -> Unit>()
         override fun request(owner: FreeFlightOwnerToken, request: FreeFlightStartRequest, emit: (FreeFlightAdmissionEvent) -> Unit) {
             calls.incrementAndGet();callback.complete(emit)
         }
         override suspend fun localStartFailed(request: FreeFlightStartRequest, accepted: FreeFlightAdmissionResult.Accepted) = error("Unexpected local archive failure")
-        override suspend fun localStartCommitted(request: FreeFlightStartRequest, accepted: FreeFlightAdmissionResult.Accepted) { acknowledgements.incrementAndGet() }
+        override suspend fun localStartCommitted(request: FreeFlightStartRequest, accepted: FreeFlightAdmissionResult.Accepted) {
+            acknowledgements.incrementAndGet()
+            check(!failAcknowledgement) { "Explicit local acknowledgement write failure" }
+        }
         fun finishPending() {
             if (callback.isCompleted) runBlocking { callback.await()(FreeFlightAdmissionEvent.Decided(FreeFlightAdmissionResult.Rejected("Test cleanup"))) }
         }
@@ -211,5 +215,66 @@ class RetainedFreeFlightPreparationsTest {
         assertTrue(retained.prepare(old) is FreeFlightPreparationDecision.Unavailable)
         assertTrue(retained.isCurrent(current, actual));assertEquals(1, eligibility.calls.get())
         assertTrue(hosts.isCurrent(actual.owner));assertNull(store.active())
+    }
+
+    @Test fun anotherPreparationWaitsForTheActualDriverLifetimeAndReleasedReservation() = runBlocking(Dispatchers.IO) {
+        val eligibility = Allowed();val retained = retainer(eligibility)
+        val handle = retained.begin();val first = prepared(retained,handle)
+        val starting = async { retained.start(handle,first,request(first)) }
+        formal.callback.await()(FreeFlightAdmissionEvent.Decided(FreeFlightAdmissionResult.Accepted(null)))
+        val started = starting.await() as FreeFlightCommandResult.Committed
+        val repository:FreeFlightSessionRepository = ReflectionHelpers.getField(retained,"repository")
+        val registry = graph.registry()
+        val target = registry.stage(started.archive,first.owner,repository,graph.arrival())
+        val lifetime = SupervisorJob()
+        assertTrue(registry.attachDriver(target.key,lifetime))
+        registry.driverReady(target.key)
+        try {
+            val ended = repository.cancel(first.owner) as FreeFlightCommandResult.Committed
+            registry.stage(ended.archive,first.owner,repository,graph.arrival())
+            assertNull(store.active())
+            assertSame(handle,retained.begin())
+            graph.owners().release(first.sessionId,first.owner)
+            assertSame(handle,retained.begin())
+        } finally {
+            lifetime.cancel();registry.driverDestroyed(target.key,lifetime,"Actual controlled lifetime completed")
+        }
+        withTimeout(5_000) { while (!registry.isStopped(target.key)) delay(10) }
+        val next = retained.begin()
+        assertNotSame(handle,next)
+        assertNull(retained.restore(handle.preparationId,first.sessionId))
+        val second = prepared(retained,next)
+        assertNotEquals(first.sessionId,second.sessionId)
+        assertTrue(hosts.isCurrent(second.owner))
+        assertEquals(2,eligibility.calls.get());assertEquals(1,formal.calls.get())
+    }
+
+    @Test fun terminalArchiveDoesNotDiscardAnUnrecordedFormalStartAcknowledgement() = runBlocking(Dispatchers.IO) {
+        val eligibility = Allowed();val retained = retainer(eligibility)
+        val handle = retained.begin();val first = prepared(retained,handle)
+        formal.failAcknowledgement = true
+        val starting = async { retained.start(handle,first,request(first)) }
+        formal.callback.await()(FreeFlightAdmissionEvent.Decided(FreeFlightAdmissionResult.Accepted(null)))
+        val started = starting.await() as FreeFlightCommandResult.Committed
+        val repository:FreeFlightSessionRepository = ReflectionHelpers.getField(retained,"repository")
+        val registry = graph.registry()
+        val target = registry.stage(started.archive,first.owner,repository,graph.arrival())
+        val lifetime = SupervisorJob()
+        assertTrue(registry.attachDriver(target.key,lifetime))
+        try {
+            val ended = repository.cancel(first.owner) as FreeFlightCommandResult.Committed
+            registry.stage(ended.archive,first.owner,repository,graph.arrival())
+            lifetime.cancel();registry.driverDestroyed(target.key,lifetime,"Actual controlled lifetime completed")
+            withTimeout(5_000) { while (!registry.isStopped(target.key)) delay(10) }
+            assertSame(handle,retained.begin())
+            graph.owners().release(first.sessionId,first.owner)
+            assertSame(handle,retained.begin())
+            formal.failAcknowledgement = false
+            assertTrue(repository.retryStartAcknowledgement(first.owner,first.sessionId))
+            val next = retained.begin()
+            assertNotSame(handle,next)
+            assertNotEquals(first.sessionId,prepared(retained,next).sessionId)
+            assertEquals(2,eligibility.calls.get());assertEquals(1,formal.calls.get())
+        } finally { lifetime.cancel() }
     }
 }

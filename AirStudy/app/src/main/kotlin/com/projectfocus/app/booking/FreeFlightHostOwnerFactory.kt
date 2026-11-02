@@ -16,6 +16,8 @@ class FreeFlightHostOwnerFactory @Inject constructor(
 ) {
     val invalidations get() = ownership.invalidations
     val currentHosts get() = ownership.currentHosts
+    fun retainsRuntime(sessionId: String, owner: FreeFlightOwnerToken): Boolean =
+        ownership.retainedOwner(sessionId) == owner
     suspend fun open(): FreeFlightOwnerToken {
         val app = context.applicationContext as? ProjectFocusApp
             ?: throw IllegalStateException("The real account bootstrap owner is unavailable")

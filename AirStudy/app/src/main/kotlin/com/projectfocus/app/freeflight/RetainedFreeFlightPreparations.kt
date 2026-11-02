@@ -13,14 +13,18 @@ import com.projectfocus.core.datastore.PrefKey
 import com.projectfocus.core.datastore.SettingsRepository
 import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.model.flight.freeflight.FreeFlightStartRequest
+import com.projectfocus.core.model.flight.freeflight.FreeFlightStatus
 import com.projectfocus.service.focus.freeflight.FreeFlightArchiveStore
 import com.projectfocus.service.focus.freeflight.FreeFlightCommandResult
 import com.projectfocus.service.focus.freeflight.FreeFlightOwnerToken
 import com.projectfocus.service.focus.freeflight.FreeFlightPreparationAdmission
 import com.projectfocus.service.focus.freeflight.FreeFlightPreparationResult
 import com.projectfocus.service.focus.freeflight.FreeFlightSessionRepository
+import com.projectfocus.service.focus.freeflight.FreeFlightStartAcknowledgement
+import com.projectfocus.service.focus.freeflight.FreeFlightStartIdentity
 import com.projectfocus.service.focus.freeflight.runtime.FreeFlightPreparationDispatch
 import com.projectfocus.service.focus.freeflight.runtime.FreeFlightPreparationServiceOperations
+import com.projectfocus.service.focus.freeflight.runtime.FreeFlightRuntimeRegistry
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.UUID
 import javax.inject.Inject
@@ -55,6 +59,7 @@ class RetainedFreeFlightPreparations @Inject constructor(
     private val repository: FreeFlightSessionRepository,
     @FreeFlightApplicationScope private val scope: CoroutineScope,
     private val keepAlive: FreeFlightPreparationServiceOperations,
+    private val runtime: FreeFlightRuntimeRegistry,
 ) {
     private class Entry(val handle: FreeFlightPreparationHandle) {
         lateinit var preparation: Deferred<FreeFlightPreparationDecision>
@@ -83,6 +88,7 @@ class RetainedFreeFlightPreparations @Inject constructor(
     }
 
     fun begin(): FreeFlightPreparationHandle = synchronized(lock) {
+        retained?.takeIf(::finishedSubmission)?.let { it.closed = true }
         retained?.takeUnless { it.closed || it.rejected }?.let { return it.handle }
         retained?.takeIf { it.rejected && !it.closed }?.let { old ->
             old.closed = true
@@ -92,6 +98,20 @@ class RetainedFreeFlightPreparations @Inject constructor(
         entry.preparation = scope.async(Dispatchers.IO, start = CoroutineStart.LAZY) { prepareOwned(entry) }
         retained = entry
         entry.handle
+    }
+
+    private fun finishedSubmission(entry: Entry): Boolean {
+        val submitted = entry.submitted ?: return false
+        val prepared = entry.prepared ?: return false
+        if (entry.closed || entry.start?.isCompleted != true) return false
+        val archive = repository.state.value ?: return false
+        if (archive.sessionId != submitted.sessionId || archive.ownerScope != submitted.ownerScope ||
+            archive.status == FreeFlightStatus.ONGOING) return false
+        val key = runtime.observation.value.key ?: return false
+        if (key.sessionId != submitted.sessionId || key.owner != prepared.owner || !runtime.isStopped(key)) return false
+        if (hosts.retainsRuntime(submitted.sessionId, prepared.owner)) return false
+        val identity = FreeFlightStartIdentity(prepared.owner, submitted.sessionId)
+        return repository.startAcknowledgements.value[identity] is FreeFlightStartAcknowledgement.Recorded
     }
 
     /** Lookup only: never open another host, retry eligibility or mint a session on restoration. */
