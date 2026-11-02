@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_title">统计</string>
+    <string name="stats_back">返回</string>
+    <string name="stats_total_flights">总飞行</string>
+    <string name="stats_total_distance">总里程</string>
+    <string name="stats_total_focus">总专注</string>
+    <string name="stats_airports">到访机场</string>
+    <string name="stats_countries">到访国家/地区</string>
+    <string name="stats_unit_flights">次</string>
+    <string name="stats_unit_km">km</string>
+    <string name="stats_unit_airports">个</string>
+    <string name="stats_unit_countries">个</string>
+    <string name="stats_focus_format">%1$d 小时 %2$d 分钟</string>
+    <string name="stats_focus_minutes_only">%1$d 分钟</string>
+    <string name="stats_share">分享统计</string>
+    <string name="stats_share_title">分享统计</string>
+    <string name="stats_share_text">我的专注飞行统计\n总飞行：%1$d 次\n总里程：%2$.0f km\n总专注：%3$d 分钟\n到访机场：%4$d 个\n到访国家/地区：%5$d 个</string>
+    <string name="stats_placeholder">—</string>
+    <string name="stats_source_note">数据来自本机已完成的飞行记录，不含进行中或已取消的记录。</string>
+    <string name="stats_country_breakdown">按目的国家</string>
+    <string name="stats_country_empty">还没有可按国家分组的记录</string>
+    <string name="stats_country_count">%1$d 次</string>
+    <string name="stats_country_progress_fmt">%1$d/%2$d</string>
+    <string name="stats_country_airports_title">%1$s 的机场</string>
+    <string name="stats_country_airports_subtitle">%1$d/%2$d 已访问</string>
+    <string name="stats_country_airport_visited">已访问</string>
+    <string name="stats_country_airport_locked">未访问</string>
+    <string name="stats_country_airports_empty">这个国家还没有机场数据</string>
+    <string name="stats_country_airports_close">关闭</string>
+    <string name="stats_country_airports_load_failed">加载机场失败</string>
+    <string name="stats_country_airport_open_failed">无法打开机场详情</string>
+</resources>

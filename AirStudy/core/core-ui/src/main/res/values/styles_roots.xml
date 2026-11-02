@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    
+    <style name="Widget" parent="android:Widget" />
+    <style name="TextAppearance" parent="android:TextAppearance" />
+    <style name="ShapeAppearance" />
+
+    
+    <style name="Widget.Pf" />
+    <style name="TextAppearance.Pf" />
+    <style name="ShapeAppearance.Pf" />
+</resources>

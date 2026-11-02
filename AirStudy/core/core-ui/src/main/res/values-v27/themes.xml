@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <!-- ══════════ 夜间（默认）══════════ -->
+    <style name="Theme.Pf" parent="Theme.Pf.Base">
+
+        <item name="android:windowLightNavigationBar">@bool/pf_light_system_bars</item>
+    </style>
+
+    <!-- ══════════ 日间 ══════════ -->
+    <style name="Theme.Pf.Day" parent="Theme.Pf.Base.Day">
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+
+    <!-- ══════════ 全屏（飞行中 / 舷窗）══════════ -->
+    <style name="Theme.Pf.Immersive" parent="Theme.Pf.Base.Immersive">
+        
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+
+</resources>

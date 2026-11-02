@@ -1,0 +1,485 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- ══════════════ 顶栏 ══════════════ -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:minHeight="56dp"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/space_s">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/record_detail_back"
+            android:padding="@dimen/space_m"
+            android:src="@drawable/ic_record_back"
+            app:tint="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/titleText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:accessibilityHeading="true"
+            tools:targetApi="28"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:paddingStart="@dimen/space_xs"
+            android:paddingEnd="0dp"
+            android:text="@string/record_detail_title"
+            android:textAppearance="@style/TextAppearance.Pf.TitleM"
+            android:textColor="@color/text_primary" />
+    </LinearLayout>
+
+    <!-- ══════════════ 可滚动内容 ══════════════ -->
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/detailScroll"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingHorizontal="@dimen/space_l"
+        android:paddingBottom="@dimen/space_xl">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- ────────── 主卡片 ────────── -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_record_detail_card"
+                android:orientation="vertical"
+                android:padding="@dimen/space_xl">
+
+                <!-- ① 航线：三字码 + 箭头 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:baselineAligned="false"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/fromCode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:letterSpacing="0.06"
+                            android:textAppearance="@style/TextAppearance.Pf.Display"
+                            android:textColor="@color/text_primary"
+                            tools:text="PEK" />
+
+                        <TextView
+                            android:id="@+id/fromCity"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_xxs"
+                            android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                            android:textColor="@color/text_secondary"
+                            tools:text="北京" />
+                    </LinearLayout>
+
+                    
+                    <TextView
+                        android:id="@+id/routeArrow"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginHorizontal="@dimen/space_m"
+                        android:contentDescription="@null"
+                        android:text="@string/record_detail_arrow"
+                        android:textColor="@color/accent_text"
+                        android:textSize="20sp" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:gravity="end"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/toCode"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:letterSpacing="0.06"
+                            android:textAppearance="@style/TextAppearance.Pf.Display"
+                            android:textColor="@color/text_primary"
+                            tools:text="PVG" />
+
+                        <TextView
+                            android:id="@+id/toCity"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/space_xxs"
+                            android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                            android:textColor="@color/text_secondary"
+                            tools:text="上海" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <!-- 机场全名（小字，帮用户确认是哪个航站楼所在机场） -->
+                <TextView
+                    android:id="@+id/airportNames"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_s"
+                    android:textAppearance="@style/TextAppearance.Pf.Caption"
+                    android:textColor="@color/text_tertiary"
+                    tools:text="北京首都国际机场 → 上海浦东国际机场" />
+
+                <!-- ② 时间与状态 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_l"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/dateText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/text_primary"
+                        tools:text="10月26日 周一" />
+
+                    <TextView
+                        android:id="@+id/timeRangeText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="@dimen/space_s"
+                        android:layout_weight="1"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/text_secondary"
+                        tools:text="08:30 — 10:45" />
+
+                    <TextView
+                        android:id="@+id/statusText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.Pf.Caption"
+                        android:textColor="@color/text_secondary"
+                        tools:text="已完成" />
+                </LinearLayout>
+
+                <!-- ③ 核心数据 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="@dimen/space_l"
+                    android:background="@color/divider" />
+
+                <!-- 计划时长 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_l"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/record_detail_planned"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/text_secondary" />
+
+                    <TextView
+                        android:id="@+id/plannedText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/text_primary"
+                        tools:text="2 小时 15 分" />
+                </LinearLayout>
+
+                <!-- 实际专注 + 差额 -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_m"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/record_detail_actual"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/text_secondary" />
+
+                    <TextView
+                        android:id="@+id/diffText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="@dimen/space_s"
+                        android:textAppearance="@style/TextAppearance.Pf.Caption"
+                        android:textColor="@color/semantic_warning"
+                        tools:text="少 10 分钟" />
+
+                    <TextView
+                        android:id="@+id/actualText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/text_primary"
+                        tools:text="2 小时 05 分" />
+                </LinearLayout>
+
+                <!-- 完成度（数据不足时整行 GONE） -->
+                <LinearLayout
+                    android:id="@+id/percentRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_m"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/record_detail_completion"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/text_secondary" />
+
+                    <TextView
+                        android:id="@+id/percentText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.Pf.TitleM"
+                        android:textColor="@color/accent_text"
+                        tools:text="93%" />
+                </LinearLayout>
+
+                <!-- ④ 里程与换算 -->
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="@dimen/space_l"
+                    android:background="@color/divider" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_l"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/record_detail_distance"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/text_secondary" />
+
+                    <TextView
+                        android:id="@+id/distanceText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/text_primary"
+                        tools:text="1800.0 km" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/cruiseEquivalentText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_m"
+                    android:textAppearance="@style/TextAppearance.Pf.Caption"
+                    android:textColor="@color/text_secondary"
+                    tools:text="相当于巡航 2 小时 15 分" />
+
+                <TextView
+                    android:id="@+id/routeEquivalentText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xxs"
+                    android:textAppearance="@style/TextAppearance.Pf.Caption"
+                    android:textColor="@color/text_tertiary"
+                    tools:text="约 1.7 段京沪航线" />
+
+                <!-- 座位 / 同行人数（可选） -->
+                <TextView
+                    android:id="@+id/seatText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_m"
+                    android:textAppearance="@style/TextAppearance.Pf.Caption"
+                    android:textColor="@color/text_tertiary"
+                    android:visibility="gone"
+                    tools:text="座位 12A"
+                    tools:visibility="visible" />
+
+                <TextView
+                    android:id="@+id/participantText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xxs"
+                    android:textAppearance="@style/TextAppearance.Pf.Caption"
+                    android:textColor="@color/text_tertiary"
+                    android:visibility="gone"
+                    tools:text="与 3 人同行"
+                    tools:visibility="visible" />
+
+                <!-- ⑤ 语录 -->
+                <LinearLayout
+                    android:id="@+id/quoteBlock"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_l"
+                    android:background="@drawable/bg_record_detail_card"
+                    android:orientation="vertical"
+                    android:padding="@dimen/space_l"
+                    android:visibility="gone"
+                    tools:visibility="visible">
+
+                    <TextView
+                        android:id="@+id/quoteText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/text_primary"
+                        tools:text="路是自己走出来的" />
+
+                    <TextView
+                        android:id="@+id/quoteAuthorText"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/space_xs"
+                        android:gravity="end"
+                        android:textAppearance="@style/TextAppearance.Pf.Caption"
+                        android:textColor="@color/text_tertiary"
+                        tools:text="—— 鲁迅" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ────────── ⑥ 操作区 ────────── -->
+            <LinearLayout
+                android:id="@+id/actionBlock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_xl"
+                android:orientation="vertical">
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnBoardingPass"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:layout_marginBottom="@dimen/space_m"
+                    android:background="@drawable/bg_record_detail_secondary"
+                    android:text="@string/record_detail_boarding_pass"
+                    android:textAppearance="@style/TextAppearance.Pf.Button"
+                    android:textColor="@color/text_primary" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnReplay"
+                    android:layout_width="match_parent"
+                    android:layout_height="52dp"
+                    android:background="@drawable/bg_record_detail_primary"
+                    android:text="@string/record_detail_replay"
+                    android:textAppearance="@style/TextAppearance.Pf.Button"
+                    android:textColor="@color/text_on_accent" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_m"
+                    android:orientation="horizontal">
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnShare"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_record_detail_secondary"
+                        android:text="@string/record_detail_share"
+                        android:textAppearance="@style/TextAppearance.Pf.Button"
+                        android:textColor="@color/text_primary" />
+
+                    <androidx.appcompat.widget.AppCompatButton
+                        android:id="@+id/btnDelete"
+                        android:layout_width="0dp"
+                        android:layout_height="48dp"
+                        android:layout_marginStart="@dimen/space_m"
+                        android:layout_weight="1"
+                        android:background="@drawable/bg_record_detail_secondary"
+                        android:text="@string/record_detail_delete"
+                        android:textAppearance="@style/TextAppearance.Pf.Button"
+                        android:textColor="@color/semantic_error" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <!-- ══════════════ 状态面板（Loading / NotFound / Error）══════════════ -->
+    
+    <LinearLayout
+        android:id="@+id/statePanel"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/space_xxl"
+        android:visibility="gone"
+        tools:visibility="visible">
+
+        <TextView
+            android:id="@+id/stateTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.Pf.TitleM"
+            android:textColor="@color/text_primary"
+            tools:text="这条记录不在了" />
+
+        <TextView
+            android:id="@+id/stateBody"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_s"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.Pf.BodyM"
+            android:textColor="@color/text_secondary"
+            android:visibility="gone"
+            tools:text="它可能已在另一台设备上被删除。"
+            tools:visibility="visible" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnStateBack"
+            android:layout_width="wrap_content"
+            android:layout_height="44dp"
+            android:layout_marginTop="@dimen/space_xl"
+            android:background="@drawable/bg_record_detail_secondary"
+            android:paddingHorizontal="@dimen/space_xl"
+            android:text="@string/record_detail_action_back"
+            android:textAppearance="@style/TextAppearance.Pf.Button"
+            android:textColor="@color/text_primary" />
+    </LinearLayout>
+</LinearLayout>

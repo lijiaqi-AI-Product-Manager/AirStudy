@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- 底板：品牌深色。主题图标模式下系统会忽略它。 -->
+    <background android:drawable="@color/bg_base" />
+
+    <!-- 前景：飞机轮廓，居中在 72dp 安全区内 -->
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+
+    
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

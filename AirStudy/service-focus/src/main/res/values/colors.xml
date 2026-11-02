@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <!-- token: bg_base -->
+    <color name="focus_blocked_bg">#FFF6F6FA</color>
+
+    <!-- token: text_primary -->
+    <color name="focus_blocked_title">#FF17171C</color>
+
+    <!-- token: text_secondary -->
+    <color name="focus_blocked_body">#FF5C5C66</color>
+
+    <!-- token: text_tertiary -->
+    <color name="focus_blocked_hint">#FF80808C</color>
+
+    <!-- 反色按钮：以 text_primary 为底、bg_base 为字 -->
+    <color name="focus_blocked_action_bg">#FF17171C</color>
+    <color name="focus_blocked_action_text">#FFF6F6FA</color>
+
+    <!-- 顶部图标：40% 主文字色，日夜模式分别跟随文字色。 -->
+    <color name="focus_blocked_icon_tint">#6617171C</color>
+
+    
+    <color name="focus_icon_on_surface">#FFFFFFFF</color>
+
+</resources>

@@ -1,0 +1,2567 @@
+[
+    {
+        "mapFeature": "all",
+        "options": "geometry",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "all",
+        "options": "labels.text.stroke",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "all",
+        "options": "labels.icon",
+        "paint": {
+            "icon-type": "night"
+        }
+    },
+    {
+        "mapFeature": "administrative",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#E0D5C7"
+        }
+    },
+    {
+        "mapFeature": "administrative.country",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#787272"
+        }
+    },
+    {
+        "mapFeature": "administrative.country",
+        "visibility": true,
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#787272"
+        }
+    },
+    {
+        "mapFeature": "administrative.province",
+        "options": "geometry",
+        "paint": {
+            "color": "#666262"
+        }
+    },
+    {
+        "mapFeature": "administrative.province",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#928C82"
+        }
+    },
+    {
+        "mapFeature": "administrative.district",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#AAA59E"
+        }
+    },
+    {
+        "mapFeature": "administrative.locality",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#928C82"
+        }
+    },
+    {
+        "mapFeature": "landcover.parkland.natural",
+        "options": "geometry",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "landcover.parkland.public-garden",
+        "options": "geometry",
+        "paint": {
+            "color": "#283631"
+        }
+    },
+    {
+        "mapFeature": "landcover.parkland.public-garden",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#8BAA7F"
+        }
+    },
+    {
+        "mapFeature": "landcover.parkland.human-made",
+        "visibility": false,
+        "options": "geometry",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "landcover.hospital",
+        "options": "geometry",
+        "paint": {
+            "color": "#382B2B"
+        }
+    },
+    {
+        "mapFeature": "landcover.hospital",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#957272"
+        }
+    },
+    {
+        "mapFeature": "landcover.college",
+        "options": "geometry",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "landcover",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#928C82"
+        }
+    },
+    {
+        "mapFeature": "transit.subway",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#4F81B3"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#b38544"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.shopping mall",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#845AA3"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.huawei",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.cumberland farms",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.wawa food market",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.costco",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.intermarché",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.family mart",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.bipa",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.watsons",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.edeka",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.coop",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.ikea",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.the source",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.america's best contacts & eyeglasses",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.point.p",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.media markt",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.bws",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.liquorland",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.best buy",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.food lion",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.sam's club",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.publix super market",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.decathlon",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.super u",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.radioshack",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.deichmann",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.lowe's",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.target",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.netto",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.aaron's",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.tesco",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.ace hardware",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.goodwill",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.mobil",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.walmart",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.aldi",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.telstra",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.bp",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.7-eleven",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "landcover.human-made.building",
+        "visibility": false,
+        "paint": {
+            "color": "#000000"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#578C8C"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.BasiliqueduSacreCoeur",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.ParisTower",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.ArcdeTriomphe",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.Colosseum",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.LondonEye",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.BurjKhalifaTower",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.OperadeParis",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.NotreDamedeParis",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.MuseeduLouvre",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.PuertadelSol",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism.StatueofLiberty",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.beauty",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#9E7885"
+        }
+    },
+    {
+        "mapFeature": "poi.beauty.watsons",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.beauty.bipa",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.beauty.ultra beauty",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.beauty.bath & body works",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.leisure",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#916A91"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#996E50"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.wawa food market",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.radioshack",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking,wendy's",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.a&w canada",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.chili's grill & bar",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.nando's",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.five guys burgers and fries",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.carl's jr.",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.denny's",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.panera bread",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.panda express",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.hardee's",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.chick-fil-a",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.baskin-robbins",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.sonic drive-in",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.arby's",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.papa john's",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.little caesars",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.dairy queen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.dunkin'",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.domino's",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.pizza hut",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.subway",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.mcdonald's",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking.starbucks",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A3678F"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.ibis",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.hilton",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.econo lodge",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.travelodge",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.marriott",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.motel 6",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.quality inn",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.holiday inn",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.comfort inn",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.days inn",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.logis",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.holiday inn express",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging.best western",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.health-care",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#B07373"
+        }
+    },
+    {
+        "mapFeature": "poi.health-care.watsons",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.public-service",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#5F7299"
+        }
+    },
+    {
+        "mapFeature": "poi.public-service.telstra",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#6B6B9D"
+        }
+    },
+    {
+        "mapFeature": "poi.business.raiffeisenbank",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.coop",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.hilton",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.holiday inn",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.anz",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.cic",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.exxon",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.chevron",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.crédit mutuel",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.cardtronics",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.bank of america",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.crédit agricole",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.business.volksbank raiffeisenbank",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#6B6B9D"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.cumberland farms",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.wawa food market",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.aral",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.costco",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.intermarché",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.phillips 66",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.totalerg",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.avia",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.sam's club",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.petronas",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.bangchak",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.sinclair",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.super u",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.pt",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.76",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.cenex",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.conoco",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.petron",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.netto",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.lukoil",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.gulf",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.q8",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.caltex",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.repsol",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.tesco",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.texaco",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.ptt",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.marathon petroleum",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.mobil",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.exxon",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.chevron",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.esso",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.bp",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.automotive.shell",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "poi.sports.outdoor",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#597A52"
+        }
+    },
+    {
+        "mapFeature": "poi.sports.other",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#3E90AB"
+        }
+    },
+    {
+        "mapFeature": "poi.natural",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#597A52"
+        }
+    },
+    {
+        "mapFeature": "poi.miscellaneous",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "road.sidewalk.roadsideline",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "road.highway",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#E3CAA2"
+        }
+    },
+    {
+        "mapFeature": "road.national",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "road.national",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#444A4D"
+        }
+    },
+    {
+        "mapFeature": "road.province",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#A7ADB0"
+        }
+    },
+    {
+        "mapFeature": "road.province",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#444A4D"
+        }
+    },
+    {
+        "mapFeature": "road.city-arterial",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#808689"
+        }
+    },
+    {
+        "mapFeature": "road.city-arterial",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.minor-road",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#808689"
+        }
+    },
+    {
+        "mapFeature": "road.minor-road",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.sidewalk",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#808689"
+        }
+    },
+    {
+        "mapFeature": "road.sidewalk",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.highway.country",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#8C7248"
+        }
+    },
+    {
+        "mapFeature": "road.highway.city",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#706148"
+        }
+    },
+    {
+        "mapFeature": "landcover.human-made.Pedestrain Overpass",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#5C5F61"
+        }
+    },
+    {
+        "mapFeature": "landcover.human-made.Divider",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#283631"
+        }
+    },
+    {
+        "mapFeature": "road.highway.Urban Express Tunnel",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#706148"
+        }
+    },
+    {
+        "mapFeature": "road.highway.Urban Express",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#706148"
+        }
+    },
+    {
+        "mapFeature": "road.highway.Urban Express Elevated 1",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#706148"
+        }
+    },
+    {
+        "mapFeature": "road.highway.Urban Express Elevated 2",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#706148"
+        }
+    },
+    {
+        "mapFeature": "road.highway.Urban Express Elevated 3",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#706148"
+        }
+    },
+    {
+        "mapFeature": "road.highway.General National Route Bridge",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#444A4D"
+        }
+    },
+    {
+        "mapFeature": "road.highway.General National Route",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#444A4D"
+        }
+    },
+    {
+        "mapFeature": "road.highway.General National Route Elevated 1",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#444A4D"
+        }
+    },
+    {
+        "mapFeature": "road.highway.General National Route Elevated 2",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#444A4D"
+        }
+    },
+    {
+        "mapFeature": "road.highway.General National Route Elevated 3",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#444A4D"
+        }
+    },
+    {
+        "mapFeature": "road.city-arterial.Main Local Road Tunnel",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.city-arterial.Main Local Road Elevated 1",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.city-arterial.Main Local Road Elevated 2",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.city-arterial.Main Local Road Elevated 3",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.city-arterial.Main Local Road",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.minor-road.General road Tunnel",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.minor-road.General road Bridge",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.minor-road.General road Non_Display Interval",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.minor-road.General road Elevated 1",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.minor-road.General road Elevated 2",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.minor-road.General road Elevated 3",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.minor-road.General road",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "road.minor-road.Sidewalk Polygon",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "landcover.human-made.Green Space",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#283631"
+        }
+    },
+    {
+        "mapFeature": "landcover.human-made.Garden Path",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#434B4F"
+        }
+    },
+    {
+        "mapFeature": "landcover.human-made.Public building",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "landcover.human-made.Driving School",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "landcover.human-made.Garden Path of Driving School",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "landcover.natural.Hollow area in waters",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "landcover.college.School",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "landcover.natural.Land area in waters",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#25292B"
+        }
+    },
+    {
+        "mapFeature": "landcover.human_made",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#CF6778",
+            "fill-opacity": 0.3
+        }
+    },
+    {
+        "mapFeature": "transit",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#4F81B3"
+        }
+    },
+    {
+        "mapFeature": "transit.railway",
+        "options": "geometry",
+        "paint": {
+            "color": "#5B2E57"
+        }
+    },
+    {
+        "mapFeature": "transit.railway.high-speed",
+        "options": "geometry",
+        "paint": {
+            "color": "#5B2E57"
+        }
+    },
+    {
+        "mapFeature": "transit.ferry-line",
+        "options": "geometry",
+        "paint": {
+            "color": "#364D67"
+        }
+    },
+    {
+        "mapFeature": "transit.airport",
+        "options": "geometry",
+        "paint": {
+            "color": "#2C3235"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Midōsuji sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#DC270B"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Midōsuji sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#DC270B"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Midōsuji sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tanimachi sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#AB1C87"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tanimachi sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#AB1C87"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tanimachi sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Yotsubashi sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#0074BE"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Yotsubashi sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#0074BE"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Yotsubashi sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Chūō sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#00A63D"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Chūō sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#00A63D"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Chūō sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sennichimae sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#EC75A9"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sennichimae sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#EC75A9"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sennichimae sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sakaisuji sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#B34422"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sakaisuji sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#B34422"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sakaisuji sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Nagahori-Tsurumi-Ryokuchi sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#BCD400"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Nagahori-Tsurumi-Ryokuchi sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#BCD400"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Nagahori-Tsurumi-Ryokuchi sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Imazatosuji sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#F5A000"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Imazatosuji sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#F5A000"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Imazatosuji sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Ginza sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#F9A327"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Ginza sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#F9A327"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Ginza sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Marunouchi sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#EF2628"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Marunouchi sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#EF2628"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Marunouchi sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hibiya sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#C7BEB3"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hibiya sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#C7BEB3"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hibiya sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tokyo Tōzai sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#00AFEF"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tokyo Tōzai sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#00AFEF"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tokyo Tōzai sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Chiyoda sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#1CB266"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Chiyoda sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#1CB266"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Chiyoda sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Yūrakuchō sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#D1A663"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Yūrakuchō sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#D1A663"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Yūrakuchō sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hanzōmon sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#8C7EBA"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hanzōmon sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#8C7EBA"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hanzōmon sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tokyo Namboku sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#02B69B"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tokyo Namboku sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#02B69B"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tokyo Namboku sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Fukutoshin sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#AA5E33"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Fukutoshin sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#AA5E33"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Fukutoshin sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Asakusa sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#EF453C"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Asakusa sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#EF453C"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Asakusa sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Mita sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#0073BC"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Mita sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#0073BC"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Mita sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Shinjuku sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#ABBA40"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Shinjuku sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#ABBA40"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Shinjuku sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Ōedo sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#CF1B64"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Ōedo sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#CF1B64"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Ōedo sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kūkō sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#F97834"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kūkō sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#F97834"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kūkō sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hakozaki sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#1B8FCB"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hakozaki sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#1B8FCB"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hakozaki sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Nanakuma sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#008D5E"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Nanakuma sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#008D5E"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Nanakuma sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Burū Rain",
+        "options": "geometry",
+        "paint": {
+            "color": "#2E4CE5"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Burū Rain",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#2E4CE5"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Burū Rain",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Gurīn Rain",
+        "options": "geometry",
+        "paint": {
+            "color": "#14BF30"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Gurīn Rain",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#14BF30"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Gurīn Rain",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Karasuma sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#009A44"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Karasuma sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#009A44"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Karasuma sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kyoto Tōzai sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#E70012"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kyoto Tōzai sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#E70012"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kyoto Tōzai sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Higashiyama sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#EDAA36"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Higashiyama sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#EDAA36"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Higashiyama sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Meijō sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#897BB0"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Meijō sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#897BB0"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Meijō sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Meikō sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#897BB0"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Meikō sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#897BB0"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Meikō sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tsurumai sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#259ECE"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tsurumai sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#259ECE"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tsurumai sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sakuradōri sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#CA252B"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sakuradōri sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#CA252B"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sakuradōri sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kami-iida sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#DC6E8B"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kami-iida sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#DC6E8B"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kami-iida sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Seishin-Yamate sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#00A384"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Seishin-Yamate sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#00A384"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Seishin-Yamate sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hokushin sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#CB8A07"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hokushin sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#CB8A07"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Hokushin sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kaigan sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#0271BB"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kaigan sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#0271BB"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Kaigan sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sendai Tōzai sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#40C7F4"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sendai Tōzai sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#40C7F4"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sendai Tōzai sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Nanboku sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#2D9568"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Nanboku sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#2D9568"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Nanboku sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sapporo Namboku sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#133806"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sapporo Namboku sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#133806"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sapporo Namboku sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sapporo Tōzai sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#FF7A05"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sapporo Tōzai sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#FF7A05"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Sapporo Tōzai sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tōhō sen",
+        "options": "geometry",
+        "paint": {
+            "color": "#125183"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tōhō sen",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#125183"
+        }
+    },
+    {
+        "mapFeature": "transit.subway.Tōhō sen",
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#000000",
+            "geometry-stroke-opacity": 0.7
+        }
+    },
+    {
+        "mapFeature": "water",
+        "options": "geometry",
+        "paint": {
+            "color": "#243850"
+        }
+    },
+    {
+        "mapFeature": "water",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#4C6481"
+        }
+    },
+    {
+        "mapFeature": "trafficInfo.smooth",
+        "options": "geometry",
+        "paint": {
+            "color": "#09B84F"
+        }
+    },
+    {
+        "mapFeature": "trafficInfo.amble",
+        "options": "geometry",
+        "paint": {
+            "color": "#E67C00"
+        }
+    },
+    {
+        "mapFeature": "trafficInfo.congestion",
+        "options": "geometry",
+        "paint": {
+            "color": "#C22F2F"
+        }
+    },
+    {
+        "mapFeature": "trafficInfo.extremelycongestion",
+        "options": "geometry",
+        "paint": {
+            "color": "#801718"
+        }
+    }
+]

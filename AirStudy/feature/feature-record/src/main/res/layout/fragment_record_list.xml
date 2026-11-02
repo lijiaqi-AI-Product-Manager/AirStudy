@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/recordRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- ==================== 标题栏 ==================== -->
+    <LinearLayout
+        android:id="@+id/titleBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/space_l"
+        android:paddingTop="@dimen/space_m"
+        android:paddingBottom="@dimen/space_s">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/record_back"
+            android:padding="@dimen/space_m"
+            android:scaleType="centerInside"
+            android:src="@drawable/ic_record_back" />
+
+        <TextView
+            android:id="@+id/titleText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_xs"
+            android:layout_weight="1"
+            android:accessibilityHeading="true"
+            tools:targetApi="28"
+            android:text="@string/record_title"
+            android:textAppearance="@style/TextAppearance.Pf.TitleL"
+            android:textColor="@color/text_primary" />
+
+        <TextView
+            android:id="@+id/btnStats"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:gravity="center"
+            android:paddingHorizontal="@dimen/space_s"
+            android:text="@string/record_stats_entry"
+            android:textAppearance="@style/TextAppearance.Pf.BodyM"
+            android:textColor="@color/accent_text" />
+    </LinearLayout>
+
+    <!-- ==================== 搜索框 ==================== -->
+    <FrameLayout
+        android:id="@+id/searchField"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginHorizontal="@dimen/space_l"
+        android:layout_marginBottom="@dimen/space_m"
+        android:background="@drawable/bg_record_search_field"
+        android:paddingStart="@dimen/space_m"
+        android:paddingEnd="@dimen/space_xs">
+
+        <EditText
+            android:id="@+id/searchInput"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:background="@null"
+            android:focusableInTouchMode="true"
+            android:hint="@string/record_search_hint"
+            android:imeOptions="actionSearch"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLines="1"
+            android:singleLine="true"
+            android:textAppearance="@style/TextAppearance.Pf.BodyM"
+            android:textColorHint="@color/text_tertiary"
+            tools:ignore="Autofill,LabelFor" />
+
+        <ImageButton
+            android:id="@+id/btnClear"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="end|center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/record_search_clear"
+            android:padding="@dimen/space_m"
+            android:scaleType="centerInside"
+            android:src="@android:drawable/ic_menu_close_clear_cancel"
+            android:visibility="gone"
+            tools:visibility="visible" />
+    </FrameLayout>
+
+    <!-- ==================== 列表 + 三态面板 ==================== -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recordList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="@dimen/space_xxl"
+            android:scrollbars="none" />
+
+        <LinearLayout
+            android:id="@+id/statePanel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/space_xl"
+            android:paddingTop="@dimen/space_xxl"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/stateTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Pf.TitleM"
+                android:textColor="@color/text_primary"
+                tools:text="还没飞过" />
+
+            <TextView
+                android:id="@+id/stateBody"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"
+                android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                android:textColor="@color/text_secondary"
+                tools:text="完成第一趟专注飞行后，记录会出现在这里。" />
+
+            <!-- 「清除搜索」：只有 NoResult 态需要 -->
+            
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnClearSearch"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_marginTop="@dimen/space_l"
+                android:background="@drawable/bg_record_action"
+                android:minWidth="120dp"
+                android:paddingHorizontal="@dimen/space_xl"
+                android:text="@string/record_no_result_action"
+                android:textAppearance="@style/TextAppearance.Pf.Button"
+                android:textColor="@color/text_primary"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </LinearLayout>
+    </FrameLayout>
+
+</LinearLayout>

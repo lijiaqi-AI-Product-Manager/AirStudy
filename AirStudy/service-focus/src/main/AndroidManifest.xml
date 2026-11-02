@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    
+    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
+
+    
+    <queries>
+        <!-- 小米 / 红米 -->
+        <package android:name="com.miui.securitycenter" />
+        <!-- 华为 / 荣耀 -->
+        <package android:name="com.huawei.systemmanager" />
+        <!-- OPPO / realme / 一加 -->
+        <package android:name="com.coloros.safecenter" />
+        <!-- vivo / iQOO -->
+        <package android:name="com.vivo.permissionmanager" />
+    </queries>
+
+    <application android:supportsRtl="true">
+        <service
+            android:name=".freeflight.runtime.InjectedFreeFlightRuntimeService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
+            <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="user_started_freeflight_focus_timer" />
+        </service>
+
+
+
+
+
+
+
+        <service
+            android:name=".monitor.FocusMonitorService"
+            android:enabled="true"
+            android:exported="false"
+            android:foregroundServiceType="specialUse"
+            android:stopWithTask="false">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="focus_session_monitoring" />
+        </service>
+
+        
+        <activity
+            android:name=".monitor.BlockedAppActivity"
+            android:enabled="true"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/Theme.Pf.Blocked"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|uiMode" />
+
+    </application>
+
+</manifest>

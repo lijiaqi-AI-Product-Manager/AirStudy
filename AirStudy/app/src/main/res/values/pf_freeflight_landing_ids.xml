@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="pf_ff_land_surface" type="id" />
+    <item name="pf_ff_land_ruler" type="id" />
+    <item name="pf_ff_land_cards" type="id" />
+    <item name="pf_ff_land_confirm" type="id" />
+    <item name="pf_ff_land_query_status" type="id" />
+</resources>

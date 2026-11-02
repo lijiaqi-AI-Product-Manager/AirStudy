@@ -1,0 +1,12 @@
+{
+  "kind": "captured from the actual pre-scene production JVM class using JDK 17",
+  "source": "src/main/kotlin/com/projectfocus/core/common/nav/SeatSelectionResult.kt",
+  "source_sha256": "b9f4bef52e1b067d7f3be4ae5118269278286e515a176f246dc92f6744a3eb9d",
+  "compiled_class_sha256": "0040934257b81f9a80c9fee9b3347885297db3d1d66586cdc43cb533cdfe412b",
+  "fixture": "seat-selection-result-v1.ser",
+  "fixture_sha256": "e9ee62e549e1bef500beecb12da6863420b42fea07886e00bc7d022dd9f3f612",
+  "bytes": 170,
+  "serial_version_uid": 1,
+  "values": { "seat": "01A", "draftKey": "legacy-draft", "recordId": "legacy-record" },
+  "boundary": "An old wire-format compatibility fixture; never regenerate it from the new class. It does not establish original APK behavior."
+}

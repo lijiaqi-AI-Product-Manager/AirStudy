@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:clipChildren="false" android:clipToPadding="false" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="12.0dip"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:gravity="center" android:orientation="horizontal" android:id="@+id/pf_seat_seatColumnsLayout" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="15.0dip">
+        <TextView android:fontFamily="@font/pf_apk2_harmonyos_sans" android:textSize="14.0sp" android:textStyle="bold" android:textColor="#ff6b7280" android:gravity="center" android:layout_width="35.0dip" android:layout_height="wrap_content" android:text="A" />
+        <TextView android:fontFamily="@font/pf_apk2_harmonyos_sans" android:textSize="14.0sp" android:textStyle="bold" android:textColor="#ff6b7280" android:gravity="center" android:layout_width="35.0dip" android:layout_height="wrap_content" android:text="C" android:layout_marginStart="15.0dip" />
+        <View android:layout_width="40.0dip" android:layout_height="1.0dip" />
+        <TextView android:fontFamily="@font/pf_apk2_harmonyos_sans" android:textSize="14.0sp" android:textStyle="bold" android:textColor="#ff6b7280" android:gravity="center" android:layout_width="35.0dip" android:layout_height="wrap_content" android:text="D" />
+        <TextView android:fontFamily="@font/pf_apk2_harmonyos_sans" android:textSize="14.0sp" android:textStyle="bold" android:textColor="#ff6b7280" android:gravity="center" android:layout_width="35.0dip" android:layout_height="wrap_content" android:text="F" android:layout_marginStart="15.0dip" />
+    </LinearLayout>
+    <LinearLayout android:gravity="center" android:orientation="horizontal" android:clipChildren="false" android:clipToPadding="false" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <LinearLayout android:orientation="horizontal" android:id="@+id/pf_seat_leftSeatsLayout" android:clipChildren="false" android:clipToPadding="false" android:layout_width="wrap_content" android:layout_height="wrap_content">
+            <TextView android:fontFamily="@font/pf_apk2_harmonyos_sans" android:textSize="16.0sp" android:textColor="#ffffffff" android:gravity="center" android:id="@+id/pf_seat_seatA" android:tag="A" android:background="@drawable/pf_seat_seat_available" android:layout_width="35.0dip" android:layout_height="35.0dip" />
+            <TextView android:fontFamily="@font/pf_apk2_harmonyos_sans" android:textSize="16.0sp" android:textColor="#ffffffff" android:gravity="center" android:id="@+id/pf_seat_seatC" android:tag="C" android:background="@drawable/pf_seat_seat_available" android:layout_width="35.0dip" android:layout_height="35.0dip" android:layout_marginStart="15.0dip" />
+        </LinearLayout>
+        <TextView android:fontFamily="@font/pf_apk2_harmonyos_sans" android:textSize="12.0sp" android:textStyle="bold" android:textColor="#ff4b5563" android:gravity="center" android:id="@+id/pf_seat_rowNumberText" android:layout_width="40.0dip" android:layout_height="wrap_content" android:text="01" />
+        <LinearLayout android:orientation="horizontal" android:id="@+id/pf_seat_rightSeatsLayout" android:clipChildren="false" android:clipToPadding="false" android:layout_width="wrap_content" android:layout_height="wrap_content">
+            <TextView android:fontFamily="@font/pf_apk2_harmonyos_sans" android:textSize="16.0sp" android:textColor="#ffffffff" android:gravity="center" android:id="@+id/pf_seat_seatD" android:tag="D" android:background="@drawable/pf_seat_seat_available" android:layout_width="35.0dip" android:layout_height="35.0dip" />
+            <TextView android:fontFamily="@font/pf_apk2_harmonyos_sans" android:textSize="16.0sp" android:textColor="#ffffffff" android:gravity="center" android:id="@+id/pf_seat_seatF" android:tag="F" android:background="@drawable/pf_seat_seat_available" android:layout_width="35.0dip" android:layout_height="35.0dip" android:layout_marginStart="15.0dip" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

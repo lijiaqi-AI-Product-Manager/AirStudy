@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <!-- ===================== 设置行 ===================== -->
+    
+    <dimen name="pref_row_min_height">56dp</dimen>
+    <dimen name="pref_row_padding_h">16dp</dimen>
+    <dimen name="pref_row_padding_v">10dp</dimen>
+    <!-- 副标题与标题之间 2dp，不是 4dp：它们属于同一个信息块，
+         拉开 4dp 会让"标题+副标题"看起来像两个独立行。 -->
+    <dimen name="pref_row_subtitle_gap">2dp</dimen>
+
+    <!-- ===================== 分组 ===================== -->
+    <dimen name="pref_section_gap">18dp</dimen>
+    <dimen name="pref_section_title_padding_h">16dp</dimen>
+    <dimen name="pref_section_title_padding_bottom">6dp</dimen>
+    <dimen name="pref_divider_height">0.5dp</dimen>
+    <dimen name="pref_control_gap">8dp</dimen>
+    <dimen name="pref_control_height">44dp</dimen>
+    <dimen name="pref_slider_height">48dp</dimen>
+    <dimen name="pref_inline_value_max_width">104dp</dimen>
+    <dimen name="pref_toolbar_height">56dp</dimen>
+    <dimen name="pref_chevron_size">16dp</dimen>
+    <dimen name="segment_track_inset">2dp</dimen>
+
+    <!-- ===================== 分段控件 ===================== -->
+    <dimen name="segment_padding_h">@dimen/space_m</dimen>
+    
+    <dimen name="segment_padding_v">3dp</dimen>
+    <dimen name="segment_radius">@dimen/radius_s</dimen>
+    <dimen name="segment_text_size">@dimen/text_body_m</dimen>
+    <!-- 最小高度补偿：让轨道在小字号下也不低于 32dp，否则拇指区太小 -->
+    <dimen name="segment_height_extra">10dp</dimen>
+    <!-- 分段控件放在设置行右侧时，至少要这么宽才不至于把三段挤成三个字 -->
+    <dimen name="segment_min_width">140dp</dimen>
+
+    <!-- ===================== 滑杆 ===================== -->
+    <!-- 滑杆上方留 4dp：SeekBar 的拇指比轨道高，贴着副标题会视觉粘连 -->
+    <dimen name="pref_slider_padding_v">4dp</dimen>
+
+</resources>

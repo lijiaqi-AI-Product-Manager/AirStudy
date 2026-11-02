@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="pf_hud_source_distance_remaining">剩余里程</string><string name="pf_hud_source_distance_traveled">已行里程</string><string name="pf_hud_source_time_remaining">剩余时间</string><string name="pf_hud_source_time_elapsed">已用时间</string></resources>

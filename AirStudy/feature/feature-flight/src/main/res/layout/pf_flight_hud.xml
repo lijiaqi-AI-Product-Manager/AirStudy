@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <LinearLayout android:id="@+id/pf_flight_left_controls" android:layout_width="40dp" android:layout_height="wrap_content"
+        android:layout_alignParentStart="true" android:layout_alignParentTop="true" android:layout_marginStart="24dp"
+        android:layout_marginTop="68dp" android:orientation="vertical" android:elevation="20dp">
+        <ImageView android:id="@+id/pf_flight_pause" android:layout_width="40dp" android:layout_height="40dp"
+            android:layout_marginBottom="8dp" android:padding="8dp" android:src="@drawable/pf_flight_ic_pause"
+            android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+        <ImageView android:id="@+id/pf_flight_land" android:layout_width="40dp" android:layout_height="40dp"
+            android:layout_marginBottom="8dp" android:padding="8dp" android:src="@drawable/pf_flight_ic_land"
+            android:visibility="gone" android:background="@android:color/transparent" android:clickable="true" android:focusable="true" />
+        <ImageView android:id="@+id/pf_flight_audio" android:layout_width="40dp" android:layout_height="40dp"
+            android:padding="8dp" android:src="@drawable/pf_flight_ic_volume_speaker"
+            android:background="@android:color/transparent" android:clickable="true" android:focusable="true"
+            android:contentDescription="@string/pf_flight_audio" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/pf_flight_right_controls" android:layout_width="40dp" android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true" android:layout_alignParentTop="true" android:layout_marginEnd="24dp"
+        android:layout_marginTop="68dp" android:orientation="vertical" android:elevation="20dp">
+        <ImageView android:id="@+id/pf_flight_map_style" android:layout_width="40dp" android:layout_height="40dp"
+            android:layout_marginBottom="8dp" android:padding="8dp" android:src="@drawable/pf_flight_ic_map_style"
+            android:clickable="true" android:focusable="true" android:contentDescription="@string/pf_flight_map_style" />
+        <ImageView android:id="@+id/pf_flight_window_toggle" android:layout_width="40dp" android:layout_height="40dp"
+            android:padding="8dp" android:src="@drawable/pf_flight_ic_porthole_window" android:clickable="true" android:focusable="true" />
+    </LinearLayout>
+    <TextView android:id="@+id/pf_flight_cancel" android:layout_width="120dp" android:layout_height="40dp"
+        android:layout_alignParentEnd="true" android:layout_alignParentTop="true" android:layout_marginEnd="24dp"
+        android:layout_marginTop="68dp" android:background="@drawable/pf_flight_cancel_button_background"
+        android:gravity="center" android:text="@string/pf_flight_hold_cancel" android:textSize="12sp" android:textStyle="bold"
+        android:textColor="@color/text_primary" android:clickable="true" android:longClickable="true"
+        android:focusable="true" android:visibility="gone" android:elevation="21dp" />
+    <RelativeLayout android:id="@+id/pf_flight_stats" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true" android:layout_marginBottom="40dp" android:layout_marginStart="24dp"
+        android:layout_marginEnd="24dp">
+        <androidx.constraintlayout.widget.ConstraintLayout android:id="@+id/pf_flight_distance_container"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_alignParentStart="true" android:layout_alignParentBottom="true"
+            android:background="@drawable/pf_flight_flight_info_background">
+            <View android:id="@+id/pf_flight_distance_liquid_glass" android:layout_width="0dp" android:layout_height="0dp"
+                android:visibility="gone" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
+            <LinearLayout android:id="@+id/pf_flight_distance_content" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp"
+                app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent">
+                <com.projectfocus.feature.flight.hud.SourceNumberScrollView android:id="@+id/pf_flight_distance_value"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                <TextView android:id="@+id/pf_flight_distance_unit" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="km" android:textSize="12sp" android:textColor="@android:color/black"
+                    android:fontFamily="@font/pf_apk2_jetbrainsmono_medium" />
+                <TextView android:id="@+id/pf_flight_distance_label" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/pf_hud_source_distance_remaining" android:textSize="12sp" android:textColor="@android:color/black"
+                    android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_medium" />
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+        <androidx.constraintlayout.widget.ConstraintLayout android:id="@+id/pf_flight_time_container"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true" android:layout_alignParentBottom="true"
+            android:background="@drawable/pf_flight_flight_info_background">
+            <View android:id="@+id/pf_flight_time_liquid_glass" android:layout_width="0dp" android:layout_height="0dp"
+                android:visibility="gone" app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent" />
+            <LinearLayout android:id="@+id/pf_flight_time_content" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp"
+                app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent">
+                <com.projectfocus.feature.flight.hud.SourceNumberScrollView android:id="@+id/pf_flight_time_value"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                <TextView android:id="@+id/pf_flight_time_unit" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="min" android:textSize="12sp" android:textColor="@android:color/black"
+                    android:fontFamily="@font/pf_apk2_jetbrainsmono_medium" />
+                <TextView android:id="@+id/pf_flight_time_label" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="@string/pf_hud_source_time_remaining" android:textSize="12sp" android:textColor="@android:color/black"
+                    android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_medium" />
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </RelativeLayout>
+    <RelativeLayout android:id="@+id/pf_flight_pause_overlay" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:background="@drawable/pf_flight_pause_overlay_gradient" android:visibility="gone">
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true" android:layout_marginBottom="80dp" android:text="@string/pf_flight_paused"
+            android:textSize="16sp" android:textStyle="bold" android:textColor="@android:color/white" android:fontFamily="@font/pf_apk2_harmonyos_sans" />
+    </RelativeLayout>
+    <LinearLayout android:id="@+id/pf_flight_volume_panel" android:layout_width="240dp" android:layout_height="wrap_content"
+        android:layout_marginTop="164dp" android:layout_marginStart="24dp" android:padding="12dp"
+        android:background="@drawable/pf_flight_flight_info_background" android:orientation="vertical"
+        android:visibility="gone" android:elevation="22dp">
+        <TextView android:id="@+id/pf_flight_ambient" android:layout_width="match_parent" android:layout_height="48dp"
+            android:gravity="center_vertical" android:textSize="14sp" android:textColor="@color/text_primary" android:clickable="true" android:focusable="true" />
+        <TextView android:id="@+id/pf_flight_volume_label" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:textSize="12sp" android:textColor="@color/text_primary" />
+        <SeekBar android:id="@+id/pf_flight_volume" android:layout_width="match_parent" android:layout_height="48dp" android:max="100" />
+    </LinearLayout>
+</merge>

@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+
+    <com.projectfocus.feature.home.map.SourceMapHostView
+        android:id="@+id/sourceMap"
+        android:layout_width="match_parent" android:layout_height="match_parent" />
+
+    <com.projectfocus.feature.flight.window.FlightWindowView
+        android:id="@+id/flightWindow"
+        android:layout_width="match_parent" android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <FrameLayout android:id="@+id/groundHomeContent"
+        android:layout_width="match_parent" android:layout_height="match_parent">
+
+        <LinearLayout android:id="@+id/right_menu_container"
+            android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_gravity="top|end" android:layout_marginTop="68dp"
+            android:layout_marginEnd="24dp" android:orientation="horizontal">
+            <TextView android:id="@+id/menuTakeOff" style="@style/PfSourceHomeMenu.Takeoff" android:text="@string/home_menu_takeoff" />
+            <TextView android:id="@+id/menuRecord" style="@style/PfSourceHomeMenu" android:text="@string/home_menu_record" />
+            <TextView android:id="@+id/menuMap" style="@style/PfSourceHomeMenu" android:text="@string/home_menu_map" />
+            <TextView android:id="@+id/menuSettings" style="@style/PfSourceHomeMenu" android:layout_marginEnd="0dp" android:text="@string/home_menu_settings" />
+        </LinearLayout>
+
+        <LinearLayout android:id="@+id/bottomStack"
+            android:layout_width="300dp" android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal" android:layout_marginBottom="40dp"
+            android:gravity="center_horizontal" android:orientation="vertical">
+            <TextView android:id="@+id/tvHomeStatus"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp" android:fontFamily="@font/harmonyos_sans_sc_medium"
+                android:gravity="center" android:textColor="@android:color/black"
+                android:textSize="14sp" android:visibility="gone" />
+            <com.google.android.material.button.MaterialButton android:id="@+id/btnStartFlight"
+                android:layout_width="300dp" android:layout_height="56dp"
+                android:fontFamily="@font/harmonyos_sans_sc_medium"
+                android:insetTop="0dp" android:insetBottom="0dp" android:stateListAnimator="@null"
+                android:text="@string/home_action_search_airport" android:textAllCaps="false"
+                android:textColor="@android:color/white" android:textSize="16sp"
+                app:backgroundTint="@android:color/black" app:cornerRadius="28dp" app:elevation="0dp" />
+        </LinearLayout>
+    </FrameLayout>
+
+    <com.projectfocus.feature.flight.hud.FlightHudView android:id="@+id/flightHudOverlay"
+        android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
+
+    <GridLayout android:id="@+id/mapStyleSelectorContainer"
+        android:layout_width="240dp" android:layout_height="168dp"
+        android:layout_gravity="top|end" android:layout_marginTop="68dp" android:layout_marginEnd="80dp"
+        android:background="@drawable/bg_source_map_style_panel" android:columnCount="2"
+        android:elevation="24dp" android:padding="8dp" android:rowCount="4" android:visibility="gone">
+        <TextView android:id="@+id/mapStylePanelChip0" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_forest" />
+        <TextView android:id="@+id/mapStylePanelChip1" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_ocean" />
+        <TextView android:id="@+id/mapStylePanelChip2" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_night" />
+        <TextView android:id="@+id/mapStylePanelChip3" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_sunset" />
+        <TextView android:id="@+id/mapStylePanelChip4" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_vintage" />
+        <TextView android:id="@+id/mapStylePanelChip5" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_satellite" />
+        <TextView android:id="@+id/mapStylePanelChip6" style="@style/PfSourceMapStyleOption" android:text="@string/pf_source_map_style_day" />
+        <TextView android:id="@+id/mapStylePanelChip7" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_violet" />
+    </GridLayout>
+</FrameLayout>

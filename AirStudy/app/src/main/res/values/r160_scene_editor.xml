@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scene_editor_limit_reached">场景数量已达上限</string>
+</resources>

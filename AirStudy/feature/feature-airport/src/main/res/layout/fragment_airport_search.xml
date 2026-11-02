@@ -1,0 +1,187 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/airportRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <!-- ==================== 搜索栏 ==================== -->
+    <LinearLayout
+        android:id="@+id/searchBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/space_l"
+        android:paddingTop="@dimen/space_m"
+        android:paddingBottom="@dimen/space_s">
+
+        
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/airport_search_back"
+            android:padding="@dimen/space_m"
+            android:scaleType="centerInside"
+            android:src="@drawable/pf_airport_back"
+            app:tint="?attr/colorOnSurface" />
+
+        <FrameLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:layout_weight="1"
+            android:background="@drawable/bg_airport_search_field"
+            android:paddingStart="@dimen/space_m"
+            android:paddingEnd="@dimen/space_xs">
+
+            <EditText
+                android:id="@+id/searchInput"
+                android:layout_width="match_parent"
+                android:layout_height="48dp"
+                android:background="@null"
+                android:hint="@string/airport_search_hint"
+                android:imeOptions="actionSearch"
+                android:importantForAutofill="no"
+                android:inputType="text"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:textAppearance="@style/TextAppearance.Pf.BodyL"
+                android:textColorHint="@color/text_tertiary"
+                tools:ignore="Autofill,LabelFor" />
+
+            
+            <ImageButton
+                android:id="@+id/btnClear"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_gravity="end|center_vertical"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/airport_search_clear"
+                android:padding="@dimen/space_m"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                android:visibility="gone"
+                tools:visibility="visible" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <!-- ==================== 结果计数 ==================== -->
+    <TextView
+        android:id="@+id/resultCount"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:accessibilityLiveRegion="polite"
+        android:paddingHorizontal="@dimen/space_l"
+        android:paddingTop="@dimen/space_xs"
+        android:paddingBottom="@dimen/space_s"
+        android:textAppearance="@style/TextAppearance.Pf.Caption"
+        android:textColor="@color/text_tertiary"
+        android:visibility="gone"
+        tools:text="12 个结果"
+        tools:visibility="visible" />
+
+    <!-- ==================== 结果区（列表 + 六种空状态叠放）==================== -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/resultList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingBottom="@dimen/space_xl"
+            android:scrollbars="none" />
+
+        <LinearLayout
+            android:id="@+id/statePanel"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center_horizontal"
+            android:orientation="vertical"
+            android:paddingHorizontal="@dimen/space_xl"
+            android:paddingTop="@dimen/space_xxl">
+
+            <TextView
+                android:id="@+id/stateTitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:textAppearance="@style/TextAppearance.Pf.TitleM"
+                android:textColor="@color/text_primary"
+                tools:text="再输入 1 个字" />
+
+            <TextView
+                android:id="@+id/stateBody"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_s"
+                android:gravity="center"
+                android:lineSpacingExtra="4dp"
+                android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                android:textColor="@color/text_secondary"
+                tools:text="至少输入 2 个字，才能在海量机场里找到你要的那个" />
+
+            <!-- 重试：只有 Empty 态需要 -->
+            
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnRetry"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:background="@drawable/bg_airport_retry"
+                android:layout_marginTop="@dimen/space_l"
+                android:minWidth="120dp"
+                android:paddingHorizontal="@dimen/space_xl"
+                android:text="@string/airport_empty_action"
+                android:textAppearance="@style/TextAppearance.Pf.Button"
+                android:textColor="@color/text_primary"
+                android:visibility="gone"
+                tools:visibility="visible" />
+
+            <!-- Idle 态的推荐区（最近 + 热门） -->
+            
+            <com.projectfocus.feature.airport.ui.IdleRecommendationPanel
+                android:id="@+id/idlePanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_l"
+                android:visibility="gone"
+                tools:visibility="gone" />
+
+        </LinearLayout>
+    </FrameLayout>
+
+</LinearLayout>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    
+    <style name="Theme.ProjectFocus" parent="Theme.Pf">
+
+        <!-- app 层样式覆盖：只允许「加」，不允许改色号（色号改在 core-ui/tokens） -->
+        <item name="android:textViewStyle">@style/TextAppearance.Pf.DefaultTextView</item>
+
+        
+        <item name="android:windowBackground">@color/bg_base</item>
+    </style>
+
+</resources>

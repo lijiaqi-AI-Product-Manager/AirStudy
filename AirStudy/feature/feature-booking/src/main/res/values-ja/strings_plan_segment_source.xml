@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_tp_common_km">キロ</string>
+    <string name="pf_tp_segment_context_edit">編集</string>
+    <string name="pf_tp_segment_context_delete">削除</string>
+    <string name="pf_tp_plan_status_in_progress">進行中</string>
+    <string name="pf_tp_plan_status_completed">完了</string>
+    <string name="pf_tp_plan_status_canceled">キャンセル</string>
+    <string name="pf_tp_plan_status_completed_on_time">定刻</string>
+    <string name="pf_tp_plan_status_completed_early_fmt">%1$d分早着</string>
+    <string name="pf_tp_plan_status_completed_delayed_fmt">%1$d分遅延</string>
+    <string name="pf_tp_segment_context_batch_delete_canceled">すべてのキャンセル済み航段を削除</string>
+    <string name="pf_tp_plan_deleted_canceled_legs_fmt">キャンセル済みのセグメントを %1$d 件削除しました</string>
+    <string name="pf_tp_plan_no_deletable_canceled_legs">削除できるキャンセル済み航段はありません</string>
+</resources>

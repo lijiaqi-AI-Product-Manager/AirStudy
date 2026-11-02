@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <include layout="@layout/pf_takeoff_plan_expanded_content" />
+    <include layout="@layout/pf_takeoff_plan_add_segment_compact" />
+    <include layout="@layout/pf_takeoff_plan_set_destination_compact" />
+    <include layout="@layout/pf_takeoff_plan_floating_destination" />
+
+    <!-- 56dp reserved by all three original non-floating panels. The title's
+         20dp/14dp padding and 16sp weight are from activity_main. -->
+    <TextView
+        android:id="@+id/pf_tp_header"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:paddingStart="20dp"
+        android:paddingTop="14dp"
+        android:paddingEnd="16dp"
+        android:gravity="start|top"
+        android:text="@string/pf_tp_takeoff_tab_flight_plan"
+        android:textColor="@color/pf_tp_plan_card_text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:fontFamily="@font/pf_apk2_harmonyos_sans"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="?android:attr/selectableItemBackground"
+        android:visibility="gone" />
+
+    <!-- The same loading treatment as the compact original, covering the editor
+         while the host resolves airport data; it does not synthesize a route. -->
+    <FrameLayout
+        android:id="@+id/pf_tp_loading"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/pf_tp_literal_66000000"
+        android:clickable="true"
+        android:focusable="true"
+        android:accessibilityLiveRegion="polite"
+        android:contentDescription="@string/pf_tp_takeoff_plan_loading_airport_info"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <ProgressBar
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:indeterminate="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:fontFamily="@font/pf_apk2_harmonyos_sans"
+                android:text="@string/pf_tp_takeoff_plan_loading_airport_info"
+                android:textColor="@android:color/white"
+                android:textSize="12sp" />
+        </LinearLayout>
+    </FrameLayout>
+</merge>

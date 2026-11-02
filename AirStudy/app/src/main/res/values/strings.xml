@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+
+
+
+
+
+
+    <string name="app_name" translatable="false">AirStudy</string>
+
+    <string name="skeleton_title">M1 骨架已连通</string>
+    <string name="skeleton_subtitle">设计 token / 液态玻璃 / 核心算法 三项自检</string>
+    <string name="skeleton_glass_level">液态玻璃渲染档位</string>
+    <string name="skeleton_math_title">FlightMath 自检（距离只由时长决定）</string>
+
+    <!-- 三档降级的人类可读名，用于自检页展示 -->
+    <string name="glass_level_full">FULL（AGSL 运行时着色器）</string>
+    <string name="glass_level_blur">BLUR（系统模糊 + 叠色）</string>
+    <string name="glass_level_solid">SOLID（纯叠色兜底）</string>
+
+    <string name="skeleton_modules">24 个 Gradle 模块已连通</string>
+
+
+
+
+
+    
+
+    
+    <string name="route_replay_pending">已带好航线与时长，飞行页素材到位后直接起飞</string>
+</resources>
