@@ -1,6 +1,9 @@
 package com.projectfocus.feature.record.list
 
 import com.projectfocus.core.database.entity.FlightHistoryEntity
+import com.projectfocus.service.focus.history.FlightRecordKey
+import com.projectfocus.service.focus.history.FlightRecordKind
+import com.projectfocus.service.focus.history.RecordedFlight
 import java.time.Instant
 import java.time.LocalDate
 import java.time.YearMonth
@@ -30,11 +33,23 @@ data class RecordItem(
     val status: FlightStatus,
     /** 完成度 0f~1f，用于卡片左侧的进度条 */
     val completionRatio: Float,
+    val kind: FlightRecordKind = FlightRecordKind.COUNTDOWN,
+    val dateText: String? = null,
+    val flightNumber: String? = null,
+    val seat: String? = null,
+    val sceneTitle: String? = null,
+    val sceneIconKey: String? = null,
+    val sceneType: Int? = null,
+    val distanceKm: Double? = null,
+    val focusMinutes: Int? = null,
+    val arrivalSelected: Boolean = true,
 ) {
+    val key: FlightRecordKey get() = FlightRecordKey(kind, id)
     /** 供无障碍整条朗读 */
     val spokenSummary: String
         get() = "$fromCity 到 $toCity，$startTime 起飞，${status.label}，" +
-            "计划 $durationText，实际专注 $focusText"
+            if (kind == FlightRecordKind.COUNT_UP) "正计时，实际专注 $focusText"
+            else "倒计时，计划 $durationText，实际专注 $focusText"
 }
 
 /** 飞行状态。与数据库 `status` 列的三个取值一一对应 */
@@ -211,26 +226,8 @@ object RecordListBuilder {
         }
     }
 
-    private fun toItem(e: FlightHistoryEntity, zone: ZoneId): RecordItem {
-        val start = Instant.ofEpochMilli(e.startTimeMillis).atZone(zone)
-        val status = FlightStatus.fromDb(e.status)
-        val ratio = if (e.durationMinutes <= 0) 1f
-        else (e.actualFocusMinutes.toFloat() / e.durationMinutes).coerceIn(0f, 1f)
-
-        return RecordItem(
-            id = e.id,
-            fromCode = e.departureAirportCode.ifBlank { "---" },
-            toCode = e.destinationAirportCode.ifBlank { "---" },
-            fromCity = e.departureCity.ifBlank { e.departureAirportCode },
-            toCity = e.destinationCity.ifBlank { e.destinationAirportCode },
-            startTime = TIME_FMT.format(start),
-            durationText = formatMinutes(e.durationMinutes),
-            distanceText = "${km(e.distanceKm)} km",
-            focusText = formatMinutes(e.actualFocusMinutes),
-            status = status,
-            completionRatio = ratio,
-        )
-    }
+    private fun toItem(e: FlightHistoryEntity, zone: ZoneId): RecordItem =
+        RecordItemMapping.item(RecordedFlight.Countdown(e), zone)
 
     private fun buildSummary(rows: List<FlightHistoryEntity>): RecordSummary {
 

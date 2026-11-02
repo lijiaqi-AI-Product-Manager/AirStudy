@@ -103,7 +103,6 @@ class RecordListAdapter(
         fun bind(row: Row.Card) {
             current = row.item
             v.bind(row.item)
-            v.showDivider = !row.isLastInGroup
         }
     }
 
@@ -143,7 +142,7 @@ class RecordListAdapter(
             override fun areItemsTheSame(a: Row, b: Row): Boolean = when {
                 a is Row.Summary && b is Row.Summary -> true
                 a is Row.Header && b is Row.Header -> a.group.date == b.group.date
-                a is Row.Card && b is Row.Card -> a.item.id == b.item.id
+                a is Row.Card && b is Row.Card -> a.item.key == b.item.key
                 else -> false
             }
 

@@ -47,18 +47,18 @@ sealed interface RecordedFlight {
         override val completed get() = record.status == "COMPLETED"
         override val distanceKm get() = record.distanceKm
         override val focusMinutes get() = record.actualFocusMinutes.coerceAtLeast(0)
-        override val recordedAtWallMs get() = record.createdAt
+        override val recordedAtWallMs get() = record.startTimeMillis
         override val destinationCode get() = record.destinationAirportCode
         override val destinationCountry get() = record.destinationCountry
     }
 
     data class CountUp(val archive: FreeFlightArchive) : RecordedFlight {
-        init { archive.validated(); require(archive.status != FreeFlightStatus.ONGOING) }
+        init { archive.validated() }
         override val key get() = FlightRecordKey(FlightRecordKind.COUNT_UP, archive.sessionId)
         override val completed get() = archive.status == FreeFlightStatus.COMPLETED
         override val distanceKm get() = archive.cumulativeDistanceKm
-        override val focusMinutes get() = if (completed) CompletedFreeFlight.from(archive).displayFocusMinutes
-            else Math.round(archive.clock.activeElapsedMs / 60_000.0).coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
+        override val focusMinutes get() = Math.round(archive.clock.activeElapsedMs / 60_000.0)
+            .coerceIn(0, Int.MAX_VALUE.toLong()).toInt()
         override val recordedAtWallMs get() = archive.startedAtWallMs
         override val destinationCode get() = archive.landingAirport?.code
         override val destinationCountry get() = archive.landingAirport?.country
@@ -88,7 +88,8 @@ class FlightHistoryReader @Inject constructor(private val dao: HistoryReadDao) {
                     val archive = FreeFlightArchiveCodec.decode(row.payloadJson)
                     require(archive.sessionId == row.sessionId && archive.ownerScope == row.ownerScope &&
                         archive.revision == row.revision && archive.status.name == row.status &&
-                        archive.updatedAtWallMs == row.updatedAtWallMs && row.activeSlot == null)
+                        archive.updatedAtWallMs == row.updatedAtWallMs &&
+                        row.activeSlot == (if (archive.status == FreeFlightStatus.ONGOING) 1 else null))
                     RecordedFlight.CountUp(archive)
                 }
                 require(records.all { it.distanceKm.isFinite() && it.distanceKm >= 0.0 })

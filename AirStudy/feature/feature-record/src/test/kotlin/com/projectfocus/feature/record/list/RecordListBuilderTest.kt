@@ -358,13 +358,12 @@ class RecordListBuilderTest {
     }
 
     @Test
-    fun `未知状态的记录仍然出现在列表里`() {
-        val state = RecordListBuilder.build(
-            listOf(entity("x", at(2026, 10, 26, 9), status = "FUTURE_STATUS")),
-            zone, now,
-        ) as RecordListState.Content
-        assertThat(state.groups[0].items).hasSize(1)
-        assertThat(state.groups[0].items[0].status).isEqualTo(FlightStatus.CANCELLED)
+    fun `未知记录状态不会被展示为已取消`() {
+        org.junit.Assert.assertThrows(IllegalStateException::class.java) {
+            RecordListBuilder.build(
+                listOf(entity("x", at(2026, 10, 26, 9), status = "FUTURE_STATUS")), zone, now,
+            )
+        }
     }
 
     // ── 格式化 ─────────────────────────────────────────────

@@ -4,6 +4,10 @@
 
     <application>
         <activity
+            android:name="com.projectfocus.feature.record.share.RecordPreviewHostActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Pf" />
+        <activity
             android:name="com.projectfocus.feature.record.ui.RecordHostActivity"
             android:exported="true"
             android:theme="@style/Theme.Pf"

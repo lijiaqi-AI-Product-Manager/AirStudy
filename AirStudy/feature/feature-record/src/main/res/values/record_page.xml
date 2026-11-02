@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <style name="RecordPageTypography">
+        <item name="android:textViewStyle">@android:style/Widget.TextView</item>
+    </style>
+    <string name="pf_record_page_airports_reached_zero">成功到达机场 0/0</string>
+    <string name="pf_record_page_all">全部</string>
+    <string name="pf_record_page_cities_reached_zero">成功到达城市 0/0</string>
+    <string name="pf_record_page_common_back">返回</string>
+    <string name="pf_record_page_day">日</string>
+    <string name="pf_record_page_month">月</string>
+    <string name="pf_record_page_next_page">下一页</string>
+    <string name="pf_record_page_no_records">暂无记录</string>
+    <string name="pf_record_page_page_1">第 1 页</string>
+    <string name="pf_record_page_previous_page">上一页</string>
+    <string name="pf_record_page_record">记录</string>
+    <string name="pf_record_page_record_tab_records">记录</string>
+    <string name="pf_record_page_record_tab_statistics">统计</string>
+    <string name="pf_record_page_share_card">分享卡片</string>
+    <string name="pf_record_page_total_flown_zero">共飞行0km</string>
+    <string name="pf_record_page_week">周</string>
+    <style name="RecordPageTabTextAppearance" parent="@style/TextAppearance.MaterialComponents.Body1">
+        <item name="android:textSize">15.0sp</item>
+        <item name="android:fontFamily">@font/harmonyos_sans_sc_medium</item>
+        <item name="fontFamily">@font/harmonyos_sans_sc_medium</item>
+    </style>
+    <string name="pf_record_page_status_all">全部</string>
+    <string name="pf_record_page_status_arrived">已到达</string>
+    <string name="pf_record_page_status_in_progress">飞行中</string>
+    <string name="pf_record_page_status_cancelled">已取消</string>
+    <string name="pf_record_page_page_format">第 %1$d 页</string>
+    <string name="pf_record_page_loading">正在读取飞行记录</string>
+    <string name="pf_record_page_read_failed">读取失败，点此重试</string>
+    <string name="pf_record_page_share_preview_description">飞行记录预览，点背景关闭</string>
+    <string name="pf_record_page_total_flown_format">共飞行%1$skm</string>
+    <string name="pf_record_page_total_loading">—</string>
+    <color name="pf_record_page_record_main_tab_indicator">#ff111111</color>
+    <color name="pf_record_page_record_main_tab_selected">#ff111111</color>
+    <color name="pf_record_page_record_main_tab_unselected">#ff666666</color>
+    <color name="pf_record_page_capsule_fill_green_night">#ff00e676</color>
+    <color name="pf_record_page_capsule_fill_green_day">#ff2ecc71</color>
+    <color name="pf_record_page_capsule_track_grey">#ff606060</color>
+    <color name="pf_record_page_capsule_track_light_grey">#ffd0d0d0</color>
+</resources>

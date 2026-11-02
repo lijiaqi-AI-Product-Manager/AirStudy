@@ -111,6 +111,30 @@ class FlightHistoryReaderTest {
         assertEquals(actual, RoomFreeFlightArchiveStore(db.freeFlightArchiveDao()).load("same-id", owner))
     }
 
+    @Test fun activeIndependentArchiveRemainsBrowseableWithoutBecomingACompletedFlight() = runBlocking(Dispatchers.IO) {
+        TokenStore.setCancellable("active-history-account")
+        val owner = TokenStore.storageScope()
+        val now = FreeFlightClockReading(0,0,wall,"active-record-clock")
+        val departure = PlannedAirport(1,"PEK","Beijing Airport","Beijing","CN",40.0,116.0)
+        val engine = FreeFlightEngine()
+        val start = engine.start(FreeFlightStartRequest("active-record",owner,departure,90.0,"01A",
+            FreeFlightScene(3,"Reading","reading")),now)
+        val store = RoomFreeFlightArchiveStore(db.freeFlightArchiveDao())
+        assertTrue(store.commit(null,start,null))
+        val sampled = engine.sample(start,now.copy(elapsedRealtimeMs=61_000,uptimeMillis=61_000,wallMs=wall+61_000))
+            .copy(revision=1)
+        assertTrue(store.commit(0,sampled,null))
+        val read = loaded()
+        val actual = read.records.single() as RecordedFlight.CountUp
+        assertEquals(sampled,actual.archive)
+        assertFalse(actual.completed)
+        assertNull(actual.destinationCode)
+        val summary = HistoryStatistics.calculate(read.records,read.airportCounts,read.airportCodes)
+        assertEquals(0,summary.flights)
+        assertEquals(0,summary.focusMinutes)
+        assertEquals(0.0,summary.distanceKm,0.0)
+    }
+
     @Test fun corruptPayloadIsAReadFailureAndRetryRecoversTheSameLiveReader() = runBlocking(Dispatchers.IO) {
         TokenStore.setCancellable("history-corruption-account")
         val owner = TokenStore.storageScope()
@@ -152,6 +176,23 @@ class FlightHistoryReaderTest {
         val toppedUp = ArrivalHistoryTotals.calculate(listOf(RecordedFlight.CountUp(stale)), alreadyToday, now, zone)
         assertEquals(alreadyToday.displayFocusMinutes, toppedUp.focusMinutes)
         assertEquals(alreadyToday.distanceKm, toppedUp.distanceKm, 1e-10)
+    }
+
+    @Test fun restoredHistoryUsesItsDepartureDateAndShortRecordsKeepTheirOwnDuration() {
+        val midnight = Instant.ofEpochMilli(wall).atZone(ZoneId.of("UTC")).toLocalDate()
+            .atStartOfDay(ZoneId.of("UTC")).toInstant().toEpochMilli()
+        val current = CompletedFreeFlight.from(arrived("short-arrival", "scope", elapsed = 5_000))
+        val short = RecordedFlight.CountUp(current.archive)
+        assertEquals(0, short.focusMinutes)
+        assertEquals(1, current.displayFocusMinutes)
+        assertEquals(0, HistoryStatistics.calculate(listOf(short), emptyMap(), emptyMap()).focusMinutes)
+        val restoredToday = legacy("restored-today", "scope", wall).copy(createdAt = 0)
+        val savedLate = legacy("saved-after-midnight", "scope", midnight - 1)
+            .copy(createdAt = wall, actualFocusMinutes = 9, distanceKm = 333.0)
+        val totals = ArrivalHistoryTotals.calculate(listOf(RecordedFlight.Countdown(restoredToday),
+            RecordedFlight.Countdown(savedLate), short), current, wall + 100_000, ZoneId.of("UTC"))
+        assertEquals(6, totals.focusMinutes)
+        assertEquals(99.25 + current.distanceKm, totals.distanceKm, 1e-10)
     }
 
     @Test fun dailyHistoryFallbackRoundsItsStoredDistanceAndCancelledUnselectedFlightsInventNoDestination() {

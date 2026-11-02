@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <color name="pf_record_card_surface">#E6FFFFFF</color>
+    <color name="pf_record_card_stroke">#14000000</color>
+</resources>

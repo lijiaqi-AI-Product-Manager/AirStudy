@@ -40,6 +40,10 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        if (arguments?.getBoolean(ARG_EMBEDDED) == true) {
+            (view.findViewById<View>(R.id.statsBack).parent as? View)?.visibility = View.GONE
+        }
+
         view.findViewById<View>(R.id.statsBack).setOnClickListener {
             findNavController().popBackStack()
         }
@@ -236,4 +240,6 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         }
         withAccount(state.account) { startActivity(Intent.createChooser(send, getString(R.string.stats_share_title))) }
     }
+
+    companion object { const val ARG_EMBEDDED = "embedded_statistics" }
 }

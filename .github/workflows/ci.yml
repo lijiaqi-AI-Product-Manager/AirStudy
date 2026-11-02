@@ -51,11 +51,18 @@ jobs:
           --tests 'com.projectfocus.app.admission.freeflight.*'
           --tests 'com.projectfocus.app.booking.FlightPreparation*'
           --tests 'com.projectfocus.app.booking.PlanOriginReconciliationIntegrationTest'
+          --tests 'com.projectfocus.app.route.NavGraphTest'
+          --tests 'com.projectfocus.app.route.RecordBrowserFlowTest'
           --stacktrace
+      - name: Verify flight records
+        run: >-
+          bash ./gradlew :feature:feature-record:hiltJavaCompileDebugUnitTest
+          :feature:feature-record:testDebugUnitTest --stacktrace
       - name: Verify documented contracts
         run: >-
           bash ./gradlew
           :feature:feature-airport:testDebugUnitTest --tests com.projectfocus.feature.airport.search.SearchRankingDocTest
+          --tests com.projectfocus.feature.airport.ui.ArrivalMarkNativeTest
           :server:test --tests com.projectfocus.server.ApiContractDocTest
           --stacktrace
       - name: Build application
@@ -67,4 +74,7 @@ jobs:
           path: |
             AirStudy/**/build/reports/tests/
             AirStudy/**/build/test-results/
+            AirStudy/**/build/reports/record-card/
+            AirStudy/**/build/reports/records/
+            AirStudy/**/build/reports/airport-mark/
           retention-days: 7

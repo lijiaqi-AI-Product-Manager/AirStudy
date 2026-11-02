@@ -15,6 +15,18 @@ import kotlinx.coroutines.Dispatchers
 object RecordTestBindings {
 
     @Provides
+    @javax.inject.Singleton
+    fun provideRecordRuntime(owners: com.projectfocus.service.focus.freeflight.runtime.FreeFlightRuntimeOwners) =
+        com.projectfocus.service.focus.freeflight.runtime.FreeFlightRuntimeRegistry(
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Main.immediate), owners)
+
+    @Provides
+    @javax.inject.Singleton
+    fun provideRecordPreparationRuntime() =
+        com.projectfocus.service.focus.freeflight.runtime.FreeFlightPreparationRuntime(
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Main.immediate))
+
+    @Provides
     fun provideWidgetPush(): WidgetPush = NoOpWidgetPush
 
     @Provides

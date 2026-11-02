@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <color name="pf_record_card_surface">#121315</color>
+    <color name="pf_record_card_stroke">#30363D</color>
+    <color name="pf_record_card_primary">#FFFFFF</color>
+    <color name="pf_record_card_secondary">#B3FFFFFF</color>
+</resources>

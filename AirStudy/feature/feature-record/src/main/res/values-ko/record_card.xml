@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="pf_record_card_archive_badge_countdown">카운트다운</string>
+    <string name="pf_record_card_archive_badge_countup">카운트업</string>
+    <string name="pf_record_card_common_km">km</string>
+    <string name="pf_record_card_common_min">분</string>
+    <string name="pf_record_card_common_na">N/A</string>
+    <string name="pf_record_card_flight_status_arrived">도착함</string>
+    <string name="pf_record_card_record_focus_scene_not_selected">미선택</string>
+    <string name="pf_record_card_record_label_boarding_time">탑승 시간</string>
+    <string name="pf_record_card_record_label_date">날짜</string>
+    <string name="pf_record_card_record_label_flight">항공편</string>
+    <string name="pf_record_card_record_label_focus_duration">집중 시간</string>
+    <string name="pf_record_card_record_label_focus_scene">집중 시나리오</string>
+    <string name="pf_record_card_record_label_seat">좌석</string>
+    <string name="pf_record_card_record_status_cancelled">결항</string>
+    <string name="pf_record_card_record_status_in_progress">비행중</string>
+    <string name="pf_record_card_record_status_on_time">정시</string>
+    <string name="pf_record_card_zero_km">0 킬로미터</string>
+    <string name="pf_record_card_zero_min">0 분</string>
+</resources>

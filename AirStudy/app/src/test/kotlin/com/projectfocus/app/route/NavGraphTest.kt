@@ -322,15 +322,15 @@ class NavGraphTest {
     }
 
     @Test
-    fun `飞行记录壳会在自己的容器里装上真页面`() {
+    fun recordsHostInstallsTheRecordsAndStatisticsPager() {
         nav().navigate(R.id.action_permission_to_home)
         idle()
         nav().navigate(R.id.action_home_to_record)
         idle()
-
         val host = currentHostFragment() as RecordListHostFragment
-        assertThat(host.childFragmentManager.fragments.firstOrNull())
-            .isInstanceOf(RecordListFragment::class.java)
+        val pager = recordsPager(host)
+        assertThat(pager.adapter?.itemCount).isEqualTo(2)
+        assertThat(host.childFragmentManager.fragments.any { it is com.projectfocus.feature.record.ui.RecordPageFragment }).isTrue()
     }
 
     @Test
@@ -447,145 +447,57 @@ class NavGraphTest {
 
 
     @Test
-    fun `记录卡片点击会在壳内装上详情页而不是换掉整个壳`() {
+    fun switchingRecordTabsKeepsTheRouteAndCreatesTheStatisticsPage() {
         nav().navigate(R.id.action_permission_to_home)
         idle()
         nav().navigate(R.id.action_home_to_record)
         idle()
-
         val host = currentHostFragment() as RecordListHostFragment
-        val listFrag = host.childFragmentManager.fragments.first()
-        assertThat(listFrag).isInstanceOf(RecordListFragment::class.java)
-
-        // 直接触发列表的宿主回调 —— 等价于用户点了某张卡片
-        (listFrag as RecordListFragment).onRecordOpen(
-            com.projectfocus.feature.record.list.RecordItem(
-                id = "rec-1",
-                fromCode = "PEK", toCode = "PVG",
-                fromCity = "北京", toCity = "上海",
-                startTime = "08:30",
-                durationText = "2 小时 15 分",
-                distanceText = "1800.0 km",
-                focusText = "2 小时 5 分",
-                status = com.projectfocus.feature.record.list.FlightStatus.COMPLETED,
-                completionRatio = 0.93f,
-            ),
-        )
-
-
-        //   队列，但 FragmentManager 的待执行事务是**它自己**的队列，
-        //   由 `executePendingTransactions()` 或下一次 `performResume` 驱动。
-
-        host.childFragmentManager.executePendingTransactions()
+        recordsPager(host).setCurrentItem(1, false)
         idle()
-
-        // 壳没被换掉
-        assertThat(host.childFragmentManager.fragments.first())
-            .isInstanceOf(com.projectfocus.feature.record.ui.RecordDetailFragment::class.java)
-        // 返回栈里多了一层
-        assertThat(host.childFragmentManager.backStackEntryCount).isEqualTo(1)
-        // 导航目的地仍然是记录列表（NavController 不知情）
-        assertThat(nav().currentDestination?.id).isEqualTo(R.id.recordListFragment)
-    }
-
-    @Test
-    fun `详情页按返回回到列表而不是退出 App`() {
-        nav().navigate(R.id.action_permission_to_home)
-        idle()
-        nav().navigate(R.id.action_home_to_record)
-        idle()
-
-        val host = currentHostFragment() as RecordListHostFragment
-        val listFrag = host.childFragmentManager.fragments.first() as RecordListFragment
-        listFrag.onRecordOpen(
-            com.projectfocus.feature.record.list.RecordItem(
-                id = "rec-1", fromCode = "PEK", toCode = "PVG",
-                fromCity = "北京", toCity = "上海", startTime = "08:30",
-                durationText = "2 小时 15 分", distanceText = "1800.0 km",
-                focusText = "2 小时 5 分",
-                status = com.projectfocus.feature.record.list.FlightStatus.COMPLETED,
-                completionRatio = 0.93f,
-            ),
-        )
-        host.childFragmentManager.executePendingTransactions()
-        idle()
-
-        val detail = host.childFragmentManager.fragments.first()
-            as com.projectfocus.feature.record.ui.RecordDetailFragment
-
-
-        //   详情页的 `onBack` 必须是 `childFragmentManager.popBackStack()`，
-        //   而不是 `nav?.popBackStack()`。
-        //   写成后者的话，弹出的会是**整个记录列表壳** —— 用户从详情
-        //   按返回会直接回到首页，而列表页再也回不去。
-        detail.onBack.invoke()
-
-        //
-        //   原因：`popBackStack()` 带**反转动画**，而动画在 Robolectric 里
-        //   是"开始了但永远不结束"的状态 —— `DefaultSpecialEffectsController`
-        //   要等动画回调才把 outgoing fragment 真正移除。
-        //   实测：连推两轮 `executePendingTransactions()` 之后，
-        //   `fragments.first()` 仍然是 RecordDetailFragment（正在淡出）。
-        //
-        //   → 生产代码保持 `popBackStack()`（要动画）；
-        //     测试里换成 `popBackStackImmediate()` —— 它跳过动画、同步完成。
-        //
-
-        //     所以"返回后回到列表"这个行为仍然被测到了。
-        //     不能为了好测就把生产的 `popBackStack` 改掉 ——
-        //     那等于让测试反过来决定产品行为。
-        host.childFragmentManager.popBackStackImmediate()
-        idle()
-        host.childFragmentManager.executePendingTransactions()
-        idle()
-
-        assertThat(host.childFragmentManager.fragments.first())
-            .isInstanceOf(RecordListFragment::class.java)
+        recordsPager(host)
+        assertThat(host.childFragmentManager.fragments.any { it is com.projectfocus.feature.stats.StatsFragment }).isTrue()
         assertThat(host.childFragmentManager.backStackEntryCount).isEqualTo(0)
         assertThat(nav().currentDestination?.id).isEqualTo(R.id.recordListFragment)
     }
 
     @Test
-    fun `详情页的参数里带着记录 id`() {
-
-        //   而界面上看起来只是"一直转圈"，没有任何错误信息。
+    fun recordHeaderBackReturnsToItsHomeRouteFromTheStatisticsTab() {
         nav().navigate(R.id.action_permission_to_home)
         idle()
         nav().navigate(R.id.action_home_to_record)
         idle()
-
         val host = currentHostFragment() as RecordListHostFragment
-        val listFrag = host.childFragmentManager.fragments.first() as RecordListFragment
-        listFrag.onRecordOpen(
-            com.projectfocus.feature.record.list.RecordItem(
-                id = "abc-123", fromCode = "PEK", toCode = "PVG",
-                fromCity = "北京", toCity = "上海", startTime = "08:30",
-                durationText = "2 小时 15 分", distanceText = "1800.0 km",
-                focusText = "2 小时 5 分",
-                status = com.projectfocus.feature.record.list.FlightStatus.COMPLETED,
-                completionRatio = 0.93f,
-            ),
-        )
-        host.childFragmentManager.executePendingTransactions()
+        recordsPager(host).setCurrentItem(1, false)
         idle()
-
-        val detail = host.childFragmentManager.fragments.first()
-        assertThat(detail.arguments?.getString(
-            com.projectfocus.feature.record.ui.RecordDetailFragment.ARG_RECORD_ID,
-        )).isEqualTo("abc-123")
+        host.requireView().findViewById<android.view.View>(com.projectfocus.feature.record.R.id.pf_record_page_btn_back).performClick()
+        idle()
+        assertThat(nav().currentDestination?.id).isEqualTo(R.id.homeFragment)
     }
-    // ═══════════════════════════════════════════════════════════
-    // 小组件入口：EXTRA_ACTION 的契约
-    // ═══════════════════════════════════════════════════════════
-    //
 
-    //   三方分别在三个模块里（widget / app），没有任何编译期约束把它们绑在一起 ——
-    //   全是字符串常量。一处拼错，表现是"点了小组件，App 打开了，但没开始飞行"：
-    //   不崩溃、不报错、用户只觉得这个功能没做完。
-    //
+    @Test
+    fun recordPagerRestoresTheSelectedTabAfterRecreation() {
+        nav().navigate(R.id.action_permission_to_home)
+        idle()
+        nav().navigate(R.id.action_home_to_record)
+        idle()
+        recordsPager(currentHostFragment() as RecordListHostFragment).setCurrentItem(1, false)
+        idle()
+        scenario!!.recreate()
+        idle()
+        val pager = recordsPager(currentHostFragment() as RecordListHostFragment)
+        assertThat(pager.currentItem).isEqualTo(1)
+        assertThat(nav().currentDestination?.id).isEqualTo(R.id.recordListFragment)
+    }
 
-    //   ① 常量值本身（防止有人"顺手改得更语义化"而另一处没改）
-    //   ② 中转页确实把 action 转发出去了（照抄一句 putExtra 是很容易漏的）
+    private fun recordsPager(host: RecordListHostFragment): androidx.viewpager2.widget.ViewPager2 {
+        val root = host.requireView()
+        root.measure(android.view.View.MeasureSpec.makeMeasureSpec(432, android.view.View.MeasureSpec.EXACTLY),
+            android.view.View.MeasureSpec.makeMeasureSpec(936, android.view.View.MeasureSpec.EXACTLY))
+        root.layout(0, 0, 432, 936)
+        idle()
+        return root.findViewById(com.projectfocus.feature.record.R.id.pf_record_page_main_view_pager)
+    }
 
     @Test
     fun `小组件动作常量的值与文档一致`() {

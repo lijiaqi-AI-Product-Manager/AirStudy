@@ -15,6 +15,7 @@ android {
 
 dependencies {
     implementation(project(":core:core-common"))
+    implementation(project(":core:core-model"))
     implementation(project(":core:core-database"))
     implementation(project(":core:core-network"))
     implementation(project(":core:core-datastore"))
@@ -54,6 +55,8 @@ dependencies {
     //     两张图一旦分家，就会有一天出现"到站页的章是 COMPLETED、
     //     分享图上是空白"这类不一致，而且没有任何测试能发现。
     implementation(project(":feature:feature-completion"))
+    implementation(project(":feature:feature-scene"))
+    implementation("com.google.android.flexbox:flexbox:3.0.0")
     implementation(libs.timber)
 
 

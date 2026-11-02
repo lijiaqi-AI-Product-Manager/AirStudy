@@ -1,0 +1,6 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <color name="pf_record_page_record_main_tab_indicator">#ffffffff</color>
+    <color name="pf_record_page_record_main_tab_selected">#ffffffff</color>
+    <color name="pf_record_page_record_main_tab_unselected">#ffb8b8bd</color>
+</resources>

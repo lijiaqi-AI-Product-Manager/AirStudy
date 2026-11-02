@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="pf_record_card_archive_badge_countdown">Обратный</string>
+    <string name="pf_record_card_archive_badge_countup">Прямой</string>
+    <string name="pf_record_card_common_km">км</string>
+    <string name="pf_record_card_common_min">мин</string>
+    <string name="pf_record_card_common_na">Н/Д</string>
+    <string name="pf_record_card_flight_status_arrived">Прибыл</string>
+    <string name="pf_record_card_record_focus_scene_not_selected">Не выбрано</string>
+    <string name="pf_record_card_record_label_boarding_time">Время посадки</string>
+    <string name="pf_record_card_record_label_date">Дата</string>
+    <string name="pf_record_card_record_label_flight">Рейс</string>
+    <string name="pf_record_card_record_label_focus_duration">Длительность фокуса</string>
+    <string name="pf_record_card_record_label_focus_scene">Сценарий фокуса</string>
+    <string name="pf_record_card_record_label_seat">Место</string>
+    <string name="pf_record_card_record_status_cancelled">Отменен</string>
+    <string name="pf_record_card_record_status_in_progress">В полете</string>
+    <string name="pf_record_card_record_status_on_time">По расписанию</string>
+    <string name="pf_record_card_zero_km">0 км</string>
+    <string name="pf_record_card_zero_min">0 мин</string>
+</resources>

@@ -1,0 +1,21 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="pf_record_card_archive_badge_countdown">カウントダウン</string>
+    <string name="pf_record_card_archive_badge_countup">カウントアップ</string>
+    <string name="pf_record_card_common_km">キロ</string>
+    <string name="pf_record_card_common_min">分</string>
+    <string name="pf_record_card_common_na">N/A</string>
+    <string name="pf_record_card_flight_status_arrived">到着済み</string>
+    <string name="pf_record_card_record_focus_scene_not_selected">未選択</string>
+    <string name="pf_record_card_record_label_boarding_time">搭乗時刻</string>
+    <string name="pf_record_card_record_label_date">日付</string>
+    <string name="pf_record_card_record_label_flight">便名</string>
+    <string name="pf_record_card_record_label_focus_duration">集中時間</string>
+    <string name="pf_record_card_record_label_focus_scene">フォーカスシーン</string>
+    <string name="pf_record_card_record_label_seat">座席</string>
+    <string name="pf_record_card_record_status_cancelled">欠航</string>
+    <string name="pf_record_card_record_status_in_progress">飛行中</string>
+    <string name="pf_record_card_record_status_on_time">定時</string>
+    <string name="pf_record_card_zero_km">0 キロ</string>
+    <string name="pf_record_card_zero_min">0分</string>
+</resources>
