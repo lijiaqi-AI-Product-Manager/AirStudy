@@ -4,6 +4,7 @@ import android.content.SharedPreferences
 import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.model.flight.freeflight.FreeFlightScene
 import com.projectfocus.core.model.flight.freeflight.FreeFlightStartRequest
+import com.projectfocus.core.model.flight.freeflight.FreeFlightArchive
 import com.projectfocus.core.network.dto.FreeFlightFormalReply
 import com.projectfocus.core.network.dto.FreeFlightLocalFailureReply
 import java.io.IOException
@@ -59,6 +60,10 @@ class FreeFlightAdmissionJournal(private val preferences: SharedPreferences) {
     internal fun find(request: FreeFlightStartRequest): FreeFlightAdmissionEntry = synchronized(lock) {
         all().singleOrNull { it.ownerScope == request.ownerScope && it.sessionId == request.sessionId && it.requestFingerprint == fingerprint(request) }
             ?: throw IOException("Matching admission operation is missing")
+    }
+    internal fun findRestored(archive:FreeFlightArchive):FreeFlightAdmissionEntry = synchronized(lock) {
+        archive.validated()
+        find(archive.originalStartRequest() ?: throw IOException("The original start input is unavailable"))
     }
     internal fun update(operationId: String, change: (FreeFlightAdmissionEntry) -> FreeFlightAdmissionEntry): FreeFlightAdmissionEntry = synchronized(lock) {
         val before = read(operationId); val after = change(before)

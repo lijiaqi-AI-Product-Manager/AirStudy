@@ -14,6 +14,7 @@ import com.projectfocus.core.datastore.SettingsRepository
 import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.model.flight.freeflight.FreeFlightStartRequest
 import com.projectfocus.core.model.flight.freeflight.FreeFlightStatus
+import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.service.focus.freeflight.FreeFlightArchiveStore
 import com.projectfocus.service.focus.freeflight.FreeFlightCommandResult
 import com.projectfocus.service.focus.freeflight.FreeFlightOwnerToken
@@ -206,22 +207,27 @@ class RetainedFreeFlightPreparations @Inject constructor(
             val preferences = context.getSharedPreferences(HomeMapStyleSelection.FILE_NAME, Context.MODE_PRIVATE)
             val code = preferences.getString(HomeOriginSelection.CODE, null)?.takeIf(String::isNotBlank)
                 ?: return FreeFlightPreparationDecision.Rejected("请先选择出发机场")
-            val airport = airports.findByCode(code)
+            val account = TokenStore.snapshot()
+            val marker = preferences.getString(HomeOriginSelection.MARKER,null)
+            val departure = HomeOriginSelection.selectedSnapshot(preferences,code,account)
+                ?: airports.findByCode(code)?.snapshot()
                 ?: return FreeFlightPreparationDecision.Unavailable("找不到所选出发机场，请重新选择")
             val owner = hostOpening.withLock {
                 // A cancelled preparation must not open late and replace a newer real host.
                 if (!entryCurrent(entry)) return unavailable()
                 hosts.open().also { opened -> synchronized(lock) { entry.owner = opened } }
             }
-            if (!entryCurrent(entry)) return unavailable()
+            if (!entryCurrent(entry) || TokenStore.snapshot() != account || owner.ownerScope != TokenStore.storageScope(account))
+                return unavailable()
             when (val decision = admission.check(owner)) {
                 is FreeFlightPreparationResult.Rejected -> return FreeFlightPreparationDecision.Rejected(decision.reason)
                 FreeFlightPreparationResult.Allowed -> Unit
             }
-            if (!hosts.isCurrent(owner) || !entryCurrent(entry) || preferences.getString(HomeOriginSelection.CODE, null) != code)
+            if (!hosts.isCurrent(owner) || !entryCurrent(entry) || TokenStore.snapshot() != account ||
+                preferences.getString(HomeOriginSelection.CODE, null) != code ||
+                preferences.getString(HomeOriginSelection.MARKER,null) != marker)
                 return unavailable()
             val selectedCategory = settings.read(PrefKey.SelectedCategoryId).takeIf { it >= 0L }
-            val departure = airport.snapshot()
             val prepared = FreeFlightPrepared(entry.handle.preparationId, owner, UUID.randomUUID().toString(), departure,
                 SourceFlightNumber.generate(departure.code, "FREE", true), selectedCategory)
             if (!hosts.isCurrent(owner)) return unavailable()

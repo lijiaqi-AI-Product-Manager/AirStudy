@@ -37,7 +37,19 @@ jobs:
       - name: Compile application test dependencies
         run: bash ./gradlew :app:hiltJavaCompileDebugUnitTest --stacktrace
       - name: Verify core flight behavior
-        run: bash ./gradlew :core:core-model:test :service-focus:testDebugUnitTest :feature:feature-home:testDebugUnitTest --stacktrace
+        run: >-
+          bash ./gradlew :core:core-model:test :core:core-network:testDebugUnitTest
+          :core:core-ui:testDebugUnitTest :service-focus:testDebugUnitTest
+          :feature:feature-home:testDebugUnitTest --stacktrace
+      - name: Verify arrival and preparation handoff
+        run: >-
+          bash ./gradlew :feature:feature-flight:testDebugUnitTest
+          :feature:feature-completion:testDebugUnitTest :app:testDebugUnitTest
+          --tests 'com.projectfocus.app.freeflight.*'
+          --tests 'com.projectfocus.app.admission.freeflight.*'
+          --tests 'com.projectfocus.app.booking.FlightPreparation*'
+          --tests 'com.projectfocus.app.booking.PlanOriginReconciliationIntegrationTest'
+          --stacktrace
       - name: Verify documented contracts
         run: >-
           bash ./gradlew

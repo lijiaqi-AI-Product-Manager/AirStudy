@@ -86,6 +86,7 @@ interface FreeFlightAdmission {
     suspend fun localStartFailed(request: FreeFlightStartRequest, accepted: FreeFlightAdmissionResult.Accepted)
     /** Durable local success ACK; called after archive persistence and after exiting the Core lease. */
     suspend fun localStartCommitted(request: FreeFlightStartRequest, accepted: FreeFlightAdmissionResult.Accepted)
+    suspend fun acknowledgeRestoredStart(owner:FreeFlightOwnerToken,archive:FreeFlightArchive):Boolean = false
 }
 
 sealed interface FreeFlightStartAcknowledgement {
@@ -160,6 +161,8 @@ class FreeFlightSessionRepository(
     private val mutableState = MutableStateFlow<FreeFlightArchive?>(null)
     val state: StateFlow<FreeFlightArchive?> = mutableState.asStateFlow()
     @Volatile private var ownerToken: FreeFlightOwnerToken? = null
+    @Volatile private var recordedIdentity: FreeFlightStartIdentity? = null
+    fun recordedOwner(sessionId:String):FreeFlightOwnerToken? = recordedIdentity?.takeIf { it.sessionId==sessionId }?.owner
     private val startLock = Any()
     private var activeStart: StartAttempt? = null
     private val mutableStartState = MutableStateFlow<FreeFlightStartState>(FreeFlightStartState.Idle)
@@ -287,8 +290,30 @@ class FreeFlightSessionRepository(
     /** Retry only the exact local success ACK. Never calls formal admission or Core commands. */
     suspend fun retryStartAcknowledgement(owner: FreeFlightOwnerToken, sessionId: String): Boolean = withContext(NonCancellable) {
         acknowledgementMutex.withLock {
-            val saved = pendingAcknowledgements[FreeFlightStartIdentity(owner, sessionId)] ?: return@withLock false
-            recordStartedAcknowledgement(saved)
+            val saved = pendingAcknowledgements[FreeFlightStartIdentity(owner, sessionId)]
+            if (saved!=null) recordStartedAcknowledgement(saved)
+            else {
+                val archive=mutableState.value?.takeIf { it.sessionId==sessionId && recordedOwner(sessionId)==owner }
+                    ?: return@withLock false
+                recoverStartAcknowledgement(owner,archive)
+            }
+        }
+    }
+
+    private suspend fun recoverStartAcknowledgement(owner:FreeFlightOwnerToken,archive:FreeFlightArchive):Boolean {
+        val identity=FreeFlightStartIdentity(owner,archive.sessionId)
+        if (mutableAcknowledgements.value[identity] is FreeFlightStartAcknowledgement.Recorded) return true
+        return try {
+            if (admission.acknowledgeRestoredStart(owner,archive)) {
+                mutableAcknowledgements.value=mutableAcknowledgements.value+(identity to FreeFlightStartAcknowledgement.Recorded(identity))
+                true
+            } else {
+                mutableAcknowledgements.value=mutableAcknowledgements.value+(identity to FreeFlightStartAcknowledgement.Required(identity))
+                false
+            }
+        } catch (error:Exception) {
+            mutableAcknowledgements.value=mutableAcknowledgements.value+(identity to FreeFlightStartAcknowledgement.Required(identity,error))
+            false
         }
     }
 
@@ -347,9 +372,13 @@ class FreeFlightSessionRepository(
             return@guarded FreeFlightCommandResult.Rejected("Another flight owns the runtime")
         var committed = false
         try {
-            ownership.withCurrentOwner(saved.sessionId, owner) {
+            val result=ownership.withCurrentOwner(saved.sessionId, owner) {
                 commit(saved, engine.restoreCheckpoint(saved, reading()), owner) { committed = true }
             } ?: FreeFlightCommandResult.Rejected("The restoration owner is obsolete")
+            if (result is FreeFlightCommandResult.Committed) withContext(NonCancellable) {
+                acknowledgementMutex.withLock { recoverStartAcknowledgement(owner,result.archive) }
+            }
+            result
         }
         finally {
             if (!committed) withContext(NonCancellable) { ownership.release(saved.sessionId, owner) }
@@ -545,6 +574,7 @@ class FreeFlightSessionRepository(
         arrivalClock.afterCommit(owner, next)
         returnClock.afterCommit(owner, next)
         ownerToken = owner
+        recordedIdentity = FreeFlightStartIdentity(owner,next.sessionId)
         // Publication follows both persistence and attempted runtime synchronization.
         try { synchronize(next, owner) }
         finally { mutableState.value = next }

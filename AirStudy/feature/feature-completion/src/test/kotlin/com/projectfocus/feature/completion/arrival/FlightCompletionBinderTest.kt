@@ -9,6 +9,9 @@ import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.projectfocus.core.database.entity.FlightHistoryEntity
+import com.projectfocus.core.model.flight.PlannedAirport
+import com.projectfocus.core.model.flight.freeflight.*
+import com.projectfocus.core.ui.widget.RollingNumberView
 import com.projectfocus.feature.completion.R
 import org.junit.Before
 import org.junit.Test
@@ -42,6 +45,42 @@ class FlightCompletionBinderTest {
     }
 
     @Test
+    fun freeFlightArrivalUsesCommittedDestinationAndKeepsUnloadedVisitStatisticsHidden() {
+        val result = completedFreeFlight()
+        binder.bindFreeFlight(result)
+        assertThat(text(R.id.arrival_airport_code_on_media)).isEqualTo("FR-0001")
+        assertThat(text(R.id.arrival_city_title)).isEqualTo("Mulhouse")
+        assertThat(text(R.id.arrival_airport_link)).isEqualTo("Emile Muller Hospital Heliport >")
+        assertThat(text(R.id.welcome_subtitle)).isEmpty()
+        assertThat(root.findViewById<View>(R.id.stats_container).visibility).isEqualTo(View.GONE)
+        assertThat(root.visibility).isEqualTo(View.GONE)
+        assertThat(root.findViewById<View>(R.id.complete_flight_button).isEnabled).isTrue()
+    }
+
+    @Test
+    fun loadedTotalsUseRollingIntegerColumnsAndDoNotLeakIntoANewResult() {
+        binder.bindFreeFlight(completedFreeFlight())
+        binder.bindTotals(1234.5, 4)
+        assertThat(root.findViewById<RollingNumberView>(R.id.nsv_mileage).getValue()).isEqualTo(1235)
+        assertThat(root.findViewById<RollingNumberView>(R.id.nsv_focus).getValue()).isEqualTo(4)
+        assertThat(root.findViewById<View>(R.id.stats_container).visibility).isEqualTo(View.VISIBLE)
+        binder.bindFreeFlight(completedFreeFlight())
+        assertThat(root.findViewById<View>(R.id.stats_container).visibility).isEqualTo(View.GONE)
+    }
+
+    private fun completedFreeFlight(): CompletedFreeFlight {
+        val engine = FreeFlightEngine()
+        val departure = PlannedAirport(1, "AAA", "Departure", "Origin", "AA", 0.0, 0.0)
+        val destination = PlannedAirport(43341, "FR-0001", "Emile Muller Hospital Heliport", "Mulhouse", "FR", 47.725328, 7.344995)
+        val now = FreeFlightClockReading(0, 0, 1_000_000, "binder-clock")
+        val started = engine.start(FreeFlightStartRequest("binder-result", "account", departure, 90.0, "01A", FreeFlightScene(2, "Reading", "book")), now)
+        val selected = engine.prepareLanding(started, now)
+        val picked = engine.selectLanding(selected, destination, selected.landingSelectionGeneration)
+        val pending = engine.beginLandingWithoutMap(picked, picked.landingSelectionGeneration, now)
+        return CompletedFreeFlight.from(engine.completeLandingWithoutMap(pending, now))
+    }
+
+    @Test
     fun `root is gone by default and becomes visible after bind`() {
         assertThat(root.visibility).isEqualTo(View.GONE)
         binder.bind(record(), 0.0, 0)
@@ -61,8 +100,8 @@ class FlightCompletionBinderTest {
     fun `binds today summary and shows stats`() {
         binder.bind(record(), 1234.5, 90)
 
-        assertThat(text(R.id.nsv_mileage)).isEqualTo("1234.5")
-        assertThat(text(R.id.nsv_focus)).isEqualTo("90")
+        assertThat(root.findViewById<com.projectfocus.core.ui.widget.RollingNumberView>(R.id.nsv_mileage).getValue()).isEqualTo(1235)
+        assertThat(root.findViewById<com.projectfocus.core.ui.widget.RollingNumberView>(R.id.nsv_focus).getValue()).isEqualTo(90)
         assertThat(root.findViewById<LinearLayout>(R.id.stats_container).visibility)
             .isEqualTo(View.VISIBLE)
     }

@@ -5,7 +5,10 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import com.projectfocus.core.database.entity.FlightHistoryEntity
 import com.projectfocus.feature.completion.R
-import com.projectfocus.feature.completion.pass.HudFmt
+import com.projectfocus.core.model.flight.freeflight.CompletedFreeFlight
+import com.projectfocus.core.ui.widget.RollingNumberView
+import androidx.core.content.res.ResourcesCompat
+import android.graphics.Color
 
 
 class FlightCompletionBinder(root: View) {
@@ -17,8 +20,8 @@ class FlightCompletionBinder(root: View) {
     private val airportLink: TextView = root.findViewById(R.id.arrival_airport_link)
     private val subtitle: TextView = root.findViewById(R.id.welcome_subtitle)
     private val statsContainer: LinearLayout = root.findViewById(R.id.stats_container)
-    private val mileage: TextView = root.findViewById(R.id.nsv_mileage)
-    private val focus: TextView = root.findViewById(R.id.nsv_focus)
+    private val mileage: RollingNumberView = root.findViewById(R.id.nsv_mileage)
+    private val focus: RollingNumberView = root.findViewById(R.id.nsv_focus)
     private val shareButton: View = root.findViewById(R.id.restart_flight_button)
     private val reportButton: View = root.findViewById(R.id.report_airport_button)
     private val completeButton: View = root.findViewById(R.id.complete_flight_button)
@@ -27,6 +30,42 @@ class FlightCompletionBinder(root: View) {
     var onReport: (() -> Unit)? = null
     var onComplete: (() -> Unit)? = null
     var onAirport: (() -> Unit)? = null
+
+    init {
+        val tablet = root.resources.configuration.smallestScreenWidthDp >= 600
+        val typeface = ResourcesCompat.getFont(root.context,if (tablet) R.font.source_han_serif_cn_semibold else R.font.source_han_serif_cn_regular)
+        for (counter in listOf(mileage,focus)) {
+            counter.setTextColor(Color.WHITE)
+            counter.setTextSize(if (tablet) 46 else 30)
+            counter.setTypeface(typeface)
+        }
+        shareButton.setOnClickListener { onShare?.invoke() }
+        reportButton.setOnClickListener { onReport?.invoke() }
+        completeButton.setOnClickListener { onComplete?.invoke() }
+        airportLink.isClickable=true;airportLink.isFocusable=true
+        airportLink.setOnClickListener { onAirport?.invoke() }
+    }
+
+    fun bindFreeFlight(result:CompletedFreeFlight) {
+        val airport = result.destination
+        codeOnMedia.text=airport.code
+        welcomeText.setText(R.string.arrival_welcome)
+        val city=airport.displayCity.trim { it<='\u0020' }.ifBlank { airport.city.trim { it<='\u0020' } }
+            .ifBlank { airport.displayName.trim { it<='\u0020' } }.ifBlank { airport.name.trim { it<='\u0020' } }.ifBlank { airport.code }
+        val name=airport.displayName.trim { it<='\u0020' }.ifBlank { airport.name.trim { it<='\u0020' } }.ifBlank { city }
+        cityTitle.text=city
+        airportLink.text="$name >"
+        subtitle.text=""
+        statsContainer.visibility=View.GONE
+        setCompleteEnabled(true)
+    }
+
+    fun bindTotals(distanceKm:Double,focusMinutes:Int) {
+        require(distanceKm.isFinite() && distanceKm>=0.0 && focusMinutes>=0)
+        mileage.setValue(Math.max(0,Math.round(distanceKm).toInt()))
+        focus.setValue(focusMinutes)
+        statsContainer.visibility=View.VISIBLE
+    }
 
     /**
      * @param record 已完成飞行记录
@@ -46,8 +85,8 @@ class FlightCompletionBinder(root: View) {
 
         statsContainer.visibility =
             if (todayDistanceKm > 0.0 || todayFocusMinutes > 0) View.VISIBLE else View.GONE
-        mileage.text = HudFmt.km(todayDistanceKm)
-        focus.text = todayFocusMinutes.toString()
+        mileage.setValue(Math.max(0,Math.round(todayDistanceKm).toInt()))
+        focus.setValue(Math.max(0,todayFocusMinutes))
 
         shareButton.setOnClickListener { onShare?.invoke() }
         reportButton.setOnClickListener { onReport?.invoke() }

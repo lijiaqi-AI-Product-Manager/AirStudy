@@ -8,6 +8,9 @@ import com.google.common.truth.Truth.assertThat
 import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.model.flight.freeflight.FreeFlightScene
 import com.projectfocus.core.model.flight.freeflight.FreeFlightStartRequest
+import com.projectfocus.core.model.flight.freeflight.FreeFlightEngine
+import com.projectfocus.core.model.flight.freeflight.FreeFlightClockReading
+import com.projectfocus.core.model.flight.freeflight.FreeFlightArchiveCodec
 import com.projectfocus.core.network.dto.*
 import com.projectfocus.core.network.freeflight.FreeFlightAdmissionGateway
 import com.projectfocus.service.focus.freeflight.*
@@ -304,6 +307,46 @@ class OwnFreeFlightAdmissionTest {
         assertThat(f.gateway.submissions).hasSize(1)
         assertThat(f.deviceCaptures).isEqualTo(1)
         f.gateway.finish(approved(f.gateway.submissions.single())); runCurrent()
+    }
+
+    @Test fun restoredArchiveReconcilesTheOriginalApprovedJournalAcrossHostGenerationsWithoutAnotherConsume() = runTest {
+        val f=Fixture(this);val frozen=request().copy(headingDegrees=-270.0)
+        f.adapter.request(owner,frozen) {};runCurrent()
+        f.gateway.finish(approved(f.gateway.submissions.single()));runCurrent()
+        val engine=FreeFlightEngine()
+        val saved=engine.start(frozen,FreeFlightClockReading(10,10,1_000,"first-boot"))
+        val restored=FreeFlightArchiveCodec.decode(FreeFlightArchiveCodec.encode(engine.sample(saved,FreeFlightClockReading(20,20,1_010,"first-boot"))))
+        val newOwner=owner.copy(generation=owner.generation+1)
+        f.identities.value=CapturedFreeFlightAdmissionIdentity(newOwner,"fixture-account-one")
+        val gateway=Gateway();val recovered=f.newAdapter(gateway)
+        val captures=f.deviceCaptures
+        assertThat(recovered.acknowledgeRestoredStart(newOwner,restored)).isTrue()
+        assertThat(f.journal.find(frozen).localStartCommittedAtMillis).isNotNull()
+        assertThat(gateway.formalRequests).isEmpty();assertThat(gateway.queries).isEqualTo(0)
+        assertThat(f.deviceCaptures).isEqualTo(captures)
+        assertThat(recovered.retainedCredentialCount()).isEqualTo(0)
+    }
+
+    @Test fun restoredAcknowledgementRequiresAnActualMatchingApprovalAndFrozenStartInput() = runTest {
+        val f=Fixture(this);val frozen=request()
+        val saved=FreeFlightEngine().start(frozen,FreeFlightClockReading(10,10,1_000,"first-boot"))
+        assertThat(f.adapter.acknowledgeRestoredStart(owner,saved)).isFalse()
+        f.adapter.request(owner,frozen) {};runCurrent()
+        assertThat(f.adapter.acknowledgeRestoredStart(owner,saved)).isFalse()
+        f.gateway.finish(approved(f.gateway.submissions.single()));runCurrent()
+        assertThat(f.adapter.acknowledgeRestoredStart(owner,saved.copy(seat="02C"))).isFalse()
+        assertThat(f.adapter.acknowledgeRestoredStart(owner,saved.copy(requestedHeadingDegrees=null))).isFalse()
+        assertThat(f.journal.find(frozen).localStartCommittedAtMillis).isNull()
+        f.preferences.failCommit=true
+        var failed=false
+        try { f.adapter.acknowledgeRestoredStart(owner,saved) } catch (_:IOException) { failed=true }
+        assertThat(failed).isTrue()
+        assertThat(f.journal.find(frozen).localStartCommittedAtMillis).isNull()
+        f.preferences.failCommit=false
+        f.adapter.localStartFailed(frozen,FreeFlightAdmissionResult.Accepted(null));runCurrent()
+        assertThat(f.adapter.acknowledgeRestoredStart(owner,saved)).isFalse()
+        assertThat(f.journal.find(frozen).localStartCommittedAtMillis).isNull()
+        assertThat(f.gateway.submissions).hasSize(1)
     }
 
     private class Fixture(private val scope: TestScope) {

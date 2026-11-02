@@ -2,6 +2,8 @@ package com.projectfocus.app.home
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,6 +12,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.activity.OnBackPressedCallback
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
@@ -71,10 +74,13 @@ class HomeFragment : Fragment() {
     @Inject lateinit var freeFlightRuntime: com.projectfocus.service.focus.freeflight.runtime.FreeFlightRuntimeRegistry
     @Inject lateinit var freeFlightLandingCandidates: com.projectfocus.app.freeflight.FreeFlightLandingCandidatesFactory
     @Inject lateinit var freeFlightFeedback: com.projectfocus.app.freeflight.AndroidFreeFlightRulerFeedbackFactory
+    @Inject lateinit var freeFlightCompletionCoordinator: com.projectfocus.app.freeflight.FreeFlightCompletionCoordinator
     private var freeFlightMapBinding: java.io.Closeable? = null
     private var freeFlightFlightPresentation: com.projectfocus.app.freeflight.FreeFlightHomePresentation? = null
     private var freeFlightFrame: com.projectfocus.app.freeflight.FreeFlightHomeFrame? = null
     private var freeFlightLanding: com.projectfocus.app.freeflight.FreeFlightLandingController? = null
+    private var freeFlightCompletion: com.projectfocus.app.freeflight.FreeFlightCompletionController? = null
+    private var completionVisible = false
 
     internal fun reflectFreeFlightStart(sessionId: String) {
         if (freeFlightFrame?.archive?.sessionId == sessionId) view?.let { renderSessionState(it, sessionRepository.state.value) }
@@ -84,7 +90,7 @@ class HomeFragment : Fragment() {
     private var pickedAirport: AirportEntity? = null
 
     /** 用户选择的出发机场。 */
-    private var pickedOrigin: AirportEntity? = null
+    private var pickedOrigin: com.projectfocus.core.model.flight.PlannedAirport? = null
 
 
     private val prefs by lazy {
@@ -93,7 +99,7 @@ class HomeFragment : Fragment() {
 
     private var selectionReloadJob: Job? = null
     private val selectionChanges = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
-        if (key == null || key == PREF_ORIGIN || key == PREF_DESTINATION) {
+        if (key == null || key == PREF_ORIGIN || key == PREF_DESTINATION || key == HomeOriginSelection.MARKER) {
             view?.let(::restorePersistedSelection)
         }
     }
@@ -110,7 +116,7 @@ class HomeFragment : Fragment() {
     /** View-only lease. It grants no account, quota, reservation or flight ownership. */
     internal fun beginFreeFlightPreparationPresentation(): java.io.Closeable? {
         val currentView = view ?: return null
-        if (sessionRepository.state.value !is SessionState.Idle) return null
+        if (sessionRepository.state.value !is SessionState.Idle || freeFlightCompletionCoordinator.blocksPreparation()) return null
         freeFlightPresentation?.close()
         val lease = HomePreparationPresentation(currentView,
             isCurrent = { freeFlightPresentation === it && view === currentView },
@@ -185,6 +191,7 @@ class HomeFragment : Fragment() {
         // “起飞”菜单 → 飞行模式选择。把当前时长与起降机场带过去，
         // 让“倒计时”CTA 能真正启动同一场会话，而不是只弹 Toast。
         view.findViewById<View>(R.id.menuTakeOff).setOnClickListener {
+            if (freeFlightCompletionCoordinator.blocksPreparation()) return@setOnClickListener
             findNavController().navigate(
                 R.id.action_home_to_flight_mode,
                 bundleOf(
@@ -212,6 +219,7 @@ class HomeFragment : Fragment() {
             collapseWindow = { flightWindowVisible = false },
             changed = { if (this.view === view) renderSessionState(view, sessionRepository.state.value) },
         )
+        setupFreeFlightCompletion(view)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 val presentation = com.projectfocus.app.freeflight.FreeFlightHomePresentation(
@@ -251,7 +259,7 @@ class HomeFragment : Fragment() {
                     val airport = runCatching { airportDao.findByCode(code) }.getOrNull()
                     if (airport != null) {
                         if (isOrigin) {
-                            pickedOrigin = airport
+                            pickedOrigin = airport.plannedSnapshot()
                             renderPickedOrigin(view, airport)
                         } else {
                             pickedAirport = airport
@@ -267,6 +275,52 @@ class HomeFragment : Fragment() {
         }
     }
 
+    private fun setupFreeFlightCompletion(view: ViewGroup) {
+        val back = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() { freeFlightCompletion?.onBack() }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, back)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                val completion = com.projectfocus.app.freeflight.FreeFlightCompletionController(
+                    view, freeFlightCompletionCoordinator, freeFlightOwners, this,
+                    visibilityChanged = { visible ->
+                        completionVisible = visible
+                        back.isEnabled = visible
+                        if (visible) {
+                            mapStylePanelVisible = false
+                            view.findViewById<View>(R.id.mapStyleSelectorContainer).visibility = View.GONE
+                        }
+                        if (this@HomeFragment.view === view) renderSessionState(view, sessionRepository.state.value)
+                    },
+                    onShare = { result ->
+                        val text = getString(R.string.pf_ff_completion_share,
+                            result.departure.displayCity.ifBlank { result.departure.code },
+                            result.destination.displayCity.ifBlank { result.destination.code },
+                            result.displayFocusMinutes, String.format(Locale.US, "%.1f", result.distanceKm))
+                        val send = Intent(Intent.ACTION_SEND).apply {
+                            type = "text/plain"
+                            putExtra(Intent.EXTRA_TEXT, text)
+                        }
+                        startActivity(Intent.createChooser(send,
+                            getString(com.projectfocus.feature.completion.R.string.flight_completion_share_chooser)))
+                    },
+                    onAirport = { result, report ->
+                        findNavController().navigate(Uri.Builder().scheme("projectfocus").authority("airport")
+                            .appendPath(result.destination.code)
+                            .apply { if (report) appendQueryParameter("report", "true") }.build())
+                    },
+                )
+                freeFlightCompletion = completion
+                try { kotlinx.coroutines.awaitCancellation() }
+                finally {
+                    completion.close()
+                    if (freeFlightCompletion === completion) freeFlightCompletion = null
+                }
+            }
+        }
+    }
+
     private fun renderPickedAirport(view: View, airport: AirportEntity) {
         persistSelection(PREF_DESTINATION, airport.iataCode.ifBlank { airport.icaoCode })
         renderAirportSelection(view)
@@ -279,6 +333,14 @@ class HomeFragment : Fragment() {
 
     private fun AirportEntity.mapAirport(): MapAirport? = runCatching {
         MapAirport(iataCode.ifBlank { icaoCode }, latitude, longitude)
+    }.getOrNull()
+
+    private fun AirportEntity.plannedSnapshot() = com.projectfocus.core.model.flight.PlannedAirport(
+        id,iataCode.ifBlank { icaoCode },name,city,country,latitude,longitude,
+        nameZh?.takeIf(String::isNotBlank) ?: name,cityZh?.takeIf(String::isNotBlank) ?: city)
+
+    private fun com.projectfocus.core.model.flight.PlannedAirport.mapAirport(): MapAirport? = runCatching {
+        MapAirport(code,latitude,longitude)
     }.getOrNull()
 
     private fun renderAirportSelection(view: View) {
@@ -300,19 +362,25 @@ class HomeFragment : Fragment() {
         selectionReloadJob?.cancel()
         selectionReloadJob = null
         val originCode = prefs.getString(PREF_ORIGIN, null)
+        val originMarker = prefs.getString(HomeOriginSelection.MARKER,null)
+        val account = com.projectfocus.core.network.di.TokenStore.snapshot()
         val destinationCode = prefs.getString(PREF_DESTINATION, null)
         fun AirportEntity.code() = iataCode.ifBlank { icaoCode }
         // Drop an obsolete cached airport before the suspendable DAO reads.
-        pickedOrigin = pickedOrigin?.takeIf { it.code() == originCode }
+        pickedOrigin = pickedOrigin?.takeIf { it.code == originCode }
         pickedAirport = pickedAirport?.takeIf { it.code() == destinationCode }
         renderAirportSelection(view)
         if (originCode == null && destinationCode == null) return
         selectionReloadJob = viewLifecycleOwner.lifecycleScope.launch {
             try {
-                val origin = originCode?.takeIf(String::isNotBlank)?.let { airportDao.findByCode(it) }
+                val origin = originCode?.takeIf(String::isNotBlank)?.let {
+                    HomeOriginSelection.selectedSnapshot(prefs,it,account) ?: airportDao.findByCode(it)?.plannedSnapshot()
+                }
                 val destination = destinationCode?.takeIf(String::isNotBlank)?.let { airportDao.findByCode(it) }
                 if (this@HomeFragment.view !== view ||
                     prefs.getString(PREF_ORIGIN, null) != originCode ||
+                    prefs.getString(HomeOriginSelection.MARKER,null) != originMarker ||
+                    com.projectfocus.core.network.di.TokenStore.snapshot() != account ||
                     prefs.getString(PREF_DESTINATION, null) != destinationCode) return@launch
                 pickedOrigin = origin
                 pickedAirport = destination
@@ -371,6 +439,7 @@ class HomeFragment : Fragment() {
     private fun originCode(): String = prefs.getString(PREF_ORIGIN, null).orEmpty()
 
     private fun startFlight(view: View) {
+        if (freeFlightCompletionCoordinator.blocksPreparation()) return
         if (sessionRepository.state.value !is SessionState.Idle) {
             showHomeStatus(view, R.string.home_start_rejected)
             return
@@ -392,7 +461,8 @@ class HomeFragment : Fragment() {
 
     private fun renderSessionState(view: View, state: SessionState) {
         val idle = state is SessionState.Idle
-        view.findViewById<View>(R.id.btnStartFlight).isEnabled = idle && freeFlightPresentation == null
+        view.findViewById<View>(R.id.btnStartFlight).isEnabled = idle && freeFlightPresentation == null &&
+            !completionVisible && !freeFlightCompletionCoordinator.blocksPreparation()
         if (idle && freeFlightFrame == null) {
             view.findViewById<SourceMapHostView>(R.id.sourceMap).setFlightProgress(0f)
             renderAirportSelection(view)
@@ -748,6 +818,8 @@ class HomeFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        freeFlightCompletion?.close(); freeFlightCompletion = null
+        completionVisible = false
         freeFlightLanding?.close(); freeFlightLanding = null
         freeFlightFlightPresentation?.close()
         freeFlightFlightPresentation = null

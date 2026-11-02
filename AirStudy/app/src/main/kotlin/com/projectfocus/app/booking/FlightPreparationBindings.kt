@@ -4,6 +4,8 @@ import android.content.Context
 import com.projectfocus.core.database.dao.FlightHistoryDao
 import com.projectfocus.core.model.flight.FlightLegPlan
 import com.projectfocus.core.model.flight.PlannedAirport
+import com.projectfocus.app.home.HomeOriginSelection
+import com.projectfocus.app.home.HomeMapStyleSelection
 import com.projectfocus.service.focus.session.SessionRepository
 import com.projectfocus.service.focus.session.SessionState
 import dagger.Binds
@@ -35,7 +37,9 @@ class SessionFlightPreparationActions @Inject constructor(
     private val history: FlightHistoryDao,
     private val plannedSessions: PlannedFlightSessionBridge,
 ) : FlightPreparationActions {
-    override suspend fun findAirport(code: String): PlannedAirport? = sessions.findAirportForPlan(code)
+    override suspend fun findAirport(code: String): PlannedAirport? =
+        HomeOriginSelection.selectedSnapshot(context.getSharedPreferences(HomeMapStyleSelection.FILE_NAME,Context.MODE_PRIVATE),code)
+            ?: sessions.findAirportForPlan(code)
     override suspend fun startFlight(plan: FlightLegPlan): Boolean = plannedSessions.start(plan)
     override fun hasActiveSession(): Boolean = sessions.state.value !is SessionState.Idle
     override fun hasActualFlight() = sessions.state.value is SessionState.Running || sessions.state.value is SessionState.Paused
@@ -46,7 +50,7 @@ class SessionFlightPreparationActions @Inject constructor(
         // Project-owned persisted Home origin plus its own DAO cache. This does
         // not read the reference application's preference namespace or GPS.
         val code = currentOriginCode() ?: return null
-        return PreparationOrigin(code, sessions.findAirportForPlan(code))
+        return PreparationOrigin(code, findAirport(code))
     }
 }
 

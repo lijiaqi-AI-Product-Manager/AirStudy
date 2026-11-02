@@ -11,6 +11,7 @@ import com.projectfocus.app.testing.shutdownRealApplicationAfterTest
 import com.projectfocus.core.datastore.SettingsRepository
 import com.projectfocus.core.model.flight.freeflight.FreeFlightScene
 import com.projectfocus.core.model.flight.freeflight.FreeFlightStartRequest
+import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.service.focus.freeflight.*
 import com.projectfocus.service.focus.freeflight.runtime.FreeFlightRuntimePending
@@ -276,5 +277,35 @@ class RetainedFreeFlightPreparationsTest {
             assertNotEquals(first.sessionId,prepared(retained,next).sessionId)
             assertEquals(2,eligibility.calls.get());assertEquals(1,formal.calls.get())
         } finally { lifetime.cancel() }
+    }
+
+    @Test fun arrivalOutsideTheOfflineCatalogueRemainsTheRealDepartureSnapshotForTheNextPreparation() = runBlocking(Dispatchers.IO) {
+        val airport=PlannedAirport(43341,"FR-0001","Emile Muller Hospital Heliport","Mulhouse","FR",47.725328,7.344995)
+        assertNull(app.database.airportDao().findByCode(airport.code))
+        val preferences=app.getSharedPreferences(HomeMapStyleSelection.FILE_NAME,Context.MODE_PRIVATE)
+        val account=TokenStore.snapshot()
+        HomeOriginSelection.advance(preferences,airport,account)
+        val eligibility=Allowed();val retained=retainer(eligibility)
+        val actual=prepared(retained,retained.begin())
+        assertEquals(airport,actual.departure)
+        assertEquals(TokenStore.storageScope(account),actual.owner.ownerScope)
+        assertEquals(1,eligibility.calls.get());assertEquals(0,formal.calls.get())
+        assertNull(app.database.airportDao().findByCode(airport.code))
+        TokenStore.setCancellable("another-snapshot-account")
+        assertNull(HomeOriginSelection.selectedSnapshot(preferences,airport.code))
+    }
+
+    @Test fun replacingTheArrivalSnapshotDuringEligibilityDiscardsTheOlderPreparationEvenForTheSameCode() = runBlocking(Dispatchers.IO) {
+        val airport=PlannedAirport(43341,"FR-0001","Emile Muller Hospital Heliport","Mulhouse","FR",47.725328,7.344995)
+        val preferences=app.getSharedPreferences(HomeMapStyleSelection.FILE_NAME,Context.MODE_PRIVATE)
+        val account=TokenStore.snapshot()
+        HomeOriginSelection.advance(preferences,airport,account)
+        val eligibility=ControlledEligibility();val retained=retainer(eligibility)
+        val handle=retained.begin();val waiting=async { retained.prepare(handle) }
+        val decision=withTimeout(5_000) { eligibility.calls.receive() }
+        HomeOriginSelection.advance(preferences,airport,account)
+        decision.complete(FreeFlightPreparationResult.Allowed)
+        assertTrue(waiting.await() is FreeFlightPreparationDecision.Unavailable)
+        assertFalse(retained.isSubmitted(handle));assertEquals(0,formal.calls.get())
     }
 }

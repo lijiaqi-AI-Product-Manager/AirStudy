@@ -50,6 +50,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.util.ReflectionHelpers
 import com.projectfocus.feature.flight.R as FlightR
+import com.projectfocus.feature.completion.R as CompletionR
 
 
 @RunWith(RobolectricTestRunner::class)
@@ -192,6 +193,26 @@ class FreeFlightHomeWindowTest {
                     assertEquals(id,store.terminal(owner.ownerScope).first().single().sessionId)
                 }
                 assertEquals(2,server.requestCount)
+                await("Actual completion overlay shown after the committed arrival") {
+                    activity.findViewById<View>(CompletionR.id.flight_completion_overlay)?.visibility==View.VISIBLE
+                }
+                assertEquals("TSN",activity.findViewById<TextView>(CompletionR.id.arrival_airport_code_on_media).text.toString())
+                assertEquals("",activity.findViewById<TextView>(CompletionR.id.welcome_subtitle).text.toString())
+                assertEquals(View.GONE,activity.findViewById<View>(CompletionR.id.stats_container).visibility)
+                assertFalse(activity.findViewById<View>(R.id.btnStartFlight).isEnabled)
+                val preferences=app.getSharedPreferences(com.projectfocus.app.home.HomeMapStyleSelection.FILE_NAME,android.content.Context.MODE_PRIVATE)
+                assertEquals(finished.landingAirport,com.projectfocus.app.home.HomeOriginSelection.selectedSnapshot(preferences,"TSN"))
+                activity.findViewById<View>(CompletionR.id.complete_flight_button).performClick()
+                await("Missing approval receipt keeps the completed result available for retry") {
+                    activity.findViewById<View>(CompletionR.id.complete_flight_button).isEnabled
+                }
+                assertEquals(View.VISIBLE,activity.findViewById<View>(CompletionR.id.flight_completion_overlay).visibility)
+                capture("freeflight-actual-completed-result")
+                runBlocking(Dispatchers.IO) { TokenStore.setCancellable("replacement-after-arrival") }
+                await("Account replacement removes the old completion overlay") {
+                    activity.findViewById<View>(CompletionR.id.flight_completion_overlay)==null &&
+                        activity.findViewById<View>(R.id.btnStartFlight).isEnabled
+                }
             } finally { http.dispatcher.cancelAll();http.connectionPool.evictAll();http.dispatcher.executorService.shutdownNow() }
         }
     }

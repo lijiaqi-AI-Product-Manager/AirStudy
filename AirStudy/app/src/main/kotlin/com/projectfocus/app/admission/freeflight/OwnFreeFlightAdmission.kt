@@ -220,6 +220,20 @@ class OwnFreeFlightAdmission(
         publishOwner(FreeFlightOwnerToken(entry.ownerScope, entry.ownerGeneration), entry.sessionId, entry.operationId, FreeFlightAdmissionStage.LOCAL_START_ACKNOWLEDGED, source = entry.decision?.source)
     }
 
+    override suspend fun acknowledgeRestoredStart(owner:FreeFlightOwnerToken,archive:com.projectfocus.core.model.flight.freeflight.FreeFlightArchive):Boolean {
+        if (archive.ownerScope!=owner.ownerScope) return false
+        val identity=identities.capture(owner) ?: return false
+        return withContext(io) {
+            val before=runCatching { journal.findRestored(archive) }.getOrNull() ?: return@withContext false
+            if (before.bearerFingerprint!=identity.bearerFingerprint || before.decision?.approved!=true || before.localFailureQueued)
+                return@withContext false
+            if (before.localStartCommittedAtMillis==null)
+                journal.update(before.operationId) { it.copy(localStartCommittedAtMillis=it.localStartCommittedAtMillis ?: nowMillis()) }
+            clearCredentials(before.operationId)
+            true
+        }
+    }
+
     /** Diagnostics expose a count only, never a captured credential. */
     internal fun retainedCredentialCount(): Int = synchronized(lock) { running.values.count { it.identity != null || it.device != null } }
 

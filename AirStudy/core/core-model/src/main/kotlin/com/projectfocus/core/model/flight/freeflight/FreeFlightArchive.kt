@@ -141,7 +141,12 @@ data class FreeFlightArchive(
     val remoteRecordId: String? = null,
     /** Source persists CRUISING before u(...1500ms) resumes E/K. Own durable callback fence. */
     val cruiseReturnPending: Boolean = false,
+    val requestedHeadingDegrees: Double? = null,
 ) {
+    fun originalStartRequest():FreeFlightStartRequest? = requestedHeadingDegrees?.let { heading ->
+        FreeFlightStartRequest(sessionId,ownerScope,departure,heading,seat,scene,flightNumber,shieldingCategoryId)
+    }
+
     fun validated(): FreeFlightArchive = apply {
         require(formatVersion == 1)
         require(sessionId.isNotBlank() && ownerScope.isNotBlank() && seat.isNotBlank())
@@ -149,6 +154,7 @@ data class FreeFlightArchive(
         require(startedAtWallMs >= 0L && updatedAtWallMs >= 0L)
         require(cumulativeDistanceKm.isFinite() && cumulativeDistanceKm >= 0.0)
         require(bearingDegrees.isFinite() && bearingDegrees >= 0.0 && bearingDegrees < 360.0)
+        require(requestedHeadingDegrees==null || requestedHeadingDegrees.isFinite())
         require(shieldingCategoryId == null || shieldingCategoryId >= 0L)
         require(clock.activeElapsedMs >= cruiseAnchor.activeElapsedMs)
         if (cruiseReturnPending) {

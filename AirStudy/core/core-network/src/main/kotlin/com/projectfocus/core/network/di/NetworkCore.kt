@@ -159,6 +159,12 @@ object TokenStore {
     @Synchronized
     fun snapshot(): Snapshot = Snapshot(token, generation)
 
+    fun storageScope(value: Snapshot = snapshot()): String =
+        value.token?.takeIf(String::isNotBlank)?.let { current ->
+            java.security.MessageDigest.getInstance("SHA-256").digest(current.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
+        } ?: "local"
+
     fun clear() {
         publishBlocking { publishValue(null) }
     }

@@ -3,7 +3,6 @@ package com.projectfocus.service.focus.freeflight
 import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.service.focus.session.SessionRepository
 import com.projectfocus.service.focus.freeflight.runtime.FreeFlightStoppedDriver
-import java.security.MessageDigest
 import java.util.concurrent.atomic.AtomicReference
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -168,8 +167,5 @@ class SharedFlightRuntimeOwnership @Inject constructor(private val sessions: Ses
 
     // Same Own SHA-256/local scope as app FlightPlanOwnership; no token is logged/persisted here.
     private fun scope(account: TokenStore.Snapshot): String =
-        account.token?.takeIf(String::isNotBlank)?.let { token ->
-            MessageDigest.getInstance("SHA-256").digest(token.toByteArray(Charsets.UTF_8))
-                .joinToString("") { "%02x".format(it) }
-        } ?: "local"
+        TokenStore.storageScope(account)
 }

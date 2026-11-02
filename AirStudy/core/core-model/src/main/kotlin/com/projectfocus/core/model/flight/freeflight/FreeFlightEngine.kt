@@ -23,6 +23,7 @@ class FreeFlightEngine {
             status = FreeFlightStatus.ONGOING, phase = FreeFlightPhase.CRUISING, clock = clock,
             position = normalized.point,
             bearingDegrees = normalized.bearingDegrees,
+            requestedHeadingDegrees = request.headingDegrees,
             cumulativeDistanceKm = 0.0,
             cruiseAnchor = FreeFlightCruiseAnchor(
                 normalized.point, normalized.bearingDegrees, 0L, 0.0, 0L,
