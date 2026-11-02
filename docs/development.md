@@ -4,6 +4,8 @@
 
 构建使用仓库中的 Gradle wrapper。JDK 为 17；SDK 需要 platform 37 和 build-tools 36.0.0。缓存完整时可追加 `--offline`。
 
+SDK Manager 中的完整平台包标识为 `platforms;android-37.0`。
+
 ```sh
 cd AirStudy
 bash ./gradlew :app:assembleDebug
