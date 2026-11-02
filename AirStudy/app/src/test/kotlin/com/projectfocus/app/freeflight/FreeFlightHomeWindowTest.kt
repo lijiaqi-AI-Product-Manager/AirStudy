@@ -51,6 +51,7 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.util.ReflectionHelpers
 import com.projectfocus.feature.flight.R as FlightR
 import com.projectfocus.feature.completion.R as CompletionR
+import com.projectfocus.feature.stats.R as StatsR
 
 
 @RunWith(RobolectricTestRunner::class)
@@ -68,7 +69,7 @@ class FreeFlightHomeWindowTest {
 
     @Before fun open() {
         app = ApplicationProvider.getApplicationContext()
-        runBlocking(Dispatchers.IO) { withTimeout(15_000) { app.awaitInitialAccountRestore(); app.awaitInitialAirportSeed() } }
+        awaitStartup()
         shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         graph = EntryPointAccessors.fromApplication(app, FreeFlightRuntimeEntryPoint::class.java)
         store = ReflectionHelpers.getField(graph.repository(), "store")
@@ -113,6 +114,31 @@ class FreeFlightHomeWindowTest {
             }
         } finally { shutdownRealApplicationAfterTest(app) }
     }
+    private fun awaitStartup() {
+        val restoration = app.admissionApplicationScope.async(Dispatchers.IO) { app.awaitInitialAccountRestore() }
+        val seeding = app.admissionApplicationScope.async(Dispatchers.IO) { app.awaitInitialAirportSeed() }
+        val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30)
+        try {
+            while (!restoration.isCompleted || !seeding.isCompleted) {
+                shadowOf(Looper.getMainLooper()).idleFor(32, TimeUnit.MILLISECONDS)
+                check(System.nanoTime() < deadline) {
+                    "Application startup not ready: account=${restoration.isCompleted}, airports=${seeding.isCompleted}, bootstrap=${app.databaseBootstrapResult}"
+                }
+                Thread.sleep(10)
+            }
+            runBlocking(Dispatchers.IO) {
+                restoration.await()
+                val result = seeding.await()
+                check(result is com.projectfocus.core.database.seed.AirportSeeder.Result.Seeded ||
+                    result is com.projectfocus.core.database.seed.AirportSeeder.Result.UpToDate) {
+                    "Actual airport import failed: $result"
+                }
+            }
+        } finally {
+            runBlocking(Dispatchers.IO) { restoration.cancelAndJoin(); seeding.cancelAndJoin() }
+        }
+    }
+
     private fun await(description: String, predicate: () -> Boolean) {
         val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5)
         while (System.nanoTime() < deadline) {
@@ -198,7 +224,11 @@ class FreeFlightHomeWindowTest {
                 }
                 assertEquals("TSN",activity.findViewById<TextView>(CompletionR.id.arrival_airport_code_on_media).text.toString())
                 assertEquals("",activity.findViewById<TextView>(CompletionR.id.welcome_subtitle).text.toString())
-                assertEquals(View.GONE,activity.findViewById<View>(CompletionR.id.stats_container).visibility)
+                await("Actual current-account daily totals loaded") {
+                    activity.findViewById<View>(CompletionR.id.stats_container).visibility==View.VISIBLE
+                }
+                assertEquals(Math.round(finished.cumulativeDistanceKm).toInt(),activity.findViewById<com.projectfocus.core.ui.widget.RollingNumberView>(CompletionR.id.nsv_mileage).getValue())
+                assertEquals(CompletedFreeFlight.from(finished).displayFocusMinutes,activity.findViewById<com.projectfocus.core.ui.widget.RollingNumberView>(CompletionR.id.nsv_focus).getValue())
                 assertFalse(activity.findViewById<View>(R.id.btnStartFlight).isEnabled)
                 val preferences=app.getSharedPreferences(com.projectfocus.app.home.HomeMapStyleSelection.FILE_NAME,android.content.Context.MODE_PRIVATE)
                 assertEquals(finished.landingAirport,com.projectfocus.app.home.HomeOriginSelection.selectedSnapshot(preferences,"TSN"))
@@ -208,7 +238,55 @@ class FreeFlightHomeWindowTest {
                 }
                 assertEquals(View.VISIBLE,activity.findViewById<View>(CompletionR.id.flight_completion_overlay).visibility)
                 capture("freeflight-actual-completed-result")
+                val originMarker=preferences.getString(com.projectfocus.app.home.HomeOriginSelection.MARKER,null)
+                var host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+                host.navController.navigate(android.net.Uri.parse("projectfocus://stats"))
+                host.childFragmentManager.executePendingTransactions()
+                await("Actual statistics includes the independent committed flight") {
+                    activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()=="1 "+activity.getString(StatsR.string.stats_unit_flights)
+                }
+                capture("freeflight-actual-statistics")
+                assertTrue(host.navController.popBackStack());host.childFragmentManager.executePendingTransactions()
+                await("Recreated Home reopens the same result") {
+                    activity.findViewById<View>(CompletionR.id.flight_completion_overlay)?.visibility==View.VISIBLE
+                }
+                assertEquals(originMarker,preferences.getString(com.projectfocus.app.home.HomeOriginSelection.MARKER,null))
+                host.navController.navigate(android.net.Uri.parse("projectfocus://stats"))
+                host.childFragmentManager.executePendingTransactions()
+                await("Statistics country row loaded") {
+                    activity.findViewById<android.view.ViewGroup>(StatsR.id.statsCountryList)?.childCount==1
+                }
+                val account=TokenStore.snapshot()
+                val entered=CompletableDeferred<Unit>();val release=CompletableDeferred<Unit>()
+                val held=app.admissionApplicationScope.launch(Dispatchers.IO) {
+                    TokenStore.withSnapshotLease(account) { entered.complete(Unit);release.await() }
+                }
+                runBlocking(Dispatchers.IO) { withTimeout(5_000) { entered.await() } }
+                try {
+                    activityController.recreate().visible()
+                    activity=activityController.get()
+                    activity.supportFragmentManager.executePendingTransactions()
+                    host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+                    shadowOf(Looper.getMainLooper()).idleFor(48,TimeUnit.MILLISECONDS)
+                } finally {
+                    release.complete(Unit)
+                    runBlocking(Dispatchers.IO) { withTimeout(5_000) { held.join() } }
+                }
+                await("Recreated statistics renders its retained current-account data after the real lease releases") {
+                    activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()=="1 "+activity.getString(StatsR.string.stats_unit_flights) &&
+                        activity.findViewById<android.view.ViewGroup>(StatsR.id.statsCountryList)?.childCount==1
+                }
+                activity.findViewById<android.view.ViewGroup>(StatsR.id.statsCountryList).getChildAt(0).performClick()
+                val statistics=host.childFragmentManager.primaryNavigationFragment as com.projectfocus.feature.stats.StatsFragment
+                await("Actual country details opened") {
+                    statistics.childFragmentManager.findFragmentByTag("country_airports")?.let { (it as androidx.fragment.app.DialogFragment).dialog?.isShowing }==true
+                }
                 runBlocking(Dispatchers.IO) { TokenStore.setCancellable("replacement-after-arrival") }
+                await("The new account has its own empty statistics and the old country dialog closes") {
+                    activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()=="0 "+activity.getString(StatsR.string.stats_unit_flights) &&
+                        statistics.childFragmentManager.findFragmentByTag("country_airports")==null
+                }
+                assertTrue(host.navController.popBackStack());host.childFragmentManager.executePendingTransactions()
                 await("Account replacement removes the old completion overlay") {
                     activity.findViewById<View>(CompletionR.id.flight_completion_overlay)==null &&
                         activity.findViewById<View>(R.id.btnStartFlight).isEnabled

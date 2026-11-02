@@ -12,6 +12,7 @@ import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.model.flight.PlannedDeparture
 import com.projectfocus.core.model.flight.PlannedFlightMetadataCodec
 import com.projectfocus.core.model.flight.PlannedScene
+import com.projectfocus.core.network.di.TokenStore
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,9 +71,28 @@ class PlannedFlightMetadataRoomTest {
 
     @After
     fun tearDown() {
+        TokenStore.clear()
         runBlocking { preferenceScope.coroutineContext[Job]?.cancelAndJoin() }
         database.close()
         context.deleteDatabase(DB_NAME)
+    }
+
+    @Test
+    fun theAccountAtActualStartRemainsTheOwnerOfCheckpointsAndTheFinalArchive() = runBlocking {
+        TokenStore.setCancellable("countdown-start-account")
+        val owner = TokenStore.storageScope()
+        val repository = newRepository()
+        assertThat(repository.startPlannedFlight(plan(latitude = 0.12))).isTrue()
+        val id = (repository.state.value as SessionState.Running).sessionId
+        assertThat(database.flightHistoryDao().findById(id)!!.ownerScope).isEqualTo(owner)
+        TokenStore.setCancellable("account-published-after-start")
+        ticks(repository, 60)
+        val finished = database.flightHistoryDao().findById(id)!!
+        assertThat(finished.status).isEqualTo(SessionRepository.STATUS_COMPLETED)
+        assertThat(finished.ownerScope).isEqualTo(owner)
+        assertThat(repository.settle()!!.ownerScope).isEqualTo(owner)
+        reopenDatabase()
+        assertThat(database.flightHistoryDao().findById(id)!!.ownerScope).isEqualTo(owner)
     }
 
     @Test

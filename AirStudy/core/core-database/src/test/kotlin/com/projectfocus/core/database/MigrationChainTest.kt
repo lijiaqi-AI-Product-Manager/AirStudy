@@ -97,7 +97,7 @@ class MigrationChainTest {
         )
         createRaw(version = 22, statements = statements)
         withRoom { db ->
-            assertEquals(36, columnsOf(db, "flight_history").size)
+            assertEquals(37, columnsOf(db, "flight_history").size)
             db.query("SELECT categoryId, seat, quote, quoteAuthor, syncedAt, sceneSnapshotJson, " +
                 "plannedDepartureJson, durationMinutes, actualFocusMinutes FROM flight_history WHERE id = 'legacy-metadata'")
                 .use { c ->
@@ -124,6 +124,34 @@ class MigrationChainTest {
                     assertEquals("""{"futureScene":true}""", c.getString(0))
                     assertEquals("""{"futureDeparture":true}""", c.getString(1))
                 }
+        }
+    }
+
+    @Test
+    fun v24UpgradePreservesEveryArchiveAndLeavesLegacyOwnershipUnassigned() {
+        val schema = schemaJson(24)
+        createRaw(24, createSqlOf(schema) + listOf(
+            insertSql(schema, "flight_history", mapOf("id" to "unassigned-old-record", "status" to "COMPLETED",
+                "durationMinutes" to 25, "actualFocusMinutes" to 23, "distanceKm" to 117.75,
+                "quote" to "retained quote", "sceneSnapshotJson" to "{\"custom\":true}")),
+            insertSql(schema, "free_flight_archive", mapOf("sessionId" to "independent-record", "ownerScope" to "retained-owner",
+                "revision" to 4, "status" to "COMPLETED", "payloadJson" to "opaque preserved bytes")),
+        ))
+        withRoom { db ->
+            db.query("SELECT durationMinutes, actualFocusMinutes, distanceKm, quote, sceneSnapshotJson, ownerScope FROM flight_history WHERE id = 'unassigned-old-record'").use { row ->
+                assertTrue(row.moveToFirst())
+                assertEquals(25, row.getInt(0)); assertEquals(23, row.getInt(1))
+                assertEquals(117.75, row.getDouble(2), 0.0)
+                assertEquals("retained quote", row.getString(3))
+                assertEquals("{\"custom\":true}", row.getString(4))
+                assertTrue(row.isNull(5))
+            }
+            db.query("SELECT ownerScope, revision, payloadJson FROM free_flight_archive WHERE sessionId = 'independent-record'").use { row ->
+                assertTrue(row.moveToFirst())
+                assertEquals("retained-owner", row.getString(0)); assertEquals(4, row.getInt(1))
+                assertEquals("opaque preserved bytes", row.getString(2))
+            }
+            db.query("PRAGMA foreign_key_check").use { assertTrue(!it.moveToFirst()) }
         }
     }
 

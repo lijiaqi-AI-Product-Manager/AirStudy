@@ -13,6 +13,11 @@ import com.projectfocus.service.focus.freeflight.FreeFlightStartAcknowledgement
 import com.projectfocus.service.focus.freeflight.FreeFlightStartIdentity
 import com.projectfocus.service.focus.freeflight.SharedFlightRuntimeOwnership
 import com.projectfocus.service.focus.freeflight.runtime.FreeFlightRuntimeRegistry
+import com.projectfocus.service.focus.history.ArrivalDailyTotals
+import com.projectfocus.service.focus.history.ArrivalHistoryTotals
+import com.projectfocus.service.focus.history.FlightHistoryReader
+import com.projectfocus.service.focus.history.HistoryReadState
+import java.time.ZoneId
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -38,6 +43,8 @@ data class FreeFlightCompletionNotice(
     val originSaved:Boolean,
 )
 
+data class FreeFlightCompletionTotals(val notice:FreeFlightCompletionNotice,val totals:ArrivalDailyTotals)
+
 @Singleton
 class FreeFlightCompletionCoordinator @Inject constructor(
     @ApplicationContext private val context:Context,
@@ -45,11 +52,16 @@ class FreeFlightCompletionCoordinator @Inject constructor(
     private val owners:SharedFlightRuntimeOwnership,
     private val runtime:FreeFlightRuntimeRegistry,
     @FreeFlightApplicationScope private val scope:CoroutineScope,
+    private val history:FlightHistoryReader,
 ) {
     private data class Identity(val sessionId:String,val owner:FreeFlightOwnerToken)
     private data class Selection(val archive:FreeFlightArchive,val owner:FreeFlightOwnerToken)
     private val mutableNotice=MutableStateFlow<FreeFlightCompletionNotice?>(null)
     val notice=mutableNotice.asStateFlow()
+    private val mutableTotals=MutableStateFlow<FreeFlightCompletionTotals?>(null)
+    val totals=mutableTotals.asStateFlow()
+    private val totalsRefresh=MutableStateFlow(0L)
+    private val totalsLock=Any()
     private val retry=MutableStateFlow(0L)
     private val advanced=ConcurrentHashMap.newKeySet<Identity>()
     private val dismissed=ConcurrentHashMap.newKeySet<Identity>()
@@ -59,6 +71,26 @@ class FreeFlightCompletionCoordinator @Inject constructor(
     @Volatile private var observedHost:FreeFlightOwnerToken?=null
 
     init {
+        scope.launch(Dispatchers.IO) {
+            combine(notice,totalsRefresh) { selected,revision -> selected to revision }.collectLatest request@ { (selected,revision) ->
+                clearTotals(selected,revision)
+                if (selected==null) return@request
+                history.records.collectLatest records@ { records ->
+                    clearTotals(selected,revision)
+                    if (records !is HistoryReadState.Loaded || !records.account.isCurrent() ||
+                        records.account.scope!=selected.result.ownerScope || !owners.isHostCurrent(selected.owner)) return@records
+                    try {
+                        val calculated=ArrivalHistoryTotals.calculate(records.records,selected.result,System.currentTimeMillis(),ZoneId.systemDefault())
+                        val current=records.account.isCurrent() && owners.isHostCurrent(selected.owner)
+                        synchronized(totalsLock) {
+                            if (current && notice.value===selected && totalsRefresh.value==revision)
+                                mutableTotals.value=FreeFlightCompletionTotals(selected,calculated)
+                        }
+                    } catch (error:CancellationException) { throw error }
+                    catch (_:Exception) { clearTotals(selected,revision) }
+                }
+            }
+        }
         scope.launch(Dispatchers.IO) {
             combine(repository.state,owners.currentHosts,retry) { archive,owner,_ ->
                 observedHost=owner
@@ -99,6 +131,15 @@ class FreeFlightCompletionCoordinator @Inject constructor(
     }
 
     fun retryOrigin() { retry.value=retry.value+1L }
+
+    fun refreshTotals() = synchronized(totalsLock) {
+        mutableTotals.value=null
+        totalsRefresh.value=totalsRefresh.value+1L
+    }
+
+    private fun clearTotals(selected:FreeFlightCompletionNotice?,revision:Long) = synchronized(totalsLock) {
+        if (notice.value===selected && totalsRefresh.value==revision) mutableTotals.value=null
+    }
 
     fun blocksPreparation():Boolean {
         val archive=repository.state.value ?: return false

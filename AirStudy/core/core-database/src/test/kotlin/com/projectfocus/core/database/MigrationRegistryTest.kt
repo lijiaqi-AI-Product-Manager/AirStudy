@@ -57,13 +57,13 @@ class MigrationRegistryTest {
     }
 
     @Test
-    fun `版本号是 24`() {
+    fun `版本号是 25`() {
         // 这个断言看起来多余，但它的作用是：改 VERSION 时强制改这里，
         // 从而强制去读一遍 AppDatabase 注释里的版本分配表，
         // 确认新加的版本真的在表里有说明（防止"顺手加个版本"）。
 
 
-        assertEquals(24, AppDatabase.VERSION)
+        assertEquals(25, AppDatabase.VERSION)
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -97,7 +97,7 @@ class MigrationRegistryTest {
 
         val expected = mapOf(
             "airports" to 15, // 13 + nameZh + cityZh（中文名，修「全英文界面」）
-            "flight_history" to 36, // 31 + quote/quoteAuthor/syncedAt + own scene/departure JSON
+            "flight_history" to 37, // Includes nullable account ownership.
             "focus_categories" to 8,
             "blocked_apps" to 6,
             "stamps" to 11, // 10 + assetVersion

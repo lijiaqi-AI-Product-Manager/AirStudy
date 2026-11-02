@@ -15,11 +15,15 @@ import androidx.navigation.fragment.findNavController
 import com.projectfocus.core.database.dao.AirportDao
 import com.projectfocus.core.ui.nav.AirportNavigator
 import com.projectfocus.core.database.dao.CountryTripCount
-import com.projectfocus.core.database.dao.FlightHistoryDao
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.flow.collect
+import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.service.focus.history.HistoryAccount
 import java.util.Locale
 
 
@@ -28,12 +32,10 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
 
     private val viewModel: StatsViewModel by viewModels()
     private var lastState: StatsUiState? = null
+    private var renderRevision = 0L
 
     @Inject
     lateinit var airportDao: AirportDao
-
-    @Inject
-    lateinit var historyDao: FlightHistoryDao
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -51,14 +53,22 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             CountryAirportsDialogFragment.RESULT_KEY,
             viewLifecycleOwner,
         ) { _, bundle ->
-            openAirportDetail(
-                bundle.getString(CountryAirportsDialogFragment.RESULT_CODE).orEmpty(),
-            )
+            val account = lastState?.account ?: return@setFragmentResultListener
+            if (!account.isCurrent() || bundle.getString(CountryAirportsDialogFragment.RESULT_OWNER) != account.scope ||
+                bundle.getLong(CountryAirportsDialogFragment.RESULT_GENERATION, -1) != account.generation) return@setFragmentResultListener
+            withAccount(account) { openAirportDetail(bundle.getString(CountryAirportsDialogFragment.RESULT_CODE).orEmpty()) }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.state.collect(::render)
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                TokenStore.identities.collect { observed ->
+                    if (observed == TokenStore.snapshot() && viewModel.state.value.account?.isCurrent() != true) render(StatsUiState())
+                }
             }
         }
     }
@@ -74,11 +84,33 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     }
 
     private fun render(state: StatsUiState) {
+        val revision = ++renderRevision
+        val actual = if (state.account?.isCurrent() == true) state else StatsUiState()
+        withAccount(actual.account, { renderRevision == revision }) { renderCurrent(actual) }
+    }
+
+    private fun withAccount(account: HistoryAccount?, current: () -> Boolean = { true }, action: () -> Unit) {
+        val target = view ?: return
+        val expected = TokenStore.snapshot()
+        if (account != null && (account.generation != expected.generation || account.scope != TokenStore.storageScope(expected))) return
+        viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive && view === target && current()) {
+                when (TokenStore.tryWithSnapshotLease(expected) { if (view === target && current()) action() }) {
+                    is TokenStore.ImmediateSnapshot.Value -> return@launch
+                    TokenStore.ImmediateSnapshot.Obsolete -> return@launch
+                    TokenStore.ImmediateSnapshot.Busy -> delay(16)
+                }
+            }
+        }
+    }
+
+    private fun renderCurrent(state: StatsUiState) {
         lastState = state
         val root = view ?: return
-        root.findViewById<View>(R.id.statsShare).isEnabled = !state.isLoading
+        val current = state.account?.isCurrent() == true
+        root.findViewById<View>(R.id.statsShare).isEnabled = !state.isLoading && current
 
-        if (state.isLoading) {
+        if (state.isLoading || !current) {
             val placeholder = getString(R.string.stats_placeholder)
             root.findViewById<TextView>(R.id.statsFlights).text = placeholder
             root.findViewById<TextView>(R.id.statsDistance).text = placeholder
@@ -86,7 +118,11 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             root.findViewById<TextView>(R.id.statsAirports).text = placeholder
             root.findViewById<TextView>(R.id.statsCountries).text = placeholder
             root.findViewById<View>(R.id.statsCountryList).visibility = View.GONE
-            root.findViewById<View>(R.id.statsCountryEmpty).visibility = View.GONE
+            root.findViewById<TextView>(R.id.statsCountryEmpty).apply {
+                visibility = if (state.readFailed && current) View.VISIBLE else View.GONE
+                setText(R.string.stats_read_failed)
+                setOnClickListener { viewModel.retry() }
+            }
             return
         }
 
@@ -109,6 +145,9 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     private fun renderCountryBreakdown(root: View, rows: List<CountryTripCount>) {
         val list = root.findViewById<LinearLayout>(R.id.statsCountryList)
         val empty = root.findViewById<View>(R.id.statsCountryEmpty)
+        (empty as TextView).setText(R.string.stats_country_empty)
+        empty.setOnClickListener(null)
+        list.visibility = View.VISIBLE
         list.removeAllViews()
         empty.visibility = if (rows.isEmpty()) View.VISIBLE else View.GONE
         rows.forEach { row ->
@@ -133,25 +172,32 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     }
 
     private fun openCountryAirports(country: String) {
+        val captured = lastState?.takeIf { !it.isLoading && it.account?.isCurrent() == true } ?: return
         viewLifecycleOwner.lifecycleScope.launch {
             val loaded = runCatching {
                 val airports = airportDao.byCountry(country)
-                val visited = historyDao.visitedAirportCodesForCountry(country).toSet()
+                val destinations = captured.destinations.filter { it.country == country }
+                val visited = destinations.map { it.code }.toSet()
+                val knownCodes = airports.map { it.iataCode.ifBlank { it.icaoCode } }.toSet()
                 ArrayList(
                     airports.map { airport ->
                         CountryAirportRow(
-                            code = airport.iataCode,
+                            code = airport.iataCode.ifBlank { airport.icaoCode },
                             name = airport.name,
                             city = airport.city,
-                            visited = airport.iataCode in visited,
+                            visited = airport.iataCode.ifBlank { airport.icaoCode } in visited,
                         )
+                    } + destinations.filter { it.code !in knownCodes }.map {
+                        CountryAirportRow(it.code, it.name, it.city, true)
                     },
                 )
             }
-            if (!isAdded || view == null) return@launch
+            if (!isAdded || view == null || captured.account?.isCurrent() != true) return@launch
             loaded.onSuccess { rows ->
-                CountryAirportsDialogFragment.newInstance(country, rows)
-                    .show(childFragmentManager, "country_airports")
+                withAccount(captured.account) {
+                    CountryAirportsDialogFragment.newInstance(country, rows, captured.account)
+                        .show(childFragmentManager, "country_airports")
+                }
             }.onFailure { error ->
                 if (error is CancellationException) throw error
                 Toast.makeText(
@@ -175,7 +221,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
 
     private fun shareStats() {
         val state = lastState ?: return
-        if (state.isLoading) return
+        if (state.isLoading || state.account?.isCurrent() != true) return
         val text = getString(
             R.string.stats_share_text,
             state.flights,
@@ -188,6 +234,6 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)
         }
-        startActivity(Intent.createChooser(send, getString(R.string.stats_share_title)))
+        withAccount(state.account) { startActivity(Intent.createChooser(send, getString(R.string.stats_share_title))) }
     }
 }

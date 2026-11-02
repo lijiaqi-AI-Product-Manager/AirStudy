@@ -8,6 +8,13 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.setFragmentResult
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.service.focus.history.HistoryAccount
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.R as AppCompatR
@@ -19,6 +26,19 @@ import com.google.android.material.R as MaterialR
  * 数据由 StatsFragment 先查好再传进来，Dialog 不碰数据库。
  */
 class CountryAirportsDialogFragment : DialogFragment() {
+    private val account: HistoryAccount?
+        get() = arguments?.getString(RESULT_OWNER)?.let { HistoryAccount(it, requireArguments().getLong(RESULT_GENERATION, -1)) }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                TokenStore.identities.collect {
+                    if (account?.isCurrent() != true) dismissAllowingStateLoss()
+                }
+            }
+        }
+    }
 
     override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
         val view = layoutInflater.inflate(R.layout.dialog_country_airports, null)
@@ -60,9 +80,14 @@ class CountryAirportsDialogFragment : DialogFragment() {
                 )
             }
             item.setOnClickListener {
+                val current = account?.takeIf { it.isCurrent() } ?: return@setOnClickListener
                 setFragmentResult(
                     RESULT_KEY,
-                    Bundle().apply { putString(RESULT_CODE, row.code) },
+                    Bundle().apply {
+                        putString(RESULT_CODE, row.code)
+                        putString(RESULT_OWNER, current.scope)
+                        putLong(RESULT_GENERATION, current.generation)
+                    },
                 )
                 dismiss()
             }
@@ -85,6 +110,8 @@ class CountryAirportsDialogFragment : DialogFragment() {
     companion object {
         const val RESULT_KEY = "country_airport_open"
         const val RESULT_CODE = "code"
+        const val RESULT_OWNER = "ownerScope"
+        const val RESULT_GENERATION = "accountGeneration"
 
         private const val ARG_COUNTRY = "country"
         private const val ARG_ROWS = "rows"
@@ -92,10 +119,14 @@ class CountryAirportsDialogFragment : DialogFragment() {
         fun newInstance(
             country: String,
             rows: ArrayList<CountryAirportRow>,
+            account: HistoryAccount? = null,
         ): CountryAirportsDialogFragment = CountryAirportsDialogFragment().apply {
+            val captured = account ?: TokenStore.snapshot().let { HistoryAccount(TokenStore.storageScope(it), it.generation) }
             arguments = Bundle().apply {
                 putString(ARG_COUNTRY, country)
                 putSerializable(ARG_ROWS, rows)
+                putString(RESULT_OWNER, captured.scope)
+                putLong(RESULT_GENERATION, captured.generation)
             }
         }
     }

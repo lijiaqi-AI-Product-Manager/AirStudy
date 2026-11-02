@@ -177,4 +177,7 @@ data class FlightHistoryEntity(
     /** 本品计划起飞日/时区/HH:mm 快照；与实际飞行时长独立。 */
     @ColumnInfo(name = "plannedDepartureJson", defaultValue = "NULL")
     val plannedDepartureJson: String? = null,
+
+    @ColumnInfo(name = "ownerScope", defaultValue = "NULL")
+    val ownerScope: String? = null,
 )

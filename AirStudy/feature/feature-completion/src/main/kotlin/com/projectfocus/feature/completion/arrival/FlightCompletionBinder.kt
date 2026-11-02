@@ -67,6 +67,8 @@ class FlightCompletionBinder(root: View) {
         statsContainer.visibility=View.VISIBLE
     }
 
+    fun hideTotals() { statsContainer.visibility=View.GONE }
+
     /**
      * @param record 已完成飞行记录
      * @param todayDistanceKm 今日累计里程；由调用方按“今日 00:00–24:00”聚合

@@ -77,6 +77,7 @@ class SessionRepository @Inject constructor(
 
     private var pendingHistory: FlightHistoryEntity? = null
     private var savedHistory: FlightHistoryEntity? = null
+    private var sessionOwnerScope: String? = null
     private var checkpointAttemptMinute = 0
     private var notifiedTerminalId: String? = null
 
@@ -192,7 +193,13 @@ class SessionRepository @Inject constructor(
         route = resolved
 
         //   它拒绝时后面的步骤全部不执行，不会出现「多写一条 ONGOING」。
-        if (!controller.start(categoryId, plannedDurationMs, requestedSessionId)) {
+        val started = synchronized(TokenStore) {
+            val account = TokenStore.snapshot()
+            controller.start(categoryId, plannedDurationMs, requestedSessionId).also { accepted ->
+                if (accepted) sessionOwnerScope = TokenStore.storageScope(account)
+            }
+        }
+        if (!started) {
             Timber.w("已有进行中的会话，拒绝 start")
             return false
         }
@@ -375,6 +382,7 @@ class SessionRepository @Inject constructor(
             (controller.nowWall() - ongoing.startTimeMillis).coerceIn(0L, plannedMs)
         }
         savedHistory = ongoing
+        sessionOwnerScope = ongoing.ownerScope
         pendingHistory = null
         checkpointAttemptMinute = (checkpointMs / 60_000L).toInt()
         notifiedTerminalId = null
@@ -605,6 +613,7 @@ class SessionRepository @Inject constructor(
             isSynced = false,
             createdAt = now,
             updatedAt = now,
+            ownerScope = sessionOwnerScope,
         )
     }
 
@@ -657,6 +666,7 @@ class SessionRepository @Inject constructor(
             createdAt = base?.createdAt ?: a.startedAtWallMs,
             updatedAt = now,
             quote = base?.quote,
+            ownerScope = base?.ownerScope ?: sessionOwnerScope,
             quoteAuthor = base?.quoteAuthor,
             // Existing raw JSON wins even when null; never resurrect stale route metadata.
             sceneSnapshotJson = if (base != null) base.sceneSnapshotJson

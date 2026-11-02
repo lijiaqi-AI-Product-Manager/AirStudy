@@ -8,6 +8,7 @@ android {
 }
 
 dependencies {
+    implementation(project(":service-focus"))
     implementation(project(":core:core-database"))
     implementation(project(":core:core-network"))
     implementation(project(":core:core-datastore"))

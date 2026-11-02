@@ -38,13 +38,15 @@ jobs:
         run: bash ./gradlew :app:hiltJavaCompileDebugUnitTest --stacktrace
       - name: Verify core flight behavior
         run: >-
-          bash ./gradlew :core:core-model:test :core:core-network:testDebugUnitTest
+          bash ./gradlew :core:core-model:test :core:core-database:testDebugUnitTest
+          :core:core-network:testDebugUnitTest
           :core:core-ui:testDebugUnitTest :service-focus:testDebugUnitTest
           :feature:feature-home:testDebugUnitTest --stacktrace
       - name: Verify arrival and preparation handoff
         run: >-
           bash ./gradlew :feature:feature-flight:testDebugUnitTest
-          :feature:feature-completion:testDebugUnitTest :app:testDebugUnitTest
+          :feature:feature-completion:testDebugUnitTest
+          :feature:feature-stats:testDebugUnitTest :app:testDebugUnitTest
           --tests 'com.projectfocus.app.freeflight.*'
           --tests 'com.projectfocus.app.admission.freeflight.*'
           --tests 'com.projectfocus.app.booking.FlightPreparation*'
@@ -53,7 +55,6 @@ jobs:
       - name: Verify documented contracts
         run: >-
           bash ./gradlew
-          :core:core-database:testDebugUnitTest --tests com.projectfocus.core.database.SchemaDocParityTest
           :feature:feature-airport:testDebugUnitTest --tests com.projectfocus.feature.airport.search.SearchRankingDocTest
           :server:test --tests com.projectfocus.server.ApiContractDocTest
           --stacktrace

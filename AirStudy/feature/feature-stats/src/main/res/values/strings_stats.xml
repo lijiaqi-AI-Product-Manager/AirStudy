@@ -30,4 +30,5 @@
     <string name="stats_country_airports_close">关闭</string>
     <string name="stats_country_airports_load_failed">加载机场失败</string>
     <string name="stats_country_airport_open_failed">无法打开机场详情</string>
+    <string name="stats_read_failed">暂时无法读取统计，点此重试</string>
 </resources>

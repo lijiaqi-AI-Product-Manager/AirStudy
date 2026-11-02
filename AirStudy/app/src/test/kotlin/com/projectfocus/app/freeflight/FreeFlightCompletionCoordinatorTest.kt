@@ -54,7 +54,8 @@ class FreeFlightCompletionCoordinatorTest {
             FreeFlightLandingDistance { _, _ -> error("No distance is invented for the absent-map branch") },
             FreeFlightRuntimeEffects { throw FreeFlightRuntimePending("Controlled service dispatch") },
             FreeFlightMapPresence { _, _ -> FreeFlightMapAvailability.ABSENT }, app.admissionApplicationScope)
-        completion = FreeFlightCompletionCoordinator(app, repository, graph.owners(), graph.registry(), app.admissionApplicationScope)
+        completion = FreeFlightCompletionCoordinator(app, repository, graph.owners(), graph.registry(), app.admissionApplicationScope,
+            com.projectfocus.service.focus.history.FlightHistoryReader(app.database.historyReadDao()))
     }
 
     @After fun close() {
@@ -90,6 +91,12 @@ class FreeFlightCompletionCoordinatorTest {
         admission.failAcknowledgement = true
         val notice = arrive()
         val result = notice.result
+        val totals = withTimeout(5_000) { completion.totals.first { it?.notice===notice }!! }
+        assertEquals(result.distanceKm, totals.totals.distanceKm, 1e-10)
+        assertEquals(result.displayFocusMinutes, totals.totals.focusMinutes)
+        completion.refreshTotals()
+        val refreshed = withTimeout(5_000) { completion.totals.first { it?.notice===notice }!! }
+        assertEquals(totals.totals, refreshed.totals)
         assertTrue(completion.blocksPreparation())
         assertEquals(90_001L, result.elapsedMs)
         assertEquals(2, result.displayFocusMinutes)

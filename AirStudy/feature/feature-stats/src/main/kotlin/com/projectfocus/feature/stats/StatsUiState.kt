@@ -1,6 +1,8 @@
 package com.projectfocus.feature.stats
 
 import com.projectfocus.core.database.dao.CountryTripCount
+import com.projectfocus.service.focus.history.HistoryAccount
+import com.projectfocus.service.focus.history.HistoryDestination
 
 /**
  * 统计页的纯数据状态。
@@ -16,6 +18,9 @@ data class StatsUiState(
     val countries: Int = 0,
     val countryBreakdown: List<CountryTripCount> = emptyList(),
     val isLoading: Boolean = true,
+    val account: HistoryAccount? = null,
+    val destinations: List<HistoryDestination> = emptyList(),
+    val readFailed: Boolean = false,
 ) {
     val focusHours: Int get() = focusMinutes / 60
     val focusRemainderMinutes: Int get() = focusMinutes % 60

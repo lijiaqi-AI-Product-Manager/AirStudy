@@ -1,208 +1,48 @@
-# AirStudy 数据结构（Room v24）
+# AirStudy 数据结构（Room v25）
 
-## 0. 总览
+## 表结构总览
 
-| 表 | 历史基线列数 | 当前列数 | 状态 |
-|---|---:|---:|---|
-| `airports` | 13 | **15** | ⚠️ **主动 +2 列**（中文名，修「全英文界面」缺陷） |
-| `flight_history` | 31 | **36** | ★ 本品 +5 列：quote/quoteAuthor、syncedAt、sceneSnapshotJson/plannedDepartureJson |
-| `focus_categories` | 8 | 8 | ✅ 列一致（起实体声明唯一索引 `(name, isDefault)`） |
-| `blocked_apps` | 6 | 6 | ✅ 列一致（起实体声明唯一索引 `(categoryId, packageName)`） |
-| `stamps` | 10 | **11** | ⚠️ 1 列**类型变更**（修资源 ID 债）+ `assetVersion`（实体补齐） |
-| `room` | — | 16 | ★ 新增（v15） |
-| `room_participant` | — | 10 | ★ 新增（v16） |
-| `room_message` | — | 7 | ★ 新增（v17） |
-| `achievement` | — | 6 | ★ 新增（v18） |
-| `daily_stat` | — | 4 | ★ 新增（v19） |
-| `app_setting` | — | 3 | ★ 新增（v20） |
-| `free_flight_archive` | — | 7 | ★ 本品独立正计时归档（v24） |
-| `free_flight_position` | — | 8 | ★ 本品独立正计时位置序列（v24） |
+| 表 | 用途 | 当前列数 |
+|---|---|---:|
+| `airports` | 离线机场目录 | 15 |
+| `flight_history` | 倒计时历史与检查点 | 37 |
+| `focus_categories` | 专注类别 | 8 |
+| `blocked_apps` | 类别屏蔽规则 | 6 |
+| `stamps` | 邮戳与资源版本 | 11 |
+| `room` | 房间缓存 | 16 |
+| `room_participant` | 房间成员 | 10 |
+| `room_message` | 房间消息 | 7 |
+| `achievement` | 成就进度 | 6 |
+| `daily_stat` | 每日统计缓存 | 4 |
+| `app_setting` | 应用设置 | 3 |
+| `free_flight_archive` | 独立正计时归档 | 7 |
+| `free_flight_position` | 独立正计时位置序列 | 8 |
 
-## 1. `flight_history` —— 保留 31 列基线，独立保存 5 列本品数据
+共 13 张表、138 列。完整列定义、默认值、索引和外键以最新导出的 `core/core-database/schemas/com.projectfocus.core.database.AppDatabase/25.json` 为准。
 
-### 1.1 逐字段对照（36 vs 31）
+## 倒计时历史
 
-| # | 列名 | 竞品类型 | 我们类型 | 一致性 | 说明 |
-|---:|---|---|---|---|---|
-| 1 | `id` | TEXT PK | TEXT PK | ✅ | UUID 字符串。与 `SessionState.sessionId` 是同一个值 |
-| 2 | `roomId` | TEXT null | TEXT null | ✅ | |
-| 3 | `focusType` | TEXT NN | TEXT NN | ✅ | `SOLO` / `GROUP` |
-| 4 | `roomParticipantCount` | INTEGER null | INTEGER null | ✅ | |
-| 5 | `departureAirportCode` | TEXT NN | TEXT NN | ✅ | |
-| 6 | `departureAirportName` | TEXT NN | TEXT NN | ✅ | |
-| 7 | `departureCity` | TEXT NN | TEXT NN | ✅ | |
-| 8 | `departureCountry` | TEXT NN | TEXT NN | ✅ | |
-| 9 | `departureLatitude` | REAL NN | REAL NN | ✅ | |
-| 10 | `departureLongitude` | REAL NN | REAL NN | ✅ | |
-| 11~16 | `destination*` 6 列 | 同构 | 同构 | ✅ | 与出发地对称 |
-| 17 | `startTimeMillis` | INTEGER NN | INTEGER NN | ✅ | 索引 |
-| 18 | `endTimeMillis` | INTEGER null | INTEGER null | ✅ | 进行中为 null |
-| 19 | `durationMinutes` | INTEGER NN | INTEGER NN | ✅ | **计划**时长 |
-| 20 | `actualFocusMinutes` | INTEGER NN | INTEGER NN | ✅ | **实际**时长 |
-| 21 | `distanceKm` | REAL NN | REAL NN | ✅ | = `durationMinutes/60*800` |
-| 22 | `status` | TEXT NN | TEXT NN | ✅ | 见 §1.2 |
-| 23 | `categoryId` | INTEGER null (FK) | INTEGER null (FK) | ✅ | ON DELETE **SET NULL** |
-| 24 | `seat` | TEXT null | TEXT null | ✅ | |
-| 25 | `hasAnnouncedDeparture` | INTEGER NN | INTEGER NN | ✅ | TTS 幂等标记 |
-| 26 | `hasAnnouncedDescent` | INTEGER NN | INTEGER NN | ✅ | |
-| 27 | `hasAnnouncedArrival` | INTEGER NN | INTEGER NN | ✅ | |
-| 28 | `logJson` | TEXT null | TEXT null | ✅ | 逃生舱 |
-| 29 | `isSynced` | INTEGER NN | INTEGER NN | ✅ | |
-| 30 | `createdAt` | INTEGER NN | INTEGER NN | ✅ | 排序键 |
-| 31 | `updatedAt` | INTEGER NN | INTEGER NN | ✅ | |
-| **32** | **`quote`** | **—** | **TEXT null** | ⚠️ **+我们** | 落地金句 |
-| **33** | **`quoteAuthor`** | **—** | **TEXT null** | ⚠️ **+我们** | 金句作者 |
-| **34** | **`syncedAt`** | **—** | **INTEGER null** | ★ 本品 | 同步审计（v21，v22 实体补齐） |
-| **35** | **`sceneSnapshotJson`** | **—** | **TEXT null** | ★ 本品 v23 | 独立场景及展示快照，不占用 categoryId |
-| **36** | **`plannedDepartureJson`** | **—** | **TEXT null** | ★ 本品 v23 | 计划日期/时区/HH:mm，与 duration 独立 |
+`flight_history` 保存路线快照、起止时刻、计划时长、实际专注分钟、冻结的计划全距离、状态、类别、座位和播报标记。取消记录保留已经提交的实际专注量，不将计划全距离解释为实际飞行里程。
 
-> **持久化适配**：22→23 仅追加两列，旧行默认 NULL；31 个基线字段与类别外键不变。
-> scene 记录 optionId/name/iconKey/color/isCustom/cloudId/clientUuid/displayName，plannedDeparture 记录 date/hour/minute/zoneId。
-> 检查点与终态保留数据库最新原始 JSON（包括未知字段或明确 NULL），恢复时独立解码；这不是已证明的原包服务端结果格式。
-> 保存计划不等于立即启动；调度与服务器结果不由这两列实现。
+`quote` 与 `quoteAuthor` 保存结果语录；`syncedAt` 记录同步时间。`sceneSnapshotJson` 与 `plannedDepartureJson` 分别保存独立场景和计划起飞输入，不占用类别外键。检查点与终态保留已有原始快照，包括未知字段和明确的空值。
 
-### 1.2 状态值域与检查点恢复（按 /更正）
+v25 增加可空的 `ownerScope TEXT DEFAULT NULL`。新飞行在接受起飞时冻结身份范围，后续检查点、终态和恢复保留该值。24→25 只追加这一列，不更新旧行、不推断旧归属，也不改写独立正计时归档。
 
-早期报告称原版取消仅删除记录，并称本品通过墙钟补算冷恢复；这两项旧描述已被后续取证和实现替代，不能继续作为当前规则。
+汇总读取仅在匿名身份下包含归属为空的旧倒计时记录。已登录身份按准确的范围筛选。该范围当前随登录凭证区分，凭证续期和重新登录后的历史关联仍待实现。
 
-当前倒计时自然终态在采样内保存 `COMPLETED`，取消保存 `CANCELLED`，之后执行屏蔽清理；下机用于确认或重试已经保存的终态。取消保留实际已存整分钟、冻结的计划全距离及最新座位。计划全距离不等于已实际飞行里程。
+## 独立正计时
 
-冷恢复以已提交检查点为依据，不凭离线墙钟增加专注量；同进程暂停与冷恢复分开处理。数据库事务负责保存一致的会话状态，手机进程恢复与云同步分别验收。
+v24 的 `free_flight_archive` 保存带修订号的归档快照，`free_flight_position` 追加实际位置。写入在同一事务内完成，冲突不会覆盖新状态。独立归档保存有效毫秒和真实累计距离，未选择目的地时目的地为空，不建立虚构的倒计时记录。
 
-独立正计时使用 v24 新归档保存有效毫秒和真实累计距离，不将自由飞行强行转换成此表的计划时长/全距离。其界面、聚合及服务接线另行验收。
+今日累计和统计共同读取两种归档，仅汇总已完成记录。记录列表、详情与桌面展示仍待接通统一入口。
 
-### 1.3 索引对照
+## 约束与升级
 
-| 索引 | 竞品 | 我们 | 说明 |
-|---|---|---|---|
-| `index_flight_history_categoryId` | ✅ | ✅ | 名字必须逐字一致，否则 `identity_hash` 不同 |
-| `index_flight_history_startTimeMillis` | ✅ | ✅ | |
-| `(status, isSynced)` 复合 | — | ✅ v7 | 待同步队列查询 |
-| `endTimeMillis` | — | ✅ v8 | `latestCompleted()` 排序 |
+- 类别删除后，历史记录的类别外键设为空，历史本身保留；对应屏蔽规则随类别删除。
+- 房间成员和消息的外键采用级联删除。
+- `index_flight_history_categoryId` 与 `index_flight_history_startTimeMillis` 保持既定名称；已有同步和结束时间索引保留。
+- 机场的 `nameZh` 与 `cityZh` 可空；中文名缺失时使用原名称。
+- 邮戳资源标识 `illustrationResId` 使用文本，并通过 `assetVersion` 表示资源版本。
+- 数据库逐段执行注册的升级迁移，不启用破坏性重建回退。
 
-> **★ 为什么我们敢加索引而 `airports` 表一个都不加**（见 `AirportEntity` 注释）：
-> `airports` 是 83k 行只读主数据，写入时每加一个索引就多一次 B-tree 维护；
-> `flight_history` 是用户数据，行数在千级，写入频率极低（一天几条），读频率高。
-> 两条表的取舍方向正好相反。
-
----
-
-## 2. `stamps` —— 一列类型变更
-
-| 列名 | 竞品类型 | 我们类型 | 说明 |
-|---|---|---|---|
-| `id` | TEXT PK | TEXT PK | ✅ |
-| `countryName` | TEXT NN | TEXT NN | ✅ |
-| `countryCode` | TEXT NN | TEXT NN | ✅ |
-| `firstVisitDate` | INTEGER NN | INTEGER NN | ✅ |
-| `latestVisitDate` | INTEGER NN | INTEGER NN | ✅ |
-| `visitCount` | INTEGER NN | INTEGER NN | ✅ |
-| `focusHours` | REAL NN | REAL NN | ✅ |
-| **`illustrationResId`** | **INTEGER NN** | **TEXT NN** | ⚠️ **类型变更**（v6） |
-| `airportCodes` | TEXT NN | TEXT NN | ✅ |
-| `unlockedLandmarkIds` | TEXT NN | TEXT NN | ✅ |
-
-**为什么改类型**：竞品存的是 `R.drawable.xxx` 的**整型资源 ID**。
-资源 ID 是 aapt 在编译期分配的，**每次发版都会变**。
-
-真实后果：用户升级 App 后，本地数据库里存的 `2131230876` 指向了
-另一个 drawable —— 于是「日本的樱花印章」变成了「韩国的泡菜印章」，
-或者直接 `Resources$NotFoundException` 崩溃。
-
-证据：竞品 v6 迁移里有 `UPDATE stamps SET illustrationResId = 0`，
-说明它踩过这个坑，但选择了「清空重下」而不是改类型（治标）。
-
-我们改成 TEXT 存**稳定 asset key**（如 `stamp_jp_sakura`），
-映射表在代码里，随版本更新只需要加 key，历史数据不会错位。
-
----
-
-## 3. `airports` / `focus_categories` / `blocked_apps`
-
-### 3.1 `airports`（15 vs 13）—— **主动 +2 列**
-
-竞品 13 列：`id / iataCode / icaoCode / name / city / country / latitude /
-longitude / elevation / continent / type / popularity / isPremiumOnly`
-
-我们 +2 列：
-
-| # | 列名 | 类型 | 可空 | 理由 |
-|---:|---|---|---|---|
-| 14 | `nameZh` | TEXT | **是** | 机场中文名（「北京首都国际机场」） |
-| 15 | `cityZh` | TEXT | **是** | 城市中文名（「北京」） |
-
-> **★★ 为什么必须加，而且必须可空**
->
-> 竞品的数据源是 OurAirports（纯英文）。它的机场列表在中国区显示的是
-> `Shanghai Pudong International Airport` / `Beijing` —— 中文用户在
-> 「选择目的地」这个**最核心的操作**里要认英文全称。这是它在中文区
-> 评分只有 3.x 的主要原因之一，也是我们能立刻拉开差距的一处。
->
-> 但**必须可空**：83,799 条机场里绝大多数 small_airport 不会有中文名，
-> 若设 NOT NULL 就要填假值（空串），而空串在列表页会渲染成一行空白 ——
-> 比显示英文更糟。可空 + 展示层降级（`nameZh ?: name`）才是对的。
->
-> **为什么不是把 name 直接改成中文**：那会破坏英文检索，
-> 外籍用户与航旅常客（认 IATA/ICAO 和英文名）会立刻失去可用性。
-> 中英并存是唯一不牺牲任一方人群的方案。
->
-> 数据填充是 M3 的内容工作（large 约 700 + medium 约 4,700 条，人工/半自动校对）；
-> M2 只负责把**管道打通**：字段、索引层、展示降级。
-
-### 3.2 `focus_categories` / `blocked_apps` —— 逐字段完全一致
-
-- `focus_categories.id` 是 `INTEGER PRIMARY KEY AUTOINCREMENT`
-- `blocked_apps` 外键 **ON DELETE CASCADE**（删分类时规则一起删）
-
-> **★ `focus_categories` 与 `blocked_apps` 的 CASCADE/SET NULL 差异是刻意的**：
-> 删分类时「屏蔽规则」跟着删才干净（否则成为孤儿规则，永远拦人不解释原因），
-> 但「历史记录」不能删（用户飞过的记录是事实，不能因为改名/删分类就消失）。
-> 竞品做了同样的区分，我们照抄。
-
----
-
-## 4. 我们新增的 6 张表
-
-| 表 | 列数 | 用途 | 为什么竞品没有 |
-|---|---:|---|---|
-| `room` | 16 | 组队房间本地缓存 | 竞品放内存 |
-| `room_participant` | 10 | 房间参与者 | 同上 |
-| `room_message` | 7 | 聊天本地缓存 | 同上 |
-| `achievement` | 6 | 徽章进度 | 竞品纯内存计算，杀进程清零 |
-| `daily_stat` | 4 | 统计页预聚合 | 竞品每次进统计页把全部记录读出来 fold |
-| `app_setting` | 3 | 取代散装 SharedPreferences | 竞品用 40+ 个裸 key |
-
----
-
-## 5. 迁移路径（v1 → v21）
-
-完整 22 段迁移见 `AppDatabase.VERSION` 的表格注释与 `migrations/Migrations.kt`。
-
-| 段 | 版本 | 性质 |
-|---|---|---|
-| v1~v4 | 1→4 | **重演竞品演进史**（单表 → 5 表 → 31 列 → 并入） |
-| v5~v14 | 4→14 | ★ 我们的 schema 修正（+2 列、类型变更、5 个索引） |
-| v15~v20 | 14→20 | ★ 新增 6 表 |
-| v21 | 20→21 | ★ `flight_history.syncedAt`（多端同步审计） |
-
-> **★ 绝不加 `fallbackToDestructiveMigration()`**
-> 竞品加了。后果是任何一次漏写迁移，用户的全部飞行历史被静默清空，
-> 而且没有任何提示。我们让它在测试里炸（`MigrationRegistryTest`），
-> 而不是在用户手机上炸。
-
----
-
-## 6. 自动校验（本文档与代码的单向绑定）
-
-`SchemaDocParityTest` 会：
-
-1. 读本文的 §0 总览表，得到「表名 → 列数」
-2. 读最新导出的 `schemas/*/23.json`，得到真实的「表名 → 列数」
-3. 断言两者相等
-4. 顺带断言 `quote` / `quoteAuthor` 在 `flight_history` 里真实存在
-   （因为 §1.1 声称如此，而这两列是我们最重要的偏离）
-
-**这条测试的价值**：我写这份报告时是手抄的列数。
-手抄必然出错 —— 第一次就抄错了 `room_participant` 的列数。
-测试当场抓到。这就是「文档要有测试守着」的实际收益，
-不是理论上的好习惯。
+迁移链检查在真实数据库上验证升级、字段和历史保留；`SchemaDocParityTest` 对照本文总览与最新导出结构，检查表集合、列数和关键约束。

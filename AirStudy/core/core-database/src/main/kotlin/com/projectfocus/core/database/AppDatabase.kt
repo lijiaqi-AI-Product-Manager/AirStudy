@@ -54,6 +54,8 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun flightHistoryDao(): FlightHistoryDao
 
+    abstract fun historyReadDao(): com.projectfocus.core.database.dao.HistoryReadDao
+
 
     abstract fun freeFlightArchiveDao(): FreeFlightArchiveDao
 
@@ -71,6 +73,6 @@ abstract class AppDatabase : RoomDatabase() {
         const val NAME: String = "projectfocus.db"
 
 
-        const val VERSION: Int = 24
+        const val VERSION: Int = 25
     }
 }

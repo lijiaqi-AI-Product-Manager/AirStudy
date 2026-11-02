@@ -57,6 +57,10 @@ object DatabaseModule {
 
     @Provides
     @Singleton
+    fun provideHistoryReadDao(db: AppDatabase): com.projectfocus.core.database.dao.HistoryReadDao = db.historyReadDao()
+
+    @Provides
+    @Singleton
     fun provideFreeFlightArchiveDao(db: AppDatabase): FreeFlightArchiveDao = db.freeFlightArchiveDao()
 
     @Provides

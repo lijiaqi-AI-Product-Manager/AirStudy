@@ -32,6 +32,7 @@ class FreeFlightCompletionController(
     private var binder:FlightCompletionBinder?=null
     private var finishing:Job?=null
     private var closed=false
+    init { coordinator.refreshTotals() }
     private val show=Runnable {
         val expected=current
         if (!closed && expected!=null) scope.launch {
@@ -64,8 +65,22 @@ class FreeFlightCompletionController(
                     onAirport={ dispatch { this@FreeFlightCompletionController.onAirport(it.result,false) } }
                     onReport={ dispatch { this@FreeFlightCompletionController.onAirport(it.result,true) } }
                 }
+                coordinator.totals.value?.takeIf { it.notice===notice }?.let { totals ->
+                    binder?.bindTotals(totals.totals.distanceKm,totals.totals.focusMinutes)
+                }
                 visibilityChanged(true)
                 parent.postDelayed(show,350L)
+            }
+        }
+    }
+
+    private val totalsJob=scope.launch {
+        coordinator.totals.collectLatest { totals ->
+            val expected=current ?: return@collectLatest
+            if (totals!=null && totals.notice!==expected) return@collectLatest
+            paint(expected) {
+                if (totals==null) binder?.hideTotals()
+                else binder?.bindTotals(totals.totals.distanceKm,totals.totals.focusMinutes)
             }
         }
     }
@@ -127,6 +142,6 @@ class FreeFlightCompletionController(
 
     override fun close() {
         if (closed) return
-        closed=true;current=null;job.cancel();finishing?.cancel();clear()
+        closed=true;current=null;job.cancel();totalsJob.cancel();finishing?.cancel();clear()
     }
 }
