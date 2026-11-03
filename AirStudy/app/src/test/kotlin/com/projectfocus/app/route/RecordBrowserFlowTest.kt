@@ -24,6 +24,7 @@ import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.feature.record.ui.RecordCardView
 import com.projectfocus.feature.record.ui.RecordPageFragment
+import com.projectfocus.feature.record.ui.RecordDeleteDialog
 import com.projectfocus.core.ui.scene.AnchoredScenePickerDialog
 import com.projectfocus.core.ui.R as UiR
 import com.projectfocus.service.focus.freeflight.RoomFreeFlightArchiveStore
@@ -85,16 +86,18 @@ class RecordBrowserFlowTest {
         "TSN","Tianjin Airport","天津","CN",39.0,117.0,at,at+300_000,25,5,99.25,status,
         null,"12A",false,false,false,null,false,at,at,ownerScope=owner)
 
-    private suspend fun saveIndependentRecord() {
+    private suspend fun saveIndependentRecord(cancelled: Boolean = false) {
         val engine = FreeFlightEngine()
         val now = FreeFlightClockReading(0,0,wall+1_000,"record-browser-clock")
         val start = engine.start(FreeFlightStartRequest("shared-id",TokenStore.storageScope(),
             PlannedAirport(1,"PEK","Beijing Airport","北京","CN",40.0,116.0),90.0,"01A",
             FreeFlightScene(3,"阅读","reading"),"AS42"),now)
         val at = now.copy(elapsedRealtimeMs=90_001,uptimeMillis=90_001,wallMs=now.wallMs+90_001)
-        val selection = engine.prepareLanding(start,at)
-        val picked = engine.selectLanding(selection,PlannedAirport(2,"TSN","Tianjin Airport","天津","CN",39.0,117.0),selection.landingSelectionGeneration)
-        val completed = engine.completeLandingWithoutMap(engine.beginLandingWithoutMap(picked,picked.landingSelectionGeneration,at),at).copy(revision=1)
+        val completed = if (cancelled) engine.cancel(start, at).copy(revision = 1) else {
+            val selection = engine.prepareLanding(start,at)
+            val picked = engine.selectLanding(selection,PlannedAirport(2,"TSN","Tianjin Airport","天津","CN",39.0,117.0),selection.landingSelectionGeneration)
+            engine.completeLandingWithoutMap(engine.beginLandingWithoutMap(picked,picked.landingSelectionGeneration,at),at).copy(revision=1)
+        }
         val store = RoomFreeFlightArchiveStore(app.database.freeFlightArchiveDao())
         assertTrue(store.commit(null,start,null))
         assertTrue(store.commit(0,completed,null))
@@ -191,7 +194,8 @@ class RecordBrowserFlowTest {
         await { list().adapter?.itemCount==1 && field(RecordR.id.pf_record_page_text_page_indicator).text.toString()=="第 1 页" }
         assertEquals("飞行中",card(0).findViewById<TextView>(RecordR.id.pf_record_card_text_status_desc).text.toString().trim())
         card(0).performClick()
-        await { activity.findViewById<View>(RecordR.id.pf_record_page_share_preview)!=null }
+        await { ShadowToast.getTextOfLatestToast()?.toString()==activity.getString(RecordR.string.pf_record_delete_blocked) }
+        assertNull(activity.findViewById<View>(RecordR.id.pf_record_page_share_preview))
         scenario!!.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
         assertEquals(0,list().adapter?.itemCount)
         assertNull(activity.findViewById<View>(RecordR.id.pf_record_page_share_preview))
@@ -203,6 +207,152 @@ class RecordBrowserFlowTest {
         await { list().adapter?.itemCount==1 }
         assertTrue(card(0).contentDescription.toString().contains("倒计时"))
         assertEquals(13,runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().observeAll().first().size })
+    }
+
+    @Test fun cancelledRecordsDeleteThroughConfirmationAndKeepModeIdentityAndPagination() {
+        val owner = TokenStore.storageScope()
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(countdown("completed-total"))
+            app.database.flightHistoryDao().insert(countdown("shared-id", status = "CANCELLED"))
+            (1..9).forEach { app.database.flightHistoryDao().insert(countdown("cancelled-$it", status = "CANCELLED", at = wall - it * 1_000)) }
+            saveIndependentRecord(cancelled = true)
+        }
+        showRecords()
+        await { list().adapter?.itemCount == 10 }
+        val total = host.requireView().findViewById<TextView>(RecordR.id.pf_record_page_text_subtitle).text.toString()
+        val spinner = page().requireView().findViewById<MaterialAutoCompleteTextView>(RecordR.id.pf_record_page_spinner_status)
+        spinner.onItemClickListener!!.onItemClick(null, null, 3, 3)
+        page().requireView().findViewById<View>(RecordR.id.pf_record_page_btn_next_page).performClick()
+        await { spinner.text.toString() == "已取消" && list().adapter?.itemCount == 10 &&
+            field(RecordR.id.pf_record_page_text_page_indicator).text.toString() == "第 1 页" }
+        page().requireView().findViewById<View>(RecordR.id.pf_record_page_btn_next_page).performClick()
+        await { list().adapter?.itemCount == 1 && field(RecordR.id.pf_record_page_text_page_indicator).text.toString() == "第 2 页" }
+        card(0).performClick()
+        val prompt = deletionPrompt()
+        assertNull(activity.findViewById<View>(RecordR.id.pf_record_page_share_preview))
+        capturePrompt(prompt, "records-delete-confirmation")
+        val confirm = prompt.findViewById<View>(RecordR.id.pf_record_delete_confirm)
+        confirm.performClick()
+        confirm.performClick()
+        await { list().adapter?.itemCount == 10 && field(RecordR.id.pf_record_page_text_page_indicator).text.toString() == "第 1 页" }
+        await { !prompt.isShowing }
+        assertNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("cancelled-9") })
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(countdown("cancelled-added", status = "CANCELLED", at = wall - 30_000))
+        }
+        await { list().adapter?.itemCount == 10 && field(RecordR.id.pf_record_page_text_page_indicator).text.toString() == "第 1 页" &&
+            page().requireView().findViewById<View>(RecordR.id.pf_record_page_btn_next_page).isEnabled }
+        card(0).performClick()
+        val countUpPrompt = deletionPrompt()
+        countUpPrompt.findViewById<View>(RecordR.id.pf_record_delete_confirm).performClick()
+        await { !countUpPrompt.isShowing && list().adapter?.itemCount == 10 }
+        runBlocking(Dispatchers.IO) {
+            assertNull(app.database.freeFlightArchiveDao().get("shared-id", owner))
+            assertNotNull(app.database.flightHistoryDao().findById("shared-id"))
+        }
+        card(0).performClick()
+        deletionPrompt().findViewById<View>(RecordR.id.pf_record_delete_confirm).performClick()
+        await { list().adapter?.itemCount == 9 }
+        assertNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("shared-id") })
+        assertEquals(total, host.requireView().findViewById<TextView>(RecordR.id.pf_record_page_text_subtitle).text.toString())
+        capture("records-cancelled-after-removal")
+    }
+
+    @Test fun aFailedDatabaseRemovalKeepsTheRecordAndAllowsTheSamePromptToRetry() {
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(countdown("retry-delete", status = "CANCELLED"))
+            app.database.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_record_removal BEFORE DELETE ON flight_history BEGIN SELECT RAISE(ABORT, 'record temporarily unavailable'); END")
+        }
+        showRecords()
+        await { list().adapter?.itemCount == 1 }
+        card(0).performClick()
+        val prompt = deletionPrompt()
+        val confirm = prompt.findViewById<View>(RecordR.id.pf_record_delete_confirm)
+        confirm.performClick()
+        await { confirm.isEnabled && ShadowToast.getTextOfLatestToast()?.toString() == activity.getString(RecordR.string.pf_record_delete_failed) }
+        assertTrue(prompt.isShowing)
+        assertEquals(1, list().adapter?.itemCount)
+        assertNotNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("retry-delete") })
+        runBlocking(Dispatchers.IO) { app.database.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_record_removal") }
+        confirm.performClick()
+        await { list().adapter?.itemCount == 0 && !prompt.isShowing }
+        await { ShadowToast.getTextOfLatestToast()?.toString() == activity.getString(RecordR.string.pf_record_delete_success) }
+        assertNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("retry-delete") })
+    }
+
+    @Test fun obsoleteConfirmationsCannotDeleteAnUpdatedRecordOrAnotherAccountsHistory() {
+        val row = countdown("updated-record", status = "CANCELLED")
+        runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().insert(row) }
+        showRecords()
+        await { list().adapter?.itemCount == 1 }
+        card(0).performClick()
+        val original = deletionPrompt()
+        val oldConfirm = original.findViewById<View>(RecordR.id.pf_record_delete_confirm)
+        runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().update(row.copy(status = "COMPLETED")) }
+        await { !original.isShowing }
+        oldConfirm.performClick()
+        assertEquals("COMPLETED", runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(row.id) }?.status)
+        runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().update(row) }
+        await { card(0).findViewById<TextView>(RecordR.id.pf_record_card_text_status_desc).text.toString().trim() == "取消" }
+        card(0).performClick()
+        val owned = deletionPrompt()
+        val ownedConfirm = owned.findViewById<View>(RecordR.id.pf_record_delete_confirm)
+        runBlocking(Dispatchers.IO) { TokenStore.setCancellable("record-browser-account-two") }
+        await { !owned.isShowing && list().adapter?.itemCount == 0 }
+        ownedConfirm.performClick()
+        scenario!!.recreate()
+        scenario!!.onActivity { actual ->
+            activity = actual
+            host = (actual.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment)
+                .childFragmentManager.fragments.first() as RecordListHostFragment
+        }
+        await { list().adapter?.itemCount == 0 }
+        assertEquals(row, runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(row.id) })
+    }
+
+    @Test fun aGuestRecordOffersTheLoginEntryAndNeverDeletesBeforeAuthentication() {
+        TokenStore.clear()
+        val row = countdown("guest-record", status = "CANCELLED", owner = "local")
+        runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().insert(row) }
+        showRecords()
+        await { list().adapter?.itemCount == 1 }
+        card(0).performClick()
+        await { activity.findViewById<View>(RecordR.id.pf_record_login_gate) != null }
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(240))
+        val content = activity.findViewById<ViewGroup>(android.R.id.content)
+        val background = Bitmap.createBitmap(content.width, content.height, Bitmap.Config.ARGB_8888)
+        try {
+            content.draw(Canvas(background))
+            assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(android.graphics.Color.WHITE,
+                background.getPixel(8, background.height - 8)) >= 4.5)
+        } finally { background.recycle() }
+        capture("records-login-gate")
+        activity.findViewById<View>(RecordR.id.pf_record_login_button).performClick()
+        await { activity.findViewById<View>(RecordR.id.pf_record_login_gate) == null }
+        assertEquals(com.projectfocus.app.auth.AuthLoginActivity::class.java.name,
+            shadowOf(activity).nextStartedActivity?.component?.className)
+        assertNull(TokenStore.peek())
+        assertEquals(row, runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(row.id) })
+    }
+
+    private fun deletionPrompt(): RecordDeleteDialog {
+        await { (ShadowDialog.getLatestDialog() as? RecordDeleteDialog)?.isShowing == true }
+        return ShadowDialog.getLatestDialog() as RecordDeleteDialog
+    }
+
+    private fun capturePrompt(prompt: RecordDeleteDialog, name: String) {
+        val decor = prompt.window!!.decorView
+        val density = activity.resources.displayMetrics.density
+        decor.measure(View.MeasureSpec.makeMeasureSpec(prompt.window!!.attributes.width, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec((activity.resources.configuration.screenHeightDp * density).toInt(), View.MeasureSpec.AT_MOST))
+        decor.layout(0, 0, decor.measuredWidth, decor.measuredHeight)
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300))
+        val bitmap = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888)
+        decor.draw(Canvas(bitmap))
+        val file = File("build/reports/records/$name.png")
+        file.parentFile!!.mkdirs()
+        file.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+        bitmap.recycle()
     }
 
     @Test fun corruptArchiveOffersRetryAndTheSameScreenRecoversAfterRepair() {

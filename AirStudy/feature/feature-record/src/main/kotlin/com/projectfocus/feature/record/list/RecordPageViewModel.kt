@@ -7,6 +7,8 @@ import com.projectfocus.service.focus.history.FlightHistoryReader
 import com.projectfocus.service.focus.history.HistoryAccount
 import com.projectfocus.service.focus.history.HistoryReadState
 import com.projectfocus.service.focus.history.RecordedFlight
+import com.projectfocus.service.focus.history.FlightRecordKey
+import com.projectfocus.service.focus.history.RecordDeletionTarget
 import com.projectfocus.service.focus.history.RecordSceneStore
 import com.projectfocus.service.focus.history.RecordSceneEditTarget
 import com.projectfocus.service.focus.history.RecordSceneSaveResult
@@ -25,6 +27,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
 enum class RecordSceneFailure { WRITE, CHANGED, NOT_EDITABLE }
@@ -55,8 +58,14 @@ data class RecordPageState(
     val pageCount: Int = 1,
     val matchedCount: Int = 0,
     val completedDistanceKm: Double? = null,
+    internal val deletionTargets: Map<FlightRecordKey, RecordDeletionTarget> = emptyMap(),
 ) {
     val ready get() = !loading && !failed && account?.isCurrent() == true
+
+    fun deletionTarget(item: RecordItem): RecordDeletionTarget? {
+        if (!ready || items.none { it == item }) return null
+        return deletionTargets[item.key]?.takeIf { it.account == account }
+    }
 }
 
 object RecordPageProjection {
@@ -103,13 +112,17 @@ object RecordPageProjection {
         val page = requested.coerceIn(1, pages)
         val distance = read.records.filter { it.completed }.sumOf { it.distanceKm }
         require(distance.isFinite() && distance >= 0.0)
+        val visible = matching.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
         return empty.copy(
             loading = false,
-            items = matching.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE).map { RecordItemMapping.item(it, zone) },
+            items = visible.map { RecordItemMapping.item(it, zone) },
             page = page,
             pageCount = pages,
             matchedCount = matching.size,
             completedDistanceKm = distance,
+            deletionTargets = java.util.Collections.unmodifiableMap(visible.associate {
+                it.key to RecordDeletionTarget(read.account, it)
+            }),
         )
     }
 }
@@ -132,6 +145,9 @@ class RecordPageViewModel @Inject constructor(
             if (error is CancellationException) throw error
             RecordPageState(records.account, loading = false, failed = true, query = filter)
         }
+    }.onEach { page ->
+        if (page.ready && page.query.page != page.page)
+            query.compareAndSet(page.query, page.query.copy(page = page.page, generation = requireNotNull(page.account).generation))
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), RecordPageState())
 
     fun onVisible() { now.value = clock.millis() }
@@ -177,6 +193,7 @@ class RecordPageViewModel @Inject constructor(
 
     private fun changePage(delta: Int) {
         val current = state.value.takeIf { it.ready } ?: return
+        if (query.value != current.query) return
         query.value = current.query.copy(page = (current.page + delta).coerceIn(1, current.pageCount),
             generation = requireNotNull(current.account).generation)
     }

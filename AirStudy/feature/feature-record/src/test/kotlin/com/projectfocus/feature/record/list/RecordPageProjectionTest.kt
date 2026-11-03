@@ -47,12 +47,20 @@ class RecordPageProjectionTest {
         assertEquals(2,first.pageCount)
         assertEquals(2,first.items.count { it.id == "same-id" })
         assertEquals(2,first.items.filter { it.id=="same-id" }.map { it.key }.toSet().size)
+        first.items.filter { it.id == "same-id" }.forEach { item ->
+            val target = requireNotNull(first.deletionTarget(item))
+            assertEquals(account, target.account)
+            assertEquals(item.key, target.record.key)
+            assertSame(rows.first { it.key == item.key }, target.record)
+        }
         val second = RecordPageProjection.build(read(rows),query(page=2),wall,zone)
         assertEquals(listOf("row-9"),second.items.map { it.id })
         val shrunk = RecordPageProjection.build(read(rows.take(2)),query(page=2),wall,zone)
         assertEquals(1,shrunk.page)
         assertEquals(1,shrunk.pageCount)
         assertEquals(2,shrunk.items.size)
+        assertNull(second.deletionTarget(first.items.first()))
+        assertNull(first.deletionTarget(first.items.first().copy(sceneRevision = 99)))
     }
 
     @Test fun localCalendarRangesUseDepartureDateAndRespectSummerTimeBoundaries() {
