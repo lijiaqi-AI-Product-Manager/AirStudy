@@ -25,6 +25,7 @@ object StatsProjection {
         val filtered = read.records.filter { StatsScenes.matches(it, sceneKey) }
         val summary = HistoryStatistics.calculate(filtered.filter { it.recordedAtWallMs in range }, read.airportCounts, read.airportCodes)
         val overview = StatsOverviewMetrics.calculate(filtered, range, zone)
+        val hours = StatsHourHabits.calculate(filtered, range, zone)
         return base.copy(flights = summary.flights, distanceKm = summary.distanceKm,
             focusMinutes = Math.round(overview.totalFocusMinutes).coerceIn(0,Int.MAX_VALUE.toLong()).toInt(), overview = overview,
             airports = summary.destinations.size, countries = summary.countries.size, countryBreakdown = summary.countries,
@@ -35,6 +36,7 @@ object StatsProjection {
             annualHeatmap = StatsAnnualHeatmap.calculate(filtered, year, zone),
             career = StatsCareer.calculate(read.records, read.airportCounts, read.airportCodes),
             flightStreak = StatsFlightStreak.calculate(filtered, range, nowWallMs, zone),
-            hourHabits = StatsHourHabits.calculate(filtered, range, zone))
+            hourHabits = hours,
+            periodDetails = StatsPeriodDetails.calculate(filtered, range, zone, hours))
     }
 }

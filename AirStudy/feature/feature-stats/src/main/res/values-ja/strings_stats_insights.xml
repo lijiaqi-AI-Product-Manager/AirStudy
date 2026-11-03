@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_dashboard_insights_title">集中インサイト</string>
+    <string name="stats_insight_best_day">ベスト日</string>
+    <string name="stats_insight_top_scenario">主要シーン</string>
+    <string name="stats_insight_top_period">高効率時間帯</string>
+    <string name="stats_insight_day_value_fmt">%1$s · %2$s</string>
+    <string name="stats_insight_scenario_value_fmt">%1$s · %2$s</string>
+    <string name="stats_period_dawn">深夜</string>
+    <string name="stats_period_morning">午前</string>
+    <string name="stats_period_afternoon">午後</string>
+    <string name="stats_period_evening">夜</string>
+    <string name="stats_highlights_title">ハイライト</string>
+    <string name="stats_highlight_rank_value_fmt">%1$d</string>
+    <string name="stats_insight_no_data_short">データなし</string>
+</resources>

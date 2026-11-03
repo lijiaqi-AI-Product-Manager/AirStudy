@@ -39,6 +39,7 @@ data class StatsUiState(
     val career: StatsCareer? = null,
     val flightStreak: StatsFlightStreak? = null,
     val hourHabits: StatsHourHabits? = null,
+    val periodDetails: StatsPeriodDetails? = null,
 ) {
     val focusHours: Int get() = focusMinutes / 60
     val focusRemainderMinutes: Int get() = focusMinutes % 60

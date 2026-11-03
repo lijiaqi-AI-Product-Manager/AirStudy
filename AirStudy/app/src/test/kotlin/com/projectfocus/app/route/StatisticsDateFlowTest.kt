@@ -36,6 +36,8 @@ import com.projectfocus.feature.stats.StatsViewModel
 import com.projectfocus.feature.stats.StatsHeatmapPanel
 import com.projectfocus.feature.stats.StatsCareerPanel
 import com.projectfocus.feature.stats.StatsHourPanel
+import com.projectfocus.feature.stats.StatsInsightsPanel
+import com.projectfocus.feature.stats.StatsHighlightsPanel
 import com.projectfocus.service.focus.freeflight.RoomFreeFlightArchiveStore
 import java.io.File
 import java.time.LocalDate
@@ -65,6 +67,42 @@ import com.projectfocus.feature.stats.R as StatsR
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class StatisticsDateFlowTest {
+    @Test fun periodDetailsUseRealBothModeRecordsAndFollowSceneDateRecreationAndOwnerChanges() {
+        launch()
+        fun insights()=activity.findViewById<StatsInsightsPanel>(StatsR.id.statsInsightsPanel)
+        fun highlights()=activity.findViewById<StatsHighlightsPanel>(StatsR.id.statsHighlightsPanel)
+        fun insight(key: String)=insights().rows.findViewWithTag<TextView>("$key-value")?.text?.toString()
+        controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { count()==expected(2) && insights().rows.childCount==3 && highlights().rows.childCount==2 }
+        assertTrue(insight("stats-insight-best-day")!!.contains("7m"))
+        val first=highlights().rows.getChildAt(0).tag as com.projectfocus.service.focus.history.FlightRecordKey
+        val second=highlights().rows.getChildAt(1).tag as com.projectfocus.service.focus.history.FlightRecordKey
+        assertEquals(com.projectfocus.service.focus.history.FlightRecordKind.COUNTDOWN,first.kind)
+        assertEquals(com.projectfocus.service.focus.history.FlightRecordKind.COUNT_UP,second.kind)
+        activity.findViewById<StatsScenePanel>(StatsR.id.statsScenePanel).legend.findViewWithTag<View>("阅读").performClick()
+        await { count()==expected(1) && highlights().rows.childCount==1 && insight("stats-insight-top-scene")?.contains("阅读")==true }
+        assertTrue(insight("stats-insight-best-day")!!.contains("2m"))
+        layout();(insights().parent.parent as android.widget.ScrollView).scrollTo(0,insights().top);idle()
+        capture("statistics-actual-period-details-scene")
+        controls().previous.performClick()
+        await { count()==expected(0) && highlights().rows.childCount==0 }
+        assertEquals(activity.getString(StatsR.string.stats_insight_no_data_short),insight("stats-insight-best-day"))
+        controls().next.performClick()
+        await { count()==expected(1) && highlights().rows.childCount==1 }
+        scenario!!.recreate();scenario!!.onActivity { activity=it }
+        await { count()==expected(1) && controls().sceneFilter.visibility==View.VISIBLE && highlights().rows.childCount==1 }
+        assertTrue(insight("stats-insight-top-scene")!!.contains("阅读"))
+        val nextToken="statistics-period-details-next-owner"
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(legacy("next-period-owner",wall,TokenStore.storageScope(TokenStore.Snapshot(nextToken,0))))
+            TokenStore.setCancellable(nextToken)
+        }
+        await { count()==expected(1) && controls().sceneFilter.visibility==View.GONE && highlights().rows.childCount==1 && insight("stats-insight-best-day")?.contains("5m")==true }
+        assertTrue(controls().periodButtons[StatsPeriod.WEEK.ordinal].isSelected)
+        assertEquals(com.projectfocus.service.focus.history.FlightRecordKind.COUNTDOWN,
+            (highlights().rows.getChildAt(0).tag as com.projectfocus.service.focus.history.FlightRecordKey).kind)
+    }
+
     @Test fun hourHabitsUseRealAccountRecordsAndFollowSceneAndDateChanges() {
         launch()
         fun panel()=activity.findViewById<StatsHourPanel>(StatsR.id.statsHourPanel)
