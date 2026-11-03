@@ -26,13 +26,14 @@ import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.service.focus.history.HistoryAccount
 import java.util.Locale
 
-
+/** Statistics for the current account and selected local date range. */
 @AndroidEntryPoint
 class StatsFragment : Fragment(R.layout.fragment_stats) {
 
     private val viewModel: StatsViewModel by viewModels()
     private var lastState: StatsUiState? = null
     private var renderRevision = 0L
+    private var dateDialog: StatsDateRangeDialog? = null
 
     @Inject
     lateinit var airportDao: AirportDao
@@ -49,6 +50,18 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         }
         view.findViewById<View>(R.id.statsShare).setOnClickListener {
             shareStats()
+        }
+        fun dateControlsActive() = this.view === view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+        view.findViewById<StatsDateControls>(R.id.statsDateControls).apply {
+            onPeriodRequested = action@{ period ->
+                if (!dateControlsActive()) return@action
+                if (period == StatsPeriod.CUSTOM) openDateRange()
+                else lastState?.account?.let { account -> withAccount(account, ::dateControlsActive) { viewModel.selectPeriod(account, period) } }
+            }
+            onMoveRequested = action@{ direction ->
+                if (!dateControlsActive()) return@action
+                lastState?.account?.let { account -> withAccount(account, ::dateControlsActive) { viewModel.movePeriod(account, direction) } }
+            }
         }
 
         // 下钻对话框用 childFragmentManager 弹出（见 showCountryAirports），
@@ -71,7 +84,10 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 TokenStore.identities.collect { observed ->
-                    if (observed == TokenStore.snapshot() && viewModel.state.value.account?.isCurrent() != true) render(StatsUiState())
+                    if (observed == TokenStore.snapshot() && viewModel.state.value.account?.isCurrent() != true) {
+                        closeDateRange()
+                        render(StatsUiState())
+                    }
                 }
             }
         }
@@ -109,9 +125,14 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     }
 
     private fun renderCurrent(state: StatsUiState) {
+        if (lastState?.account != state.account || lastState?.queryRevision != state.queryRevision) {
+            closeDateRange()
+            childFragmentManager.fragments.filterIsInstance<CountryAirportsDialogFragment>().forEach { it.dismissAllowingStateLoss() }
+        }
         lastState = state
         val root = view ?: return
         val current = state.account?.isCurrent() == true
+        root.findViewById<StatsDateControls>(R.id.statsDateControls).bind(state, viewModel.zone)
         root.findViewById<View>(R.id.statsShare).isEnabled = !state.isLoading && current
 
         if (state.isLoading || !current) {
@@ -196,9 +217,10 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
                     },
                 )
             }
-            if (!isAdded || view == null || captured.account?.isCurrent() != true) return@launch
+            if (!isAdded || view == null || captured.account?.isCurrent() != true ||
+                lastState?.queryRevision != captured.queryRevision) return@launch
             loaded.onSuccess { rows ->
-                withAccount(captured.account) {
+                withAccount(captured.account, { lastState?.queryRevision == captured.queryRevision }) {
                     CountryAirportsDialogFragment.newInstance(country, rows, captured.account)
                         .show(childFragmentManager, "country_airports")
                 }
@@ -226,7 +248,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     private fun shareStats() {
         val state = lastState ?: return
         if (state.isLoading || state.account?.isCurrent() != true) return
-        val text = getString(
+        val summary = getString(
             R.string.stats_share_text,
             state.flights,
             state.distanceKm,
@@ -234,11 +256,50 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             state.airports,
             state.countries,
         )
+        val text = state.dates?.let {
+            getString(R.string.stats_share_period, StatsDateLabels.label(requireContext(), it, viewModel.zone, state.nowWallMs, false), summary)
+        } ?: summary
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)
         }
-        withAccount(state.account) { startActivity(Intent.createChooser(send, getString(R.string.stats_share_title))) }
+        withAccount(state.account, { lastState === state }) { startActivity(Intent.createChooser(send, getString(R.string.stats_share_title))) }
+    }
+
+    private fun openDateRange() {
+        val captured = lastState ?: return
+        val account = captured.account?.takeIf { it.isCurrent() } ?: return
+        val range = captured.dateRange ?: return
+        val origin = view ?: return
+        fun valid() = view === origin && account.isCurrent() &&
+            viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+            viewModel.isCurrentQuery(account, captured.queryRevision)
+        withAccount(account, ::valid) {
+            closeDateRange()
+            val dialog = StatsDateRangeDialog(requireContext(), range, viewModel.zone, viewModel.today(), ::valid) { first, last ->
+                if (valid()) withAccount(account, ::valid) { viewModel.selectCustom(account, captured.queryRevision, first, last) }
+            }
+            dateDialog = dialog
+            dialog.setOnDismissListener { if (dateDialog === dialog) dateDialog = null }
+            dialog.show()
+        }
+    }
+
+    private fun closeDateRange() {
+        val old = dateDialog
+        dateDialog = null
+        old?.setOnDismissListener(null)
+        old?.dismiss()
+    }
+
+    override fun onResume() { super.onResume(); viewModel.refreshNow() }
+    override fun onStop() { closeDateRange(); super.onStop() }
+    override fun onDestroyView() {
+        closeDateRange()
+        view?.findViewById<StatsDateControls>(R.id.statsDateControls)?.apply { onPeriodRequested = null; onMoveRequested = null }
+        lastState = null
+        renderRevision++
+        super.onDestroyView()
     }
 
     companion object { const val ARG_EMBEDDED = "embedded_statistics" }

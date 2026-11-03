@@ -53,6 +53,7 @@ jobs:
           --tests 'com.projectfocus.app.booking.PlanOriginReconciliationIntegrationTest'
           --tests 'com.projectfocus.app.route.NavGraphTest'
           --tests 'com.projectfocus.app.route.RecordBrowserFlowTest'
+          --tests 'com.projectfocus.app.route.StatisticsDateFlowTest'
           --stacktrace
       - name: Verify flight records
         run: >-
@@ -77,4 +78,5 @@ jobs:
             AirStudy/**/build/reports/record-card/
             AirStudy/**/build/reports/records/
             AirStudy/**/build/reports/airport-mark/
+            AirStudy/**/build/reports/statistics/
           retention-days: 7

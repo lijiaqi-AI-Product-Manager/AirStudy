@@ -21,6 +21,11 @@ data class StatsUiState(
     val account: HistoryAccount? = null,
     val destinations: List<HistoryDestination> = emptyList(),
     val readFailed: Boolean = false,
+    val dates: StatsDateSelection? = null,
+    val dateRange: StatsDateRange? = null,
+    val canNextPeriod: Boolean = false,
+    val queryRevision: Long = 0,
+    val nowWallMs: Long = 0,
 ) {
     val focusHours: Int get() = focusMinutes / 60
     val focusRemainderMinutes: Int get() = focusMinutes % 60

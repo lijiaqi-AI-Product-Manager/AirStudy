@@ -68,6 +68,13 @@ class NavGraphTest {
 
     @Before
     fun setUp() {
+        val app = androidx.test.core.app.ApplicationProvider.getApplicationContext<com.projectfocus.app.ProjectFocusApp>()
+        kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+            kotlinx.coroutines.withTimeout(30_000) {
+                app.awaitInitialAccountRestore()
+                app.awaitInitialAirportSeed()
+            }
+        }
         scenario = ActivityScenario.launch(MainActivity::class.java)
         idle()
     }
