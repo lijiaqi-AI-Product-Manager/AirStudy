@@ -20,6 +20,20 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28],manifest=Config.NONE)
 class StatsProjectionTest {
+    @Test fun `hour habits use selected period and scene while lifetime career remains independent`() {
+        val old=date.minusYears(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val loaded=read(legacy("midnight",now),independent("one",now+3_600_000),legacy("old",old))
+        val selected=query(StatsDateSelection(date,StatsPeriod.DAY))
+        val all=StatsProjection.build(loaded,selected,now,zone)
+        assertEquals(5.0,all.hourHabits!!.minutes[0],0.0)
+        assertEquals(1.5+1.0/60_000,all.hourHabits!!.minutes[1],1e-10)
+        val scene=StatsProjection.build(loaded,selected.copy(sceneKey="study"),now,zone)
+        assertEquals(0.0,scene.hourHabits!!.minutes[0],0.0)
+        assertEquals(1.5+1.0/60_000,scene.hourHabits!!.minutes[1],1e-10)
+        assertEquals(all.career,scene.career)
+        assertNull(StatsProjection.build(HistoryReadState.Failure(account,IllegalStateException("unavailable")),selected,now,zone).hourHabits)
+    }
+
     @Test fun `career stays all time while date and scene selections change the current streak`() {
         val yesterday=date.minusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
         val old=date.minusYears(2).atStartOfDay(zone).toInstant().toEpochMilli()

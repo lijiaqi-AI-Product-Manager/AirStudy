@@ -34,6 +34,7 @@ object StatsProjection {
             focusComparison = StatsPeriodComparison.calculate(filtered,overview.totalFocusMinutes,dates,zone),
             annualHeatmap = StatsAnnualHeatmap.calculate(filtered, year, zone),
             career = StatsCareer.calculate(read.records, read.airportCounts, read.airportCodes),
-            flightStreak = StatsFlightStreak.calculate(filtered, range, nowWallMs, zone))
+            flightStreak = StatsFlightStreak.calculate(filtered, range, nowWallMs, zone),
+            hourHabits = StatsHourHabits.calculate(filtered, range, zone))
     }
 }

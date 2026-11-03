@@ -103,9 +103,11 @@ class StatsCareerPanel @JvmOverloads constructor(context: Context, attrs: Attrib
 
     private fun full(top: Int = 0) = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { topMargin = visual.dp(top) }
     private fun number(size: Float, minimum: Int? = null) = StatsNumberView(context, size).apply {
-        typeface = visual.text(size, visual.primaryText, true).typeface
         setSingleLine(true)
-        if (minimum != null) TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(this, minimum, size.toInt(), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
+        if (minimum != null) {
+            setHorizontallyScrolling(false)
+            TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(this, minimum, size.toInt(), 1, android.util.TypedValue.COMPLEX_UNIT_SP)
+        }
     }
     private fun accentCard(accent: Int, strong: Boolean) = visual.rounded(14,
         intArrayOf(visual.mix(visual.surface, accent, if (strong) .1f else .045f),

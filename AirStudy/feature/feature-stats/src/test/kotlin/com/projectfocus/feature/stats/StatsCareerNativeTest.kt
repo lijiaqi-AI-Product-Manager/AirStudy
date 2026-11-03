@@ -70,6 +70,7 @@ class StatsCareerNativeTest {
     @Test fun `career formats successful totals and keeps unknown arrival classifications unavailable`() {
         val data=state()
         panel.bind(data);layout()
+        assertEquals(androidx.core.content.res.ResourcesCompat.getFont(activity,UiR.font.harmonyos_sans_sc_black),panel.distanceValue.typeface)
         assertEquals(activity.getString(R.string.stats_km_value_fmt,String.format(java.util.Locale.US,"%,d",Math.round(data.career!!.distanceKm))),panel.distanceValue.text.toString())
         assertEquals("3 次",panel.flightsValue.text.toString())
         assertEquals("—",panel.onTimeValue.text.toString())

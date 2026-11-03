@@ -35,6 +35,7 @@ import com.projectfocus.feature.stats.StatsTrendMode
 import com.projectfocus.feature.stats.StatsViewModel
 import com.projectfocus.feature.stats.StatsHeatmapPanel
 import com.projectfocus.feature.stats.StatsCareerPanel
+import com.projectfocus.feature.stats.StatsHourPanel
 import com.projectfocus.service.focus.freeflight.RoomFreeFlightArchiveStore
 import java.io.File
 import java.time.LocalDate
@@ -64,6 +65,35 @@ import com.projectfocus.feature.stats.R as StatsR
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class StatisticsDateFlowTest {
+    @Test fun hourHabitsUseRealAccountRecordsAndFollowSceneAndDateChanges() {
+        launch()
+        fun panel()=activity.findViewById<StatsHourPanel>(StatsR.id.statsHourPanel)
+        fun model(): StatsViewModel {
+            val host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+            return ViewModelProvider(host.childFragmentManager.primaryNavigationFragment as StatsFragment)[StatsViewModel::class.java]
+        }
+        controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { count()==expected(2) && model().state.value.hourHabits!=null }
+        assertEquals(6.5+1.0/60_000,model().state.value.hourHabits!!.minutes[1],1e-10)
+        assertEquals(1,model().state.value.hourHabits!!.activeHours)
+        activity.findViewById<StatsScenePanel>(StatsR.id.statsScenePanel).legend.findViewWithTag<View>("阅读").performClick()
+        await { count()==expected(1) && model().state.value.selectedSceneKey.isNotEmpty() }
+        assertEquals(1.5+1.0/60_000,model().state.value.hourHabits!!.minutes[1],1e-10)
+        scenario!!.recreate();scenario!!.onActivity { activity=it }
+        await { count()==expected(1) && panel().chart.visibility==View.VISIBLE && model().state.value.hourHabits!!.activeHours==1 }
+        val scroll=generateSequence(panel().parent) { it.parent }.filterIsInstance<android.widget.ScrollView>().first()
+        layout();scroll.scrollTo(0,panel().top);idle();capture("statistics-actual-hours-scene")
+        val prior=model().state.value.account
+        val nextToken="statistics-hour-route-next-owner"
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(legacy("hour-next-owner",wall+2*3_600_000,TokenStore.storageScope(TokenStore.Snapshot(nextToken,0))))
+            TokenStore.setCancellable(nextToken)
+        }
+        await { model().state.value.account!=prior && model().state.value.hourHabits?.minutes?.get(3)==5.0 && !model().state.value.isLoading }
+        assertEquals(0.0,model().state.value.hourHabits!!.minutes[1],0.0)
+        assertTrue(model().state.value.selectedSceneKey.isEmpty())
+    }
+
     @Test fun careerUsesAllSuccessfulAccountRecordsAcrossDateAndSceneChanges() {
         runBlocking(Dispatchers.IO) {
             app.database.flightHistoryDao().insert(legacy("career-outside-current-range",today.minusYears(2).atStartOfDay(zone).toInstant().toEpochMilli()))

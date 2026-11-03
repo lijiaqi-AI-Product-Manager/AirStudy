@@ -72,6 +72,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             }
         }
         view.findViewById<StatsTrendPanel>(R.id.statsTrendPanel).interactionAllowed=::dateControlsActive
+        view.findViewById<StatsHourPanel>(R.id.statsHourPanel).apply { interactionAllowed=::dateControlsActive; onRetryRequested=viewModel::retry }
         view.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel).apply {
             interactionAllowed = ::dateControlsActive
             currentWallMs = viewModel::currentWallMs
@@ -166,6 +167,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         root.findViewById<StatsHeadlineView>(R.id.statsHeadline).bind(state, viewModel.zone)
         root.findViewById<StatsTrendPanel>(R.id.statsTrendPanel).bind(state, viewModel.zone)
         root.findViewById<StatsScenePanel>(R.id.statsScenePanel).bind(state)
+        root.findViewById<StatsHourPanel>(R.id.statsHourPanel).bind(state)
         root.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel).bind(state)
         root.findViewById<View>(R.id.statsShare).isEnabled = !state.isLoading && current
 
@@ -261,7 +263,12 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     }
 
     override fun onResume() { super.onResume(); viewModel.refreshNow() }
-    override fun onStop() { closeDateRange(); view?.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel)?.chart?.clearSelection(); super.onStop() }
+    override fun onStop() {
+        closeDateRange()
+        view?.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel)?.chart?.clearSelection()
+        view?.findViewById<StatsHourPanel>(R.id.statsHourPanel)?.chart?.clearSelection()
+        super.onStop()
+    }
     override fun onDestroyView() {
         closeDateRange()
         view?.findViewById<StatsDateControls>(R.id.statsDateControls)?.apply { onPeriodRequested = null; onMoveRequested = null; onClearSceneRequested = null }
@@ -269,6 +276,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         view?.findViewById<StatsTrendPanel>(R.id.statsTrendPanel)?.interactionAllowed={ false }
         view?.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel)?.release()
         view?.findViewById<StatsCareerPanel>(R.id.statsCareerPanel)?.release()
+        view?.findViewById<StatsHourPanel>(R.id.statsHourPanel)?.release()
         lastState = null
         renderRevision++
         super.onDestroyView()
