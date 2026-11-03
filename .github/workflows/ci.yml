@@ -69,6 +69,7 @@ jobs:
           :feature:feature-airport:testDebugUnitTest --tests com.projectfocus.feature.airport.search.SearchRankingDocTest
           --tests com.projectfocus.feature.airport.ui.ArrivalMarkNativeTest
           :server:test --tests com.projectfocus.server.ApiContractDocTest
+          --tests com.projectfocus.server.FlightRoutesTest
           --stacktrace
       - name: Build application
         run: bash ./gradlew :app:assembleDebug --stacktrace

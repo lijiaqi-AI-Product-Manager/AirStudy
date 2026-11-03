@@ -65,6 +65,7 @@ class FlightService {
         }
 
         return transaction {
+            lockUserTotals(userId)
             var accepted = 0
             var rejected = 0
             val serverIds = mutableListOf<String>()
@@ -72,7 +73,7 @@ class FlightService {
             for (dto in req.sessions) {
                 val sanitized = sanitize(dto) ?: run { rejected++; null } ?: continue
                 insertFlight(userId, sanitized)
-                val storedOwner = Flights.selectAll().where { Flights.id eq sanitized.id }.single()[Flights.userId]
+                val storedOwner = Flights.selectAll().where { Flights.id eq sanitized.id }.singleOrNull()?.get(Flights.userId)
                 if (storedOwner != userId) {
                     rejected++
                     continue
@@ -148,10 +149,12 @@ class FlightService {
 
 
     fun delete(userId: String, flightId: String) {
-        val deleted = transaction {
-            Flights.deleteWhere { (Flights.id eq flightId) and (Flights.userId eq userId) }
+        transaction {
+            lockUserTotals(userId)
+            val deleted = Flights.deleteWhere { (Flights.id eq flightId) and (Flights.userId eq userId) }
+            if (deleted == 0) throw FlightNotFoundException()
+            recomputeUserTotals(userId)
         }
-        if (deleted == 0) throw FlightNotFoundException()
     }
 
     // ═══════════════════════════════════════════════════════
@@ -235,6 +238,11 @@ class FlightService {
 
 
 
+
+    /** Record writes and their aggregate share the account row lock and transaction. */
+    private fun lockUserTotals(userId: String) {
+        Users.selectAll().where { Users.id eq userId }.forUpdate().single()
+    }
 
     private fun recomputeUserTotals(userId: String) {
         val rows = Flights.selectAll().where { Flights.userId eq userId }.toList()

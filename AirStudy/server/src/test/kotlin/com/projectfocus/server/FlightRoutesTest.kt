@@ -1,6 +1,7 @@
 package com.projectfocus.server
 
 import com.google.common.truth.Truth.assertThat
+import com.projectfocus.server.db.Tables.Airports
 import io.ktor.client.statement.bodyAsText
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
@@ -13,6 +14,8 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import org.jetbrains.exposed.sql.insertIgnore
+import org.jetbrains.exposed.sql.transactions.transaction
 
 /**
  * 飞行记录端点的集成测试。
@@ -41,9 +44,10 @@ class FlightRoutesTest : ServerTestBase() {
         start: Long = System.currentTimeMillis() - 3_600_000,
         dep: String = "PEK",
         dst: String = "SHA",
+        focusType: String = "SOLO",
     ) = json(
         "id" to id,
-        "focusType" to "SOLO",
+        "focusType" to focusType,
         "departureAirportCode" to dep,
         "destinationAirportCode" to dst,
         "startTimeMillis" to start,
@@ -239,6 +243,103 @@ class FlightRoutesTest : ServerTestBase() {
         val del = c.withToken(t).delete("/session/$id")
         assertThat(del.status.value).isEqualTo(200)
         assertThat(c.str(c.withToken(t).get("/session/history"), "total")).isEqualTo("0")
+    }
+
+    @Test fun deletingRecordsRebuildsOnlyTheirAccountTotals() = serverTest("flight-delete-totals") { c ->
+        val owner = registerAndLogin(c, "delete-owner@airstudy.test")
+        val other = registerAndLogin(c, "delete-other@airstudy.test")
+        transaction {
+            for ((airport, countryCode) in listOf("AS1" to "CN", "AS2" to "JP")) Airports.insertIgnore {
+                it[code] = airport
+                it[name] = "History test airport"
+                it[city] = "History test city"
+                it[country] = countryCode
+                it[latitude] = 0.0
+                it[longitude] = 0.0
+            }
+        }
+        val removed = UUID.randomUUID().toString()
+        val remaining = UUID.randomUUID().toString()
+        val cancelled = UUID.randomUUID().toString()
+        val foreign = UUID.randomUUID().toString()
+        val ownBody = """{"sessions":[${flight(id=removed,actual=17,dst="AS1",focusType="GROUP")},${flight(id=remaining,actual=11,dst="AS2")},${flight(id=cancelled,actual=40,status="CANCELLED",dst="AS1",focusType="GROUP")}]}"""
+        assertThat(c.withToken(owner).post("/session/sync", ownBody).status.value).isEqualTo(200)
+        assertThat(c.withToken(other).post("/session/sync", """{"sessions":[${flight(id=foreign,actual=23,dst="AS1",focusType="GROUP")}]}""").status.value).isEqualTo(200)
+        suspend fun totals(token: String, minutes: Int, groups: Int, countries: Int) {
+            val profile = c.withToken(token).get("/user/me")
+            assertThat(profile.status.value).isEqualTo(200)
+            assertThat(c.str(profile, "totalFocusedMinutes")).isEqualTo(minutes.toString())
+            assertThat(c.str(profile, "totalGroupFlight")).isEqualTo(groups.toString())
+            assertThat(c.str(profile, "countriesVisited")).isEqualTo(countries.toString())
+        }
+        totals(owner,28,1,2)
+        totals(other,23,1,1)
+        assertThat(c.withToken(owner).delete("/session/$removed").status.value).isEqualTo(200)
+        totals(owner,11,0,1)
+        assertThat(c.str(c.withToken(owner).get("/session/history"), "total")).isEqualTo("2")
+        assertThat(c.withToken(other).delete("/session/$remaining").status.value).isEqualTo(404)
+        assertThat(c.withToken(owner).delete("/session/$removed").status.value).isEqualTo(404)
+        assertThat(c.withToken(null).delete("/session/$foreign").status.value).isEqualTo(401)
+        totals(owner,11,0,1)
+        totals(other,23,1,1)
+        assertThat(c.withToken(owner).delete("/session/$remaining").status.value).isEqualTo(200)
+        totals(owner,0,0,0)
+        assertThat(c.str(c.withToken(owner).get("/session/history"), "total")).isEqualTo("1")
+        assertThat(c.withToken(owner).delete("/session/$cancelled").status.value).isEqualTo(200)
+        assertThat(c.str(c.withToken(owner).get("/session/history"), "total")).isEqualTo("0")
+        totals(owner,0,0,0)
+        totals(other,23,1,1)
+    }
+
+    @Test fun concurrentRemovalAndSyncLeaveTotalsEqualToTheStoredRecords() = serverTest("flight-delete-concurrent") { c ->
+        val token = registerAndLogin(c, "delete-concurrent@airstudy.test")
+        val first = UUID.randomUUID().toString()
+        val second = UUID.randomUUID().toString()
+        val retained = UUID.randomUUID().toString()
+        val added = UUID.randomUUID().toString()
+        assertThat(c.withToken(token).post("/session/sync", """{"sessions":[${flight(id=first,actual=17)},${flight(id=second,actual=11)},${flight(id=retained,actual=5)}]}""").status.value).isEqualTo(200)
+        val clients = List(2) { TestClient(c.http).withToken(token) }
+        val deletions = coroutineScope {
+            val start = CompletableDeferred<Unit>()
+            val tasks = listOf(first,second).mapIndexed { index,id -> async { start.await();clients[index].delete("/session/$id") } }
+            start.complete(Unit)
+            tasks.awaitAll()
+        }
+        assertThat(deletions.map { it.status.value }).containsExactly(200,200)
+        assertThat(c.str(c.withToken(token).get("/user/me"), "totalFocusedMinutes")).isEqualTo("5")
+        val mixed = coroutineScope {
+            val start = CompletableDeferred<Unit>()
+            val remove = async { start.await();clients[0].delete("/session/$retained") }
+            val insert = async { start.await();clients[1].post("/session/sync", """{"sessions":[${flight(id=added,actual=7)}]}""") }
+            start.complete(Unit)
+            listOf(remove,insert).awaitAll()
+        }
+        assertThat(mixed.map { it.status.value }).containsExactly(200,200)
+        val history = c.withToken(token).get("/session/history")
+        assertThat(c.str(history, "total")).isEqualTo("1")
+        assertThat(history.bodyAsText()).contains(added)
+        assertThat(c.str(c.withToken(token).get("/user/me"), "totalFocusedMinutes")).isEqualTo("7")
+    }
+
+    @Test fun aFailedAggregateWriteRollsBackTheDeletionAndCanBeRetried() = serverTest("flight-delete-rollback") { c ->
+        val token = registerAndLogin(c, "delete-rollback@airstudy.test")
+        val removed = UUID.randomUUID().toString()
+        val retained = UUID.randomUUID().toString()
+        assertThat(c.withToken(token).post("/session/sync", """{"sessions":[${flight(id=removed,actual=17)},${flight(id=retained,actual=11)}]}""").status.value).isEqualTo(200)
+        transaction { exec("ALTER TABLE users ADD CONSTRAINT history_total_write_guard CHECK (total_focused_minutes <> 11)") }
+        val failed = c.withToken(token).delete("/session/$removed")
+        assertThat(failed.status.value).isEqualTo(503)
+        assertThat(c.errorCode(failed)).isEqualTo(5001)
+        assertThat(failed.bodyAsText()).doesNotContain("history_total_write_guard")
+        assertThat(failed.bodyAsText()).doesNotContain("total_focused_minutes")
+        val history = c.withToken(token).get("/session/history")
+        assertThat(c.str(history, "total")).isEqualTo("2")
+        assertThat(history.bodyAsText()).contains(removed)
+        assertThat(c.str(c.withToken(token).get("/user/me"), "totalFocusedMinutes")).isEqualTo("28")
+        transaction { exec("ALTER TABLE users DROP CONSTRAINT history_total_write_guard") }
+        assertThat(c.withToken(token).delete("/session/$removed").status.value).isEqualTo(200)
+        assertThat(c.str(c.withToken(token).get("/session/history"), "total")).isEqualTo("1")
+        assertThat(c.str(c.withToken(token).get("/user/me"), "totalFocusedMinutes")).isEqualTo("11")
     }
 
     @Test
