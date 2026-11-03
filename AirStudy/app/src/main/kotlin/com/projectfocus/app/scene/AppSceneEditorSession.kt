@@ -26,6 +26,7 @@ internal class AppSceneEditorSession(
     private val activity: AppCompatActivity,
     private val accessResolver: SceneAccessResolver,
     private val contentChecker: SceneContentChecker,
+    private val isCurrent: () -> Boolean = { true },
 ) : SeatSceneEditorSession {
     private val ownerJob = SupervisorJob(activity.lifecycleScope.coroutineContext[Job])
     private val scope = CoroutineScope(activity.lifecycleScope.coroutineContext + ownerJob)
@@ -148,7 +149,7 @@ internal class AppSceneEditorSession(
     }
 
     private fun canDisplay(): Boolean =
-        !closed && ownerJob.isActive && !activity.isFinishing && !activity.isDestroyed
+        !closed && ownerJob.isActive && !activity.isFinishing && !activity.isDestroyed && isCurrent()
 
     private fun message(resource: Int) = Toast.makeText(activity, resource, Toast.LENGTH_LONG).show()
 

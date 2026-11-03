@@ -144,10 +144,20 @@ class AirportSearchHostFragment : Fragment() {
 
 
 @dagger.hilt.android.AndroidEntryPoint
-class RecordListHostFragment : Fragment(com.projectfocus.feature.record.R.layout.pf_record_screen) {
+class RecordListHostFragment : Fragment(com.projectfocus.feature.record.R.layout.pf_record_screen),
+    com.projectfocus.feature.record.ui.RecordScenePickerHost {
+    @javax.inject.Inject lateinit var sceneAccess: com.projectfocus.core.network.content.SceneAccessResolver
+    @javax.inject.Inject lateinit var sceneContent: com.projectfocus.core.network.content.SceneContentChecker
     private val viewModel: com.projectfocus.feature.record.list.RecordPageViewModel by viewModels()
     private var tabs: com.google.android.material.tabs.TabLayoutMediator? = null
     private var renderRevision = 0L
+
+    override fun showRecordScenePicker(anchor: View, item: com.projectfocus.feature.record.list.RecordItem,
+        canShow: () -> Boolean, onSelected: (com.projectfocus.core.model.flight.PlannedScene) -> Unit): AutoCloseable? {
+        val activity = requireActivity() as? androidx.appcompat.app.AppCompatActivity ?: return null
+        return com.projectfocus.app.scene.RecordScenePickerSession.open(activity, anchor, item, canShow,
+            onSelected, sceneAccess, sceneContent)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)

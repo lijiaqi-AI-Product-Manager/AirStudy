@@ -956,6 +956,32 @@ object Migrations {
         }
     }
 
+    val MIGRATION_25_26 = object : Migration(25, 26) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("""
+                CREATE TABLE IF NOT EXISTS `flight_record_scene` (
+                    `recordKind` TEXT NOT NULL,
+                    `recordId` TEXT NOT NULL,
+                    `ownerScope` TEXT NOT NULL,
+                    `countdownId` TEXT,
+                    `countUpId` TEXT,
+                    `startedAtWallMs` INTEGER NOT NULL,
+                    `revision` INTEGER NOT NULL,
+                    `sceneJson` TEXT NOT NULL,
+                    `updatedAtWallMs` INTEGER NOT NULL,
+                    PRIMARY KEY(`recordKind`, `recordId`),
+                    FOREIGN KEY(`countdownId`) REFERENCES `flight_history`(`id`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE,
+                    FOREIGN KEY(`countUpId`) REFERENCES `free_flight_archive`(`sessionId`)
+                        ON UPDATE NO ACTION ON DELETE CASCADE
+                )
+            """.trimIndent())
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_flight_record_scene_ownerScope` ON `flight_record_scene` (`ownerScope`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_flight_record_scene_countdownId` ON `flight_record_scene` (`countdownId`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_flight_record_scene_countUpId` ON `flight_record_scene` (`countUpId`)")
+        }
+    }
+
     val ALL: List<Migration> = listOf(
         MIGRATION_1_2,
         MIGRATION_2_3,
@@ -981,5 +1007,6 @@ object Migrations {
         MIGRATION_22_23,
         MIGRATION_23_24,
         MIGRATION_24_25,
+        MIGRATION_25_26,
     )
 }

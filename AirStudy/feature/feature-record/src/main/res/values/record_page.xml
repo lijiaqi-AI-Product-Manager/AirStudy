@@ -34,6 +34,9 @@
     <string name="pf_record_page_share_preview_description">飞行记录预览，点背景关闭</string>
     <string name="pf_record_page_total_flown_format">共飞行%1$skm</string>
     <string name="pf_record_page_total_loading">—</string>
+    <string name="pf_record_page_scene_save_failed">场景保存失败，请重试</string>
+    <string name="pf_record_page_scene_changed">记录已更新，请重新选择场景</string>
+    <string name="pf_record_page_scene_not_editable">这条记录暂不能修改场景</string>
     <color name="pf_record_page_record_main_tab_indicator">#ff111111</color>
     <color name="pf_record_page_record_main_tab_selected">#ff111111</color>
     <color name="pf_record_page_record_main_tab_unselected">#ff666666</color>

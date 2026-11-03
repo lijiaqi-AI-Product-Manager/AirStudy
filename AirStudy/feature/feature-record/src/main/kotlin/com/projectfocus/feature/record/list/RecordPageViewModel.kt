@@ -7,6 +7,10 @@ import com.projectfocus.service.focus.history.FlightHistoryReader
 import com.projectfocus.service.focus.history.HistoryAccount
 import com.projectfocus.service.focus.history.HistoryReadState
 import com.projectfocus.service.focus.history.RecordedFlight
+import com.projectfocus.service.focus.history.RecordSceneStore
+import com.projectfocus.service.focus.history.RecordSceneEditTarget
+import com.projectfocus.service.focus.history.RecordSceneSaveResult
+import com.projectfocus.core.model.flight.PlannedScene
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.DayOfWeek
@@ -21,6 +25,15 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+
+enum class RecordSceneFailure { WRITE, CHANGED, NOT_EDITABLE }
+data class RecordSceneSaveState(
+    val attempt: Long = 0L,
+    val target: RecordSceneEditTarget? = null,
+    val saving: Boolean = false,
+    val failure: RecordSceneFailure? = null,
+)
 
 enum class RecordStatusFilter { ALL, ARRIVED, IN_PROGRESS, CANCELLED }
 enum class RecordPeriod { DAY, WEEK, MONTH, ALL }
@@ -106,9 +119,12 @@ class RecordPageViewModel @Inject constructor(
     private val reader: FlightHistoryReader,
     private val clock: Clock,
     private val zone: ZoneId,
+    private val sceneStore: RecordSceneStore,
 ) : ViewModel() {
     private val query = MutableStateFlow(RecordPageQuery())
     private val now = MutableStateFlow(clock.millis())
+    private val mutableSceneSave = MutableStateFlow(RecordSceneSaveState())
+    val sceneSave: kotlinx.coroutines.flow.StateFlow<RecordSceneSaveState> = mutableSceneSave
     val state = combine(reader.records, query, now) { records, filter, wall ->
         try {
             RecordPageProjection.build(records, filter, wall, zone)
@@ -128,6 +144,37 @@ class RecordPageViewModel @Inject constructor(
     }
     fun previous() = changePage(-1)
     fun next() = changePage(1)
+    fun changeScene(item: RecordItem, scene: PlannedScene) {
+        val current = state.value.takeIf { it.ready } ?: return
+        if (mutableSceneSave.value.saving || item.status != FlightStatus.COMPLETED || item.recordedAtWallMs == null ||
+            current.items.none { it == item }) return
+        val target = RecordSceneEditTarget(requireNotNull(current.account), item.key, item.recordedAtWallMs, item.sceneRevision)
+        val request = RecordSceneSaveState(Math.addExact(mutableSceneSave.value.attempt, 1), target, saving = true)
+        mutableSceneSave.value = request
+        viewModelScope.launch {
+            try {
+                val failure = when (sceneStore.save(target, scene)) {
+                    is RecordSceneSaveResult.Saved, RecordSceneSaveResult.Obsolete -> null
+                    RecordSceneSaveResult.Changed -> RecordSceneFailure.CHANGED
+                    RecordSceneSaveResult.NotEditable -> RecordSceneFailure.NOT_EDITABLE
+                }
+                mutableSceneSave.value = request.copy(saving = false, failure = failure)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (_: Exception) {
+                mutableSceneSave.value = request.copy(saving = false, failure = RecordSceneFailure.WRITE)
+            } finally {
+                if (mutableSceneSave.value.attempt == request.attempt && mutableSceneSave.value.saving)
+                    mutableSceneSave.value = request.copy(saving = false)
+            }
+        }
+    }
+
+    fun acknowledgeSceneFailure(attempt: Long) {
+        if (mutableSceneSave.value.attempt == attempt)
+            mutableSceneSave.value = mutableSceneSave.value.copy(failure = null)
+    }
+
     private fun changePage(delta: Int) {
         val current = state.value.takeIf { it.ready } ?: return
         query.value = current.query.copy(page = (current.page + delta).coerceIn(1, current.pageCount),

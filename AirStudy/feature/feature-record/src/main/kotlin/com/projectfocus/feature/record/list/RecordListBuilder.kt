@@ -43,13 +43,17 @@ data class RecordItem(
     val distanceKm: Double? = null,
     val focusMinutes: Int? = null,
     val arrivalSelected: Boolean = true,
+    val recordedAtWallMs: Long? = null,
+    val sceneRevision: Long = 0L,
+    val sceneOptionId: String? = null,
 ) {
     val key: FlightRecordKey get() = FlightRecordKey(kind, id)
     /** 供无障碍整条朗读 */
     val spokenSummary: String
         get() = "$fromCity 到 $toCity，$startTime 起飞，${status.label}，" +
-            if (kind == FlightRecordKind.COUNT_UP) "正计时，实际专注 $focusText"
-            else "倒计时，计划 $durationText，实际专注 $focusText"
+            (if (kind == FlightRecordKind.COUNT_UP) "正计时，实际专注 $focusText"
+            else "倒计时，计划 $durationText，实际专注 $focusText") +
+                sceneTitle?.takeIf { it.isNotBlank() }?.let { "，场景 $it" }.orEmpty()
 }
 
 /** 飞行状态。与数据库 `status` 列的三个取值一一对应 */

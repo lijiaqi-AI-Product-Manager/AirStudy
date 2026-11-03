@@ -54,7 +54,8 @@ class RecordCardView @JvmOverloads constructor(
 
     init { bind(null) }
 
-    fun bind(item: RecordItem?) {
+    fun bind(item: RecordItem?, onSceneEdit: ((View, RecordItem) -> Unit)? = null,
+             sceneEditingEnabled: Boolean = true) {
         val unknown = context.getString(R.string.pf_record_card_common_na)
         setCardBackgroundColor(color(R.color.pf_record_card_surface))
         strokeColor = color(R.color.pf_record_card_stroke)
@@ -63,6 +64,8 @@ class RecordCardView @JvmOverloads constructor(
         listOf(fromCity, toCity).forEach { it.setTextColor(color(R.color.pf_record_card_secondary)) }
         cloud.visibility = View.GONE
         sceneEdit.visibility = View.GONE
+        sceneEdit.setOnClickListener(null)
+        sceneEdit.isEnabled = false
         contentDescription = item?.spokenSummary.orEmpty()
         visibility = if (item == null) View.INVISIBLE else View.VISIBLE
         if (item == null) {
@@ -112,6 +115,12 @@ class RecordCardView @JvmOverloads constructor(
         val sceneColor = builtin?.color ?: color(R.color.pf_record_card_primary)
         sceneIcon.setColorFilter(sceneColor)
         scene.setTextColor(sceneColor)
+        if (item.status == FlightStatus.COMPLETED && item.recordedAtWallMs != null && onSceneEdit != null) {
+            sceneEdit.visibility = View.VISIBLE
+            (sceneEdit as ImageView).setColorFilter(0xFF8E8E93.toInt())
+            sceneEdit.isEnabled = sceneEditingEnabled
+            sceneEdit.setOnClickListener { anchor -> if (sceneEdit.isEnabled) onSceneEdit(anchor, item) }
+        }
     }
 
     private fun text(id: Int): TextView = findViewById(id)

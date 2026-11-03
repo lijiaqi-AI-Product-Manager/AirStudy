@@ -1,4 +1,4 @@
-# AirStudy 数据结构（Room v25）
+# AirStudy 数据结构（Room v26）
 
 ## 表结构总览
 
@@ -17,8 +17,9 @@
 | `app_setting` | 应用设置 | 3 |
 | `free_flight_archive` | 独立正计时归档 | 7 |
 | `free_flight_position` | 独立正计时位置序列 | 8 |
+| `flight_record_scene` | 可编辑的历史场景标记 | 9 |
 
-共 13 张表、138 列。完整列定义、默认值、索引和外键以最新导出的 `core/core-database/schemas/com.projectfocus.core.database.AppDatabase/25.json` 为准。
+共 14 张表、147 列。完整列定义、默认值、索引和外键以最新导出的 `core/core-database/schemas/com.projectfocus.core.database.AppDatabase/26.json` 为准。
 
 ## 倒计时历史
 
@@ -34,7 +35,13 @@ v25 增加可空的 `ownerScope TEXT DEFAULT NULL`。新飞行在接受起飞时
 
 v24 的 `free_flight_archive` 保存带修订号的归档快照，`free_flight_position` 追加实际位置。写入在同一事务内完成，冲突不会覆盖新状态。独立归档保存有效毫秒和真实累计距离，未选择目的地时目的地为空，不建立虚构的倒计时记录。
 
-今日累计和统计共同读取两种归档，仅汇总已完成记录。记录列表、详情与桌面展示仍待接通统一入口。
+记录页、今日累计和统计共同读取两种归档，仅在汇总中包含已完成记录。详情与桌面展示仍待接通统一入口。
+
+## 历史场景
+
+v26 的 `flight_record_scene` 按飞行模式与记录编号保存可编辑的场景标记，保留账号归属、起飞时刻与修订号。只允许修改当前身份的已完成记录，过期版本不能覆盖较新的选择。倒计时与正计时使用各自的外键，删除原记录会清理对应标记，不会清理另一种模式的相同编号。
+
+标记与原始场景、计时、结算收据和位置序列分开保存。25→26 仅新增该表及索引，旧归档保留原值；当前标记使用本地保存，账号同步仍待接通。
 
 ## 约束与升级
 

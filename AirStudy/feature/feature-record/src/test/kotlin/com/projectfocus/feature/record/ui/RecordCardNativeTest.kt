@@ -12,11 +12,14 @@ import android.widget.TextView
 import androidx.test.core.app.ApplicationProvider
 import com.projectfocus.core.database.entity.FlightHistoryEntity
 import com.projectfocus.core.model.flight.PlannedAirport
+import com.projectfocus.core.model.flight.PlannedScene
 import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.ui.R as UiR
 import com.projectfocus.feature.record.R
 import com.projectfocus.feature.record.list.RecordItemMapping
 import com.projectfocus.service.focus.history.RecordedFlight
+import com.projectfocus.service.focus.history.RecordedScene
+import com.projectfocus.service.focus.history.FlightRecordKey
 import java.io.File
 import java.time.Instant
 import java.time.ZoneId
@@ -104,6 +107,40 @@ class RecordCardNativeTest {
         assertEquals(Color.parseColor("#E62C2C2C"),card.cardBackgroundColor.defaultColor)
         assertFalse(item.arrivalSelected)
         capture(card,"record-card-countup-cancelled-night")
+    }
+
+    @Test fun sceneActionKeepsTheModeIdentityAndDisappearsForNonEditableOrRecycledRows() {
+        val card = RecordCardView(context())
+        val chosen = PlannedScene("work-option", "", "work", 0xFF2B71C2.toInt(), false, displayName = "工作")
+        val up = RecordItemMapping.item(RecordedFlight.CountUp(archive(), RecordedScene(chosen, 2)), zone)
+        val down = RecordItemMapping.item(RecordedFlight.Countdown(countdown()), zone)
+        val calls = mutableListOf<FlightRecordKey>()
+        val action: (View, com.projectfocus.feature.record.list.RecordItem) -> Unit = { _, item -> calls += item.key }
+        val edit = card.findViewById<View>(R.id.pf_record_card_img_focus_scene_edit)
+        card.bind(up, action)
+        assertEquals(View.VISIBLE, edit.visibility)
+        assertEquals("工作", text(card, R.id.pf_record_card_text_focus_scene))
+        assertTrue(card.contentDescription.toString().contains("场景 工作"))
+        assertEquals(2L, up.sceneRevision)
+        edit.performClick()
+        assertEquals(listOf(up.key), calls)
+        capture(card, "record-card-scene-edit")
+        card.bind(down, action)
+        edit.performClick()
+        assertEquals(listOf(up.key, down.key), calls)
+        assertNotEquals(up.key, down.key)
+        card.bind(up, action, sceneEditingEnabled = false)
+        assertFalse(edit.isEnabled)
+        edit.performClick()
+        assertEquals(2, calls.size)
+        val active = RecordItemMapping.item(RecordedFlight.Countdown(countdown().copy(status = "ONGOING", endTimeMillis = null)), zone)
+        val cancelled = RecordItemMapping.item(RecordedFlight.CountUp(archive(cancelled = true)), zone)
+        listOf(active, cancelled, null).forEach { item ->
+            card.bind(item, action)
+            assertEquals(View.GONE, edit.visibility)
+            edit.performClick()
+            assertEquals(2, calls.size)
+        }
     }
 
     private fun capture(card: RecordCardView, name: String) {

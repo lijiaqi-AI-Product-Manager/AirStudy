@@ -81,6 +81,33 @@ class MigrationChainTest {
         }
     }
 
+    @Test
+    fun v25UpgradeAddsIndependentSceneLabelsWithoutRewritingEitherFlightArchive() {
+        val schema = schemaJson(25)
+        createRaw(25, createSqlOf(schema) + listOf(
+            insertSql(schema, "flight_history", mapOf("id" to "same-id", "status" to "COMPLETED",
+                "ownerScope" to "retained-owner", "sceneSnapshotJson" to "opaque countdown scene")),
+            insertSql(schema, "free_flight_archive", mapOf("sessionId" to "same-id", "ownerScope" to "retained-owner",
+                "revision" to 4, "status" to "COMPLETED", "payloadJson" to "opaque independent archive")),
+            insertSql(schema, "free_flight_position", mapOf("sessionId" to "same-id", "sequence" to 1)),
+        ))
+        withRoom { db ->
+            assertEquals(0, count(db, "SELECT COUNT(*) FROM flight_record_scene"))
+            db.query("SELECT sceneSnapshotJson, ownerScope FROM flight_history WHERE id = 'same-id'").use { row ->
+                assertTrue(row.moveToFirst())
+                assertEquals("opaque countdown scene", row.getString(0))
+                assertEquals("retained-owner", row.getString(1))
+            }
+            db.query("SELECT payloadJson, revision FROM free_flight_archive WHERE sessionId = 'same-id'").use { row ->
+                assertTrue(row.moveToFirst())
+                assertEquals("opaque independent archive", row.getString(0))
+                assertEquals(4L, row.getLong(1))
+            }
+            assertEquals(1, count(db, "SELECT COUNT(*) FROM free_flight_position WHERE sessionId = 'same-id'"))
+            db.query("PRAGMA foreign_key_check").use { assertTrue(!it.moveToFirst()) }
+        }
+    }
+
     // ── helpers ─────────────────────────────────────────────
 
     /** 用 Room 打开并强制建连（触发迁移与校验），回调里拿底层连接做断言。 */

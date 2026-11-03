@@ -2,6 +2,7 @@ package com.projectfocus.feature.record.list
 
 import com.projectfocus.core.model.flight.PlannedFlightMetadataCodec
 import com.projectfocus.service.focus.history.RecordedFlight
+import com.projectfocus.feature.scene.source.SourceSceneCatalog
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -18,7 +19,8 @@ object RecordItemMapping {
         val state = legacy?.status ?: requireNotNull(archive).status.name
         val status = FlightStatus.entries.firstOrNull { it.dbValue == state }
             ?: error("Unsupported stored flight status")
-        val scene = legacy?.let { PlannedFlightMetadataCodec.decodeSceneOrNull(it.sceneSnapshotJson) }
+        val scene = record.editedScene?.snapshot
+            ?: legacy?.let { PlannedFlightMetadataCodec.decodeSceneOrNull(it.sceneSnapshotJson) }
         val fromCode = legacy?.departureAirportCode ?: requireNotNull(archive).departure.code
         val fromCity = legacy?.departureCity ?: requireNotNull(archive).departure.displayCity
         val toCode = record.destinationCode.orEmpty()
@@ -48,10 +50,14 @@ object RecordItemMapping {
             sceneTitle = (scene?.displayName?.takeIf { it.isNotBlank() } ?: scene?.name ?: archive?.scene?.title)
                 ?.takeIf { it.isNotBlank() },
             sceneIconKey = (scene?.iconKey ?: archive?.scene?.iconKey)?.takeIf { it.isNotBlank() },
-            sceneType = archive?.scene?.type,
+            sceneType = scene?.let { SourceSceneCatalog.type(it.iconKey).takeIf { type -> type > 0 } ?: 1 }
+                ?: archive?.scene?.type,
             distanceKm = record.distanceKm,
             focusMinutes = record.focusMinutes,
             arrivalSelected = selected,
+            recordedAtWallMs = record.recordedAtWallMs,
+            sceneRevision = record.editedScene?.revision ?: 0L,
+            sceneOptionId = scene?.optionId,
         )
     }
 }

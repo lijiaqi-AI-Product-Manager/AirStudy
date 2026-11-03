@@ -7,6 +7,7 @@ import android.os.Handler
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.app.Dialog
 import androidx.navigation.fragment.NavHostFragment
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
@@ -23,6 +24,8 @@ import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.feature.record.ui.RecordCardView
 import com.projectfocus.feature.record.ui.RecordPageFragment
+import com.projectfocus.core.ui.scene.AnchoredScenePickerDialog
+import com.projectfocus.core.ui.R as UiR
 import com.projectfocus.service.focus.freeflight.RoomFreeFlightArchiveStore
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -43,6 +46,8 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
+import org.robolectric.shadows.ShadowToast
 import com.projectfocus.feature.record.R as RecordR
 
 @RunWith(RobolectricTestRunner::class)
@@ -232,6 +237,127 @@ class RecordBrowserFlowTest {
         assertTrue(first.left < second.left)
         assertEquals(first.top,second.top)
         capture("records-page-wide")
+    }
+
+    private fun scenePicker(position: Int): AnchoredScenePickerDialog {
+        val edit = card(position).findViewById<View>(RecordR.id.pf_record_card_img_focus_scene_edit)
+        assertEquals(View.VISIBLE, edit.visibility)
+        assertTrue(edit.isEnabled)
+        edit.performClick()
+        await { ShadowDialog.getLatestDialog().let { it is AnchoredScenePickerDialog && it.isShowing } }
+        assertNull(activity.findViewById<View>(RecordR.id.pf_record_page_share_preview))
+        return (ShadowDialog.getLatestDialog() as AnchoredScenePickerDialog).also {
+            assertEquals(View.GONE, it.findViewById<View>(UiR.id.pf_scene_seat).visibility)
+        }
+    }
+
+    private fun sceneChoice(dialog: Dialog, label: String): View {
+        val tags = dialog.findViewById<ViewGroup>(UiR.id.pf_scene_tags)
+        return (0 until tags.childCount).map(tags::getChildAt)
+            .filterIsInstance<TextView>().single { it.text.toString() == label }
+    }
+
+    private fun sceneText(position: Int) = card(position).findViewById<TextView>(RecordR.id.pf_record_card_text_focus_scene).text.toString()
+    private fun shownScene(position: Int): String? {
+        layout()
+        return list().findViewHolderForAdapterPosition(position)?.itemView
+            ?.findViewById<TextView>(RecordR.id.pf_record_card_text_focus_scene)?.text?.toString()
+    }
+
+    @Test fun bothModesKeepSceneChangesAfterPageRecreationWithoutRewritingTheFlight() {
+        val original = countdown("shared-id")
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(original)
+            saveIndependentRecord()
+        }
+        val owner = TokenStore.storageScope()
+        val before = runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().get("shared-id", owner) }
+        showRecords()
+        await { list().adapter?.itemCount == 2 }
+        assertEquals("阅读", sceneText(0))
+        assertEquals("", sceneText(1))
+        val total = host.requireView().findViewById<TextView>(RecordR.id.pf_record_page_text_subtitle).text.toString()
+        val first = scenePicker(0)
+        capturePicker(first, "record-scene-picker")
+        sceneChoice(first, "工作").performClick()
+        await { shownScene(0) == "工作" && !first.isShowing }
+        assertEquals("", sceneText(1))
+        val second = scenePicker(1)
+        sceneChoice(second, "学习").performClick()
+        await { shownScene(1) == "学习" && !second.isShowing }
+        assertEquals("工作", sceneText(0))
+        scenario!!.recreate()
+        scenario!!.onActivity { activity = it }
+        idle()
+        val nav = activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+        host = nav.childFragmentManager.primaryNavigationFragment as RecordListHostFragment
+        layout()
+        await { host.childFragmentManager.fragments.any { it is RecordPageFragment && it.view != null } }
+        await { list().adapter?.itemCount == 2 && shownScene(0) == "工作" && shownScene(1) == "学习" }
+        assertEquals(total, host.requireView().findViewById<TextView>(RecordR.id.pf_record_page_text_subtitle).text.toString())
+        assertEquals(before, runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().get("shared-id", owner) })
+        assertEquals(original, runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("shared-id") })
+        capture("records-scene-edited")
+    }
+
+    @Test fun aSceneWriteFailureKeepsTheCardAndAllowsTheSameActionToRetry() {
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(countdown("scene-retry"))
+            app.database.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_scene_ui BEFORE INSERT ON flight_record_scene BEGIN SELECT RAISE(ABORT, 'fixture scene write rejected'); END")
+        }
+        showRecords()
+        await { list().adapter?.itemCount == 1 }
+        val failed = scenePicker(0)
+        sceneChoice(failed, "工作").performClick()
+        await { ShadowToast.getTextOfLatestToast()?.toString() == "场景保存失败，请重试" }
+        assertEquals("", sceneText(0))
+        assertNull(runBlocking(Dispatchers.IO) { app.database.flightRecordSceneDao().find("COUNTDOWN", "scene-retry") })
+        runBlocking(Dispatchers.IO) { app.database.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_scene_ui") }
+        val retry = scenePicker(0)
+        sceneChoice(retry, "学习").performClick()
+        await { shownScene(0) == "学习" && !retry.isShowing }
+        assertNotNull(runBlocking(Dispatchers.IO) { app.database.flightRecordSceneDao().find("COUNTDOWN", "scene-retry") })
+    }
+
+    @Test fun aScenePickerAndItsRetainedCallbacksCannotEditAfterBackgroundAccountChange() {
+        runBlocking(Dispatchers.IO) {
+            saveIndependentRecord()
+            val other = TokenStore.storageScope(TokenStore.Snapshot("record-browser-account-two", 0))
+            app.database.flightHistoryDao().insert(countdown("other-account", owner = other))
+        }
+        showRecords()
+        await { list().adapter?.itemCount == 1 }
+        val old = scenePicker(0)
+        val retained = sceneChoice(old, "工作")
+        scenario!!.moveToState(androidx.lifecycle.Lifecycle.State.CREATED)
+        assertFalse(old.isShowing)
+        assertEquals(0, list().adapter?.itemCount)
+        runBlocking(Dispatchers.IO) { TokenStore.setCancellable("record-browser-account-two") }
+        scenario!!.moveToState(androidx.lifecycle.Lifecycle.State.RESUMED)
+        await { list().adapter?.itemCount == 1 && card(0).contentDescription.toString().contains("倒计时") }
+        retained.performClick()
+        idle()
+        assertEquals("", sceneText(0))
+        assertNull(runBlocking(Dispatchers.IO) { app.database.flightRecordSceneDao().find("COUNT_UP", "shared-id") })
+        assertNull(runBlocking(Dispatchers.IO) { app.database.flightRecordSceneDao().find("COUNTDOWN", "other-account") })
+        assertEquals("阅读", runBlocking(Dispatchers.IO) {
+            FreeFlightArchiveCodec.decode(app.database.freeFlightArchiveDao()
+                .get("shared-id", requireNotNull(payload).ownerScope)!!.payloadJson).scene.title
+        })
+    }
+
+    private fun capturePicker(dialog: Dialog, name: String) {
+        val root = dialog.window!!.decorView
+        root.measure(View.MeasureSpec.makeMeasureSpec(270, View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(310, View.MeasureSpec.EXACTLY))
+        root.layout(0, 0, 270, 310)
+        val bitmap = Bitmap.createBitmap(270, 310, Bitmap.Config.ARGB_8888)
+        try {
+            root.draw(Canvas(bitmap))
+            val target = File("build/reports/records/$name.png")
+            target.parentFile!!.mkdirs()
+            target.outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+        } finally { bitmap.recycle() }
     }
 
     private fun capture(name: String) {

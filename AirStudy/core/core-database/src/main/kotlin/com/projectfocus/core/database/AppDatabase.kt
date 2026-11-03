@@ -17,6 +17,7 @@ import com.projectfocus.core.database.entity.AppSettingEntity
 import com.projectfocus.core.database.entity.BlockedAppEntity
 import com.projectfocus.core.database.entity.DailyStatEntity
 import com.projectfocus.core.database.entity.FlightHistoryEntity
+import com.projectfocus.core.database.entity.FlightRecordSceneEntity
 import com.projectfocus.core.database.entity.FreeFlightArchiveEntity
 import com.projectfocus.core.database.entity.FreeFlightPositionEntity
 import com.projectfocus.core.database.entity.FocusCategoryEntity
@@ -43,6 +44,7 @@ import com.projectfocus.core.database.entity.StampEntity
         AppSettingEntity::class,
         FreeFlightArchiveEntity::class,
         FreeFlightPositionEntity::class,
+        FlightRecordSceneEntity::class,
     ],
     version = AppDatabase.VERSION,
     exportSchema = true,
@@ -55,6 +57,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun flightHistoryDao(): FlightHistoryDao
 
     abstract fun historyReadDao(): com.projectfocus.core.database.dao.HistoryReadDao
+
+    abstract fun flightRecordSceneDao(): com.projectfocus.core.database.dao.FlightRecordSceneDao
 
 
     abstract fun freeFlightArchiveDao(): FreeFlightArchiveDao
@@ -73,6 +77,6 @@ abstract class AppDatabase : RoomDatabase() {
         const val NAME: String = "projectfocus.db"
 
 
-        const val VERSION: Int = 25
+        const val VERSION: Int = 26
     }
 }

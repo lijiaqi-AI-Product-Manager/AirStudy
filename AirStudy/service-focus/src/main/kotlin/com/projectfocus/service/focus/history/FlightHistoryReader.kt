@@ -2,6 +2,9 @@ package com.projectfocus.service.focus.history
 
 import com.projectfocus.core.database.dao.HistoryReadDao
 import com.projectfocus.core.database.entity.FlightHistoryEntity
+import com.projectfocus.core.database.entity.FreeFlightArchiveEntity
+import com.projectfocus.core.model.flight.PlannedScene
+import com.projectfocus.core.model.flight.PlannedFlightMetadataCodec
 import com.projectfocus.core.model.flight.freeflight.CompletedFreeFlight
 import com.projectfocus.core.model.flight.freeflight.FreeFlightArchive
 import com.projectfocus.core.model.flight.freeflight.FreeFlightArchiveCodec
@@ -32,6 +35,7 @@ data class HistoryAccount(val scope: String, val generation: Long) {
 
 enum class FlightRecordKind { COUNTDOWN, COUNT_UP }
 data class FlightRecordKey(val kind: FlightRecordKind, val id: String)
+data class RecordedScene(val snapshot: PlannedScene, val revision: Long)
 
 sealed interface RecordedFlight {
     val key: FlightRecordKey
@@ -41,8 +45,9 @@ sealed interface RecordedFlight {
     val recordedAtWallMs: Long
     val destinationCode: String?
     val destinationCountry: String?
+    val editedScene: RecordedScene?
 
-    data class Countdown(val record: FlightHistoryEntity) : RecordedFlight {
+    data class Countdown(val record: FlightHistoryEntity, override val editedScene: RecordedScene? = null) : RecordedFlight {
         override val key get() = FlightRecordKey(FlightRecordKind.COUNTDOWN, record.id)
         override val completed get() = record.status == "COMPLETED"
         override val distanceKm get() = record.distanceKm
@@ -52,7 +57,7 @@ sealed interface RecordedFlight {
         override val destinationCountry get() = record.destinationCountry
     }
 
-    data class CountUp(val archive: FreeFlightArchive) : RecordedFlight {
+    data class CountUp(val archive: FreeFlightArchive, override val editedScene: RecordedScene? = null) : RecordedFlight {
         init { archive.validated() }
         override val key get() = FlightRecordKey(FlightRecordKind.COUNT_UP, archive.sessionId)
         override val completed get() = archive.status == FreeFlightStatus.COMPLETED
@@ -83,14 +88,20 @@ class FlightHistoryReader @Inject constructor(private val dao: HistoryReadDao) {
         flow<HistoryReadState> {
             if (identity != TokenStore.snapshot()) return@flow
             emit(HistoryReadState.Loading(account))
-            emitAll(combine(dao.countdowns(account.scope), dao.countUps(account.scope), dao.airportDirectory()) { countdowns, countUps, directory ->
-                val records: List<RecordedFlight> = countdowns.map { RecordedFlight.Countdown(it) } + countUps.map { row ->
-                    val archive = FreeFlightArchiveCodec.decode(row.payloadJson)
-                    require(archive.sessionId == row.sessionId && archive.ownerScope == row.ownerScope &&
-                        archive.revision == row.revision && archive.status.name == row.status &&
-                        archive.updatedAtWallMs == row.updatedAtWallMs &&
-                        row.activeSlot == (if (archive.status == FreeFlightStatus.ONGOING) 1 else null))
-                    RecordedFlight.CountUp(archive)
+            emitAll(combine(dao.countdowns(account.scope), dao.countUps(account.scope), dao.airportDirectory(),
+                dao.scenes(account.scope)) { countdowns, countUps, directory, scenes ->
+                val byKey = scenes.associateBy { FlightRecordKey(FlightRecordKind.valueOf(it.recordKind), it.recordId) }
+                fun edited(kind: FlightRecordKind, id: String, startedAt: Long): RecordedScene? =
+                    byKey[FlightRecordKey(kind, id)]?.takeIf {
+                        it.ownerScope == account.scope && it.startedAtWallMs == startedAt
+                    }?.let { row ->
+                        RecordedScene(requireNotNull(PlannedFlightMetadataCodec.decodeSceneOrNull(row.sceneJson)), row.revision)
+                    }
+                val records: List<RecordedFlight> = countdowns.map {
+                    RecordedFlight.Countdown(it, edited(FlightRecordKind.COUNTDOWN, it.id, it.startTimeMillis))
+                } + countUps.map { row ->
+                    val archive = decodeHistoryArchive(row)
+                    RecordedFlight.CountUp(archive, edited(FlightRecordKind.COUNT_UP, archive.sessionId, archive.startedAtWallMs))
                 }
                 require(records.all { it.distanceKm.isFinite() && it.distanceKm >= 0.0 })
                 val codes = directory.groupBy { it.country }.mapValues { (_, rows) -> rows.map { it.code }.toSet() }
@@ -102,6 +113,14 @@ class FlightHistoryReader @Inject constructor(private val dao: HistoryReadDao) {
         }
     }.filter { it.account.isCurrent() }.flowOn(Dispatchers.IO)
 }
+
+internal fun decodeHistoryArchive(row: FreeFlightArchiveEntity): FreeFlightArchive =
+    FreeFlightArchiveCodec.decode(row.payloadJson).also { archive ->
+        require(archive.sessionId == row.sessionId && archive.ownerScope == row.ownerScope &&
+            archive.revision == row.revision && archive.status.name == row.status &&
+            archive.updatedAtWallMs == row.updatedAtWallMs &&
+            row.activeSlot == (if (archive.status == FreeFlightStatus.ONGOING) 1 else null))
+    }
 
 data class ArrivalDailyTotals(val distanceKm: Double, val focusMinutes: Int)
 

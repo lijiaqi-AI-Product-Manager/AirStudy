@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_record_page_scene_save_failed">Could not save the scene. Please try again.</string>
+    <string name="pf_record_page_scene_changed">This record has changed. Choose its scene again.</string>
+    <string name="pf_record_page_scene_not_editable">The scene for this record cannot be changed right now.</string>
+</resources>

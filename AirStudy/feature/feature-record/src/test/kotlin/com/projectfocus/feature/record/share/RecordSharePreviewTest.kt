@@ -147,7 +147,7 @@ class RecordSharePreviewTest {
         val exported = File(activity.cacheDir,"share").listFiles().orEmpty().filter { it.name.startsWith("record-") }
         assertEquals(1,exported.size)
         TokenStore.set("record-preview-other-account")
-        preview.keepFor(null,emptySet())
+        preview.keepFor(null,emptyList())
         pump { exported.none { it.exists() } }
         assertFalse(visible)
         assertNull(content.findViewById<View>(R.id.pf_record_page_share_preview))

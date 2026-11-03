@@ -22,12 +22,19 @@ import com.projectfocus.feature.record.list.RecordPageState
 import com.projectfocus.feature.record.list.RecordPageViewModel
 import com.projectfocus.feature.record.list.RecordPeriod
 import com.projectfocus.feature.record.list.RecordStatusFilter
+import com.projectfocus.feature.record.list.RecordItem
+import com.projectfocus.feature.record.list.FlightStatus
+import com.projectfocus.feature.record.list.RecordSceneSaveState
+import com.projectfocus.feature.record.list.RecordSceneFailure
+import com.projectfocus.service.focus.history.HistoryAccount
 import com.projectfocus.feature.record.share.RecordSharePreview
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.yield
 
 @AndroidEntryPoint
 class RecordPageFragment : Fragment(R.layout.pf_record_page) {
@@ -37,6 +44,11 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
     private var rendered: RecordPageState? = null
     private var renderRevision = 0L
     private var bindingFilters = false
+    private var scenePicker: AutoCloseable? = null
+    private var sceneTarget: Pair<HistoryAccount, RecordItem>? = null
+    private var sceneOpenRevision = 0L
+    private var sceneOpenJob: Job? = null
+    private var sceneNoticeJob: Job? = null
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val back = object : OnBackPressedCallback(false) {
@@ -47,10 +59,11 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         preview = RecordSharePreview(requireContext(), content, viewLifecycleOwner.lifecycleScope,
             canShow = { view === this.view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
             visibilityChanged = { back.isEnabled = it })
-        adapter = RecordPageAdapter { card, item ->
+        adapter = RecordPageAdapter(onOpen = { card, item ->
             val state = rendered?.takeIf { it.ready && it.items.any { row -> row == item } } ?: return@RecordPageAdapter
             preview?.open(card, item, requireNotNull(state.account))
-        }
+        }, onSceneEdit = if (parentFragment is RecordScenePickerHost) ::openScene else null,
+            canEdit = { !viewModel.sceneSave.value.saving })
         val list = view.findViewById<RecyclerView>(R.id.pf_record_page_flight_records_list)
         list.layoutManager = GridLayoutManager(requireContext(), maxOf(1, resources.configuration.screenWidthDp / 360))
         list.isNestedScrollingEnabled = false
@@ -86,22 +99,37 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 launch { viewModel.state.collect(::render) }
+                launch { viewModel.sceneSave.collect { render(viewModel.state.value) } }
                 launch {
                     TokenStore.identities.collect {
                         if (it == TokenStore.snapshot()) {
-                            if (rendered?.account?.isCurrent() != true) preview?.close()
+                            if (rendered?.account?.isCurrent() != true) {
+                                preview?.close()
+                                closeScene()
+                            }
                             render(viewModel.state.value)
                         }
                     }
                 }
             }
         }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                viewModel.sceneSave.collect(::showSceneFailure)
+            }
+        }
     }
 
     override fun onStart() { super.onStart(); viewModel.onVisible() }
-    override fun onPause() { preview?.close(); super.onPause() }
+    override fun onPause() {
+        closeScene()
+        sceneNoticeJob?.cancel()
+        preview?.close()
+        super.onPause()
+    }
     override fun onStop() {
         ++renderRevision
+        closeScene()
         preview?.close()
         rendered = null
         adapter?.replace(emptyList())
@@ -115,6 +143,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         val current = state.account?.let { it.generation == expected.generation && it.scope == TokenStore.storageScope(expected) } == true
         val actual = if (current) state else RecordPageState(query = state.query)
         viewLifecycleOwner.lifecycleScope.launch {
+            yield()
             while (isActive && view === target && renderRevision == revision) {
                 when (TokenStore.tryWithSnapshotLease(expected) { renderCurrent(target, actual) }) {
                     is TokenStore.ImmediateSnapshot.Value -> return@launch
@@ -127,7 +156,13 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
 
     private fun renderCurrent(root: View, state: RecordPageState) {
         rendered = state
-        preview?.keepFor(state.account, state.items.map { it.key }.toSet())
+        sceneTarget?.let { (account, item) ->
+            if (!state.ready || state.account != account || state.items.none { row ->
+                row.key == item.key && row.sceneRevision == item.sceneRevision &&
+                    row.recordedAtWallMs == item.recordedAtWallMs && row.status == FlightStatus.COMPLETED
+            }) closeScene()
+        }
+        preview?.keepFor(state.account, state.items)
         adapter?.replace(if (state.ready) state.items else emptyList())
         bindingFilters = true
         try {
@@ -157,8 +192,83 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         root.findViewById<View>(R.id.pf_record_page_btn_next_page).isEnabled = state.ready && state.page < state.pageCount
     }
 
+    private fun openScene(anchor: View, item: RecordItem) {
+        val root = view ?: return
+        val host = parentFragment as? RecordScenePickerHost ?: return
+        val state = rendered?.takeIf { it.ready && it.items.any { row -> row == item } } ?: return
+        if (item.status != FlightStatus.COMPLETED || item.recordedAtWallMs == null || viewModel.sceneSave.value.saving) return
+        val account = requireNotNull(state.account)
+        closeScene()
+        preview?.close()
+        sceneTarget = account to item
+        val revision = sceneOpenRevision
+        val identity = TokenStore.snapshot()
+        fun current(): Boolean = view === root && account.isCurrent() &&
+            viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+            sceneOpenRevision == revision && rendered?.let { displayed ->
+                displayed.ready && displayed.account == account && displayed.items.any { row ->
+                    row.key == item.key && row.sceneRevision == item.sceneRevision &&
+                        row.recordedAtWallMs == item.recordedAtWallMs && row.status == FlightStatus.COMPLETED
+                }
+            } == true
+        sceneOpenJob = viewLifecycleOwner.lifecycleScope.launch {
+            yield()
+            while (isActive && current()) {
+                when (TokenStore.tryWithSnapshotLease(identity) {
+                    if (current() && anchor.isAttachedToWindow) {
+                        scenePicker = host.showRecordScenePicker(anchor, item, ::current) { selected ->
+                            if (current()) viewModel.changeScene(item, selected)
+                        }
+                    }
+                }) {
+                    is TokenStore.ImmediateSnapshot.Value -> return@launch
+                    TokenStore.ImmediateSnapshot.Obsolete -> { closeScene(); return@launch }
+                    TokenStore.ImmediateSnapshot.Busy -> delay(16)
+                }
+            }
+        }
+    }
+
+    private fun closeScene() {
+        ++sceneOpenRevision
+        sceneOpenJob?.cancel()
+        sceneOpenJob = null
+        val previous = scenePicker
+        scenePicker = null
+        sceneTarget = null
+        previous?.close()
+    }
+
+    private fun showSceneFailure(save: RecordSceneSaveState) {
+        sceneNoticeJob?.cancel()
+        val failure = save.failure ?: return
+        val account = save.target?.account ?: return
+        val root = view ?: return
+        val identity = TokenStore.snapshot()
+        sceneNoticeJob = viewLifecycleOwner.lifecycleScope.launch {
+            yield()
+            while (isActive && view === root && viewModel.sceneSave.value == save && account.isCurrent() &&
+                viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                when (TokenStore.tryWithSnapshotLease(identity) {
+                    viewModel.acknowledgeSceneFailure(save.attempt)
+                    android.widget.Toast.makeText(requireContext(), when (failure) {
+                        RecordSceneFailure.WRITE -> R.string.pf_record_page_scene_save_failed
+                        RecordSceneFailure.CHANGED -> R.string.pf_record_page_scene_changed
+                        RecordSceneFailure.NOT_EDITABLE -> R.string.pf_record_page_scene_not_editable
+                    }, android.widget.Toast.LENGTH_SHORT).show()
+                }) {
+                    is TokenStore.ImmediateSnapshot.Value -> return@launch
+                    TokenStore.ImmediateSnapshot.Obsolete -> return@launch
+                    TokenStore.ImmediateSnapshot.Busy -> delay(16)
+                }
+            }
+        }
+    }
+
     override fun onDestroyView() {
         ++renderRevision
+        closeScene()
+        sceneNoticeJob?.cancel()
         preview?.close()
         preview = null
         view?.findViewById<RecyclerView>(R.id.pf_record_page_flight_records_list)?.adapter = null

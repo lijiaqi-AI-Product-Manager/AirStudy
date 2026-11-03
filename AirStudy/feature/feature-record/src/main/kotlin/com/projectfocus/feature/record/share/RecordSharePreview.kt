@@ -21,7 +21,6 @@ import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.feature.record.R
 import com.projectfocus.feature.record.list.RecordItem
 import com.projectfocus.feature.record.ui.RecordCardView
-import com.projectfocus.service.focus.history.FlightRecordKey
 import com.projectfocus.service.focus.history.HistoryAccount
 import java.io.File
 import java.util.UUID
@@ -85,9 +84,11 @@ class RecordSharePreview(
         }
     }
 
-    fun keepFor(account: HistoryAccount?, keys: Set<FlightRecordKey>) {
+    fun keepFor(account: HistoryAccount?, items: List<RecordItem>) {
         val active = entry ?: return
-        if (active.account != account || active.item.key !in keys || !active.account.isCurrent()) close()
+        val current = items.firstOrNull { it.key == active.item.key }
+        if (active.account != account || current == null || current.sceneRevision != active.item.sceneRevision ||
+            !active.account.isCurrent()) close()
     }
 
     private fun show(card: RecordCardView, item: RecordItem, account: HistoryAccount, expected: TokenStore.Snapshot) {

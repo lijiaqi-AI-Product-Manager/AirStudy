@@ -13,6 +13,7 @@ dependencies {
     implementation(project(":core:core-database"))
     implementation(project(":core:core-datastore"))
     implementation(project(":core:core-network"))
+    implementation(libs.androidx.room.ktx)
     implementation(libs.androidx.lifecycle.process)
     implementation(libs.androidx.work.runtime)
 

@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Query
 import com.projectfocus.core.database.entity.FlightHistoryEntity
 import com.projectfocus.core.database.entity.FreeFlightArchiveEntity
+import com.projectfocus.core.database.entity.FlightRecordSceneEntity
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -13,6 +14,9 @@ interface HistoryReadDao {
 
     @Query("SELECT * FROM free_flight_archive WHERE ownerScope = :owner ORDER BY updatedAtWallMs DESC")
     fun countUps(owner: String): Flow<List<FreeFlightArchiveEntity>>
+
+    @Query("SELECT * FROM flight_record_scene WHERE ownerScope = :owner")
+    fun scenes(owner: String): Flow<List<FlightRecordSceneEntity>>
 
     @Query("SELECT country, CASE WHEN iataCode != '' THEN iataCode ELSE icaoCode END AS code FROM airports WHERE country != '' AND (iataCode != '' OR icaoCode != '')")
     fun airportDirectory(): Flow<List<HistoryAirportReference>>
