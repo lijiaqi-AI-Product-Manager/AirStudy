@@ -91,4 +91,53 @@ class TokenStoreFlightLeaseTest {
         assertEquals(identity, TokenStore.snapshot())
         assertEquals("owner-b", TokenStore.publishIfCurrentCancellable(identity, "owner-b")?.token)
     }
+
+    @Test fun acknowledgedAccountKeepsItsOwnerAcrossCredentialRotationAndExpiresOldActions() = runTest {
+        TokenStore.clear()
+        val before = TokenStore.snapshot()
+        val owner = TokenStore.storageScope(TokenStore.Snapshot("account-token-one", 0))
+        val first = requireNotNull(TokenStore.publishAccountIfCurrent(before, "account-token-one", owner))
+        val second = requireNotNull(TokenStore.publishAccountIfCurrentCancellable(first, "account-token-two", owner))
+        assertEquals(owner, TokenStore.storageScope(second))
+        assertEquals("account-token-two", second.token)
+        assertEquals(first.generation + 1, second.generation)
+        assertNull(TokenStore.withSnapshotLease(first) { error("An old credential cannot authorize an action") })
+        assertEquals(owner, TokenStore.withSnapshotLease(second) { TokenStore.storageScope() })
+        TokenStore.set("unassociated-token")
+        assertNull(TokenStore.snapshot().accountScope)
+        assertNotEquals(owner, TokenStore.storageScope())
+    }
+
+    @Test fun scopedPublicationRejectsInvalidBindingsAndAnAlteredExpectedOwner() = runTest {
+        TokenStore.set("bound-account-token")
+        val before = TokenStore.snapshot()
+        val owner = TokenStore.storageScope(before)
+        val current = requireNotNull(TokenStore.publishAccountIfCurrent(before, "bound-account-token", owner))
+        for (invalid in listOf("local", "", "a".repeat(63), "G".repeat(64))) {
+            assertTrue(runCatching { TokenStore.publishAccountIfCurrent(current, "new-token", invalid) }.exceptionOrNull() is IllegalArgumentException)
+            assertEquals(current, TokenStore.snapshot())
+        }
+        val other = TokenStore.storageScope(TokenStore.Snapshot("other-owner-token", 0))
+        assertNull(TokenStore.publishAccountIfCurrent(current.copy(accountScope = other), "new-token", other))
+        assertNull(TokenStore.publishAccountIfCurrent(current.copy(accountScope = null), "new-token", owner))
+        assertEquals(current, TokenStore.snapshot())
+    }
+
+    @Test fun aCancelledScopedPublisherCannotEscapeTheActualIdentityLease() = runTest {
+        TokenStore.set("bound-account-one")
+        val original = TokenStore.snapshot()
+        val owner = TokenStore.storageScope(original)
+        val current = requireNotNull(TokenStore.publishAccountIfCurrent(original, "bound-account-one", owner))
+        val entered = CompletableDeferred<Unit>()
+        val release = CompletableDeferred<Unit>()
+        val held = async { TokenStore.withSnapshotLease(current) { entered.complete(Unit); release.await() } }
+        entered.await()
+        val waiting = launch { TokenStore.publishAccountIfCurrentCancellable(current, "bound-account-two", owner) }
+        runCurrent()
+        waiting.cancelAndJoin()
+        release.complete(Unit)
+        held.await()
+        assertEquals(current, TokenStore.snapshot())
+        assertEquals(owner, TokenStore.storageScope())
+    }
 }

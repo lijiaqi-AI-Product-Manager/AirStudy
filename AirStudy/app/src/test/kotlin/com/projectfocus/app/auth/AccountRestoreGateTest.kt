@@ -67,8 +67,7 @@ class AccountRestoreGateTest {
     }
 
     @Test fun failedActualRestoreReleasesBarrierWithoutPublication() = runTest {
-        val key = preferences.all.keys.single()
-        check(preferences.edit().putString(key, "broken saved account").commit())
+        check(preferences.edit().putString("account", "broken saved account").commit())
         val before = TokenStore.snapshot()
         val gate = AccountRestoreGate()
         assertThat(runCatching { gate.restore(accounts) }.isFailure).isTrue()

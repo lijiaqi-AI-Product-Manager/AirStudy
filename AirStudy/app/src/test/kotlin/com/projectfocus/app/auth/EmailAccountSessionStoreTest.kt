@@ -144,4 +144,78 @@ class EmailAccountSessionStoreTest {
         val OLD = EmailAccount("old-id", "old@example.test", "old-own-token")
         val NEW = EmailAccount("new-id", "new@example.test", "new-own-token")
     }
+
+    @Test fun `the same accepted id keeps its existing history owner after credential and email changes`() {
+        val accounts = EmailAccountSessionStore(real)
+        accounts.save(OLD)
+        val initial = TokenStore.snapshot()
+        val owner = TokenStore.storageScope(initial)
+        val renewed = OLD.copy(email = "updated@example.test", token = "renewed-own-token")
+        accounts.save(renewed, initial)
+        assertThat(TokenStore.peek()).isEqualTo(renewed.token)
+        assertThat(TokenStore.storageScope()).isEqualTo(owner)
+        assertThat(TokenStore.snapshot().generation).isGreaterThan(initial.generation)
+        val after = real.all.toMap()
+        TokenStore.clear()
+        EmailAccountSessionStore(real).restoreIfAnonymous()
+        assertThat(TokenStore.peek()).isEqualTo(renewed.token)
+        assertThat(TokenStore.storageScope()).isEqualTo(owner)
+        assertThat(real.all).isEqualTo(after)
+    }
+
+    @Test fun `different accepted ids stay isolated even when their email labels are identical`() {
+        val accounts = EmailAccountSessionStore(real)
+        accounts.save(OLD)
+        val first = TokenStore.storageScope()
+        accounts.save(NEW.copy(email = OLD.email))
+        val second = TokenStore.storageScope()
+        assertThat(second).isNotEqualTo(first)
+        accounts.save(OLD.copy(token = "returning-own-token"))
+        assertThat(TokenStore.storageScope()).isEqualTo(first)
+        accounts.save(NEW.copy(email = OLD.email, token = "returning-second-token"))
+        assertThat(TokenStore.storageScope()).isEqualTo(second)
+    }
+
+    @Test fun `an accepted legacy profile binds its existing owner before the first renewed credential`() {
+        val json = kotlinx.serialization.json.Json
+        check(real.edit().putString("account", json.encodeToString(EmailAccount.serializer(), OLD)).commit())
+        TokenStore.set(OLD.token)
+        val legacyOwner = TokenStore.storageScope()
+        EmailAccountSessionStore(real).save(OLD.copy(token = "renewed-legacy-token"))
+        assertThat(TokenStore.storageScope()).isEqualTo(legacyOwner)
+        TokenStore.clear()
+        EmailAccountSessionStore(real).restoreIfAnonymous()
+        assertThat(TokenStore.storageScope()).isEqualTo(legacyOwner)
+    }
+
+    @Test fun `a credential already bound to another accepted id cannot merge their histories`() {
+        val accounts = EmailAccountSessionStore(real)
+        accounts.save(OLD)
+        val identity = TokenStore.snapshot()
+        val before = real.all.toMap()
+        val error = runCatching { accounts.save(NEW.copy(token = OLD.token)) }.exceptionOrNull()
+        assertThat(error).isInstanceOf(IOException::class.java)
+        assertThat(real.all).isEqualTo(before)
+        assertThat(TokenStore.snapshot()).isEqualTo(identity)
+    }
+
+    @Test fun `invalid owner bindings fail before changing the profile or published identity`() {
+        val accounts = EmailAccountSessionStore(real)
+        accounts.save(OLD)
+        check(real.edit().putString("history_owner_bindings_v1", "{\"old-id\":\"local\"}").commit())
+        val before = real.all.toMap()
+        val identity = TokenStore.snapshot()
+        assertThat(runCatching { accounts.save(NEW) }.exceptionOrNull()).isInstanceOf(IOException::class.java)
+        assertThat(real.all).isEqualTo(before)
+        assertThat(TokenStore.snapshot()).isEqualTo(identity)
+    }
+
+    @Test fun `legacy restoration preserves additional stored profile fields while adding its owner binding`() {
+        val encoded = "{\"id\":\"legacy-extra-id\",\"email\":\"legacy@example.test\",\"token\":\"legacy-extra-token\",\"profile_revision\":7}"
+        check(real.edit().putString("account", encoded).commit())
+        val owner = TokenStore.storageScope(TokenStore.Snapshot("legacy-extra-token", 0))
+        assertThat(EmailAccountSessionStore(real).restoreIfAnonymous()).isNotNull()
+        assertThat(real.getString("account", null)).isEqualTo(encoded)
+        assertThat(TokenStore.storageScope()).isEqualTo(owner)
+    }
 }

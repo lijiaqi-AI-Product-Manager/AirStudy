@@ -54,6 +54,10 @@ jobs:
           --tests 'com.projectfocus.app.route.NavGraphTest'
           --tests 'com.projectfocus.app.route.RecordBrowserFlowTest'
           --tests 'com.projectfocus.app.route.StatisticsDateFlowTest'
+          --tests 'com.projectfocus.app.auth.EmailAccountSessionStoreTest'
+          --tests 'com.projectfocus.app.auth.EmailLoginViewModelHttpTest'
+          --tests 'com.projectfocus.app.auth.AccountRestoreGateTest'
+          --tests 'com.projectfocus.app.auth.AccountHistoryAssociationFlowTest'
           --stacktrace
       - name: Verify flight records
         run: >-

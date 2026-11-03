@@ -137,17 +137,19 @@ object TokenStore {
     @Volatile
     private var token: String? = null
     private var generation: Long = 0L
+    private var accountScope: String? = null
     private val publicationMutex = kotlinx.coroutines.sync.Mutex()
     private val withinFlightLease = ThreadLocal<Boolean>()
 
-    data class Snapshot(val token: String?, val generation: Long)
+    data class Snapshot(val token: String?, val generation: Long, val accountScope: String? = null)
     private val identityState = kotlinx.coroutines.flow.MutableStateFlow(Snapshot(null, 0L))
     val identities: kotlinx.coroutines.flow.StateFlow<Snapshot> = identityState.asStateFlow()
 
-    private fun publishValue(value: String?): Snapshot {
+    private fun publishValue(value: String?, scope: String? = null): Snapshot {
         token = value
+        accountScope = scope
         generation++
-        return Snapshot(token, generation).also { identityState.value = it }
+        return Snapshot(token, generation, accountScope).also { identityState.value = it }
     }
 
     fun set(value: String?) {
@@ -157,13 +159,18 @@ object TokenStore {
     fun peek(): String? = token
 
     @Synchronized
-    fun snapshot(): Snapshot = Snapshot(token, generation)
+    fun snapshot(): Snapshot = Snapshot(token, generation, accountScope)
 
-    fun storageScope(value: Snapshot = snapshot()): String =
-        value.token?.takeIf(String::isNotBlank)?.let { current ->
+    fun storageScope(value: Snapshot = snapshot()): String {
+        value.accountScope?.let { scope ->
+            requireAccountScope(value.token, scope)
+            return scope
+        }
+        return value.token?.takeIf(String::isNotBlank)?.let { current ->
             java.security.MessageDigest.getInstance("SHA-256").digest(current.toByteArray(Charsets.UTF_8))
                 .joinToString("") { "%02x".format(it) }
         } ?: "local"
+    }
 
     fun clear() {
         publishBlocking { publishValue(null) }
@@ -171,19 +178,36 @@ object TokenStore {
 
     /** Atomic compare/publish, returning the exact publication snapshot for bootstrap evidence. */
     fun publishIfCurrent(expected: Snapshot, value: String?): Snapshot? = publishBlocking {
-        if (Snapshot(token, generation) != expected) null
+        if (Snapshot(token, generation, accountScope) != expected) null
         else publishValue(value)
+    }
+
+    fun publishAccountIfCurrent(expected: Snapshot, value: String, scope: String): Snapshot? {
+        requireAccountScope(value, scope)
+        return publishBlocking {
+            if (Snapshot(token, generation, accountScope) != expected) null
+            else publishValue(value, scope)
+        }
     }
 
     /** Suspending production publication: cancellation while waiting never publishes late auth. */
     suspend fun publishIfCurrentCancellable(expected: Snapshot, value: String?): Snapshot? {
+        return publishCancellable(expected, value, null)
+    }
+
+    suspend fun publishAccountIfCurrentCancellable(expected: Snapshot, value: String, scope: String): Snapshot? {
+        requireAccountScope(value, scope)
+        return publishCancellable(expected, value, scope)
+    }
+
+    private suspend fun publishCancellable(expected: Snapshot, value: String?, scope: String?): Snapshot? {
         assertPublicationAllowed()
         publicationMutex.lock()
         try {
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
             return synchronized(this) {
-                if (Snapshot(token, generation) != expected) null
-                else publishValue(value)
+                if (Snapshot(token, generation, accountScope) != expected) null
+                else publishValue(value, scope)
             }
         } finally { publicationMutex.unlock() }
     }
@@ -256,5 +280,9 @@ object TokenStore {
 
     fun requireSnapshotLease() {
         check(withinFlightLease.get() == true) { "A real account publication lease is required" }
+    }
+
+    private fun requireAccountScope(value: String?, scope: String) {
+        require(!value.isNullOrBlank() && scope.length == 64 && scope.all { it in '0'..'9' || it in 'a'..'f' })
     }
 }
