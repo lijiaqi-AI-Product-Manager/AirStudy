@@ -14,7 +14,7 @@ import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.deleteWhere
-import org.jetbrains.exposed.sql.insert
+import org.jetbrains.exposed.sql.insertIgnore
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -71,15 +71,12 @@ class FlightService {
 
             for (dto in req.sessions) {
                 val sanitized = sanitize(dto) ?: run { rejected++; null } ?: continue
-                val exists = Flights.selectAll().where { Flights.id eq sanitized.id }.limit(1).any()
-                if (exists) {
-
-                    //   重发同一条不应该改变它（也不能被用来篡改）。
-                    accepted++
-                    serverIds += sanitized.id
+                insertFlight(userId, sanitized)
+                val storedOwner = Flights.selectAll().where { Flights.id eq sanitized.id }.single()[Flights.userId]
+                if (storedOwner != userId) {
+                    rejected++
                     continue
                 }
-                insertFlight(userId, sanitized)
                 accepted++
                 serverIds += sanitized.id
             }
@@ -100,7 +97,7 @@ class FlightService {
         val id = UUID.randomUUID().toString()
 
         transaction {
-            insertFlight(
+            check(insertFlight(
                 userId,
                 SanitizedFlight(
                     id = id,
@@ -118,7 +115,7 @@ class FlightService {
                     quote = null,
                     quoteAuthor = null,
                 ),
-            )
+            )) { "A new flight identifier was not inserted" }
         }
         return SessionDetails(id = id, startTimeMillis = now, durationMinutes = req.durationMinutes, distanceKm = distance)
     }
@@ -210,8 +207,8 @@ class FlightService {
         )
     }
 
-    private fun insertFlight(userId: String, f: SanitizedFlight) {
-        Flights.insert {
+    private fun insertFlight(userId: String, f: SanitizedFlight): Boolean {
+        return Flights.insertIgnore {
             it[id] = f.id
             it[Flights.userId] = userId
             it[roomId] = f.roomId
@@ -227,7 +224,7 @@ class FlightService {
             it[seat] = f.seat
             it[quote] = f.quote
             it[quoteAuthor] = f.quoteAuthor
-        }
+        }.insertedCount == 1
     }
 
 

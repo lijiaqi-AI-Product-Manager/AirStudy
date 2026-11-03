@@ -5,6 +5,14 @@ import io.ktor.client.statement.bodyAsText
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Test
 import java.util.UUID
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonArray
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 /**
  * 飞行记录端点的集成测试。
@@ -72,6 +80,67 @@ class FlightRoutesTest : ServerTestBase() {
 
         val hist = c.withToken(t).get("/session/history")
         assertThat(c.str(hist, "total")).isEqualTo("1")
+    }
+
+    @Test fun anExistingIdentifierFromAnotherAccountIsRejectedWithoutAcknowledgementOrOverwrite() = serverTest("flight-owner-collision") { c ->
+        val owner = registerAndLogin(c, "history-owner@airstudy.test")
+        val other = registerAndLogin(c, "history-other@airstudy.test")
+        val id = UUID.randomUUID().toString()
+        val original = """{"sessions":[${flight(id = id, actual = 33)}]}"""
+        assertThat(c.withToken(owner).post("/session/sync", original).status.value).isEqualTo(200)
+        val foreign = c.withToken(other).post("/session/sync", """{"sessions":[${flight(id = id, actual = 1)}]}""")
+        assertThat(foreign.status.value).isEqualTo(200)
+        assertThat(c.str(foreign, "accepted")).isEqualTo("0")
+        assertThat(c.str(foreign, "rejected")).isEqualTo("1")
+        assertThat(Json.parseToJsonElement(foreign.bodyAsText()).jsonObject.getValue("data").jsonObject.getValue("serverIds").jsonArray).isEmpty()
+        assertThat(c.str(c.withToken(other).get("/session/history"), "total")).isEqualTo("0")
+        assertThat(c.str(c.withToken(other).get("/user/me"), "totalFocusedMinutes")).isEqualTo("0")
+        val history = c.withToken(owner).get("/session/history")
+        assertThat(c.str(history, "total")).isEqualTo("1")
+        assertThat(history.bodyAsText()).contains("\"actualFocusMinutes\":33")
+        assertThat(c.str(c.withToken(owner).get("/user/me"), "totalFocusedMinutes")).isEqualTo("33")
+        val retry = c.withToken(owner).post("/session/sync", original)
+        assertThat(c.str(retry, "accepted")).isEqualTo("1")
+        assertThat(c.str(retry, "rejected")).isEqualTo("0")
+    }
+
+    @Test fun aMixedBatchOnlyAcknowledgesItsOwnNewAndRepeatedIdentifiers() = serverTest("flight-owner-mixed") { c ->
+        val owner = registerAndLogin(c, "mixed-owner@airstudy.test")
+        val other = registerAndLogin(c, "mixed-other@airstudy.test")
+        val foreignId = UUID.randomUUID().toString()
+        val ownId = UUID.randomUUID().toString()
+        c.withToken(owner).post("/session/sync", """{"sessions":[${flight(id = foreignId)}]}""")
+        val body = """{"sessions":[${flight(id = foreignId)},${flight(id = ownId, actual = 17)},${flight(id = ownId, actual = 1)}]}"""
+        val result = c.withToken(other).post("/session/sync", body)
+        assertThat(result.status.value).isEqualTo(200)
+        assertThat(c.str(result, "accepted")).isEqualTo("2")
+        assertThat(c.str(result, "rejected")).isEqualTo("1")
+        val ids = Json.parseToJsonElement(result.bodyAsText()).jsonObject.getValue("data").jsonObject.getValue("serverIds").jsonArray
+            .map { it.jsonPrimitive.content }
+        assertThat(ids).containsExactly(ownId, ownId).inOrder()
+        val history = c.withToken(other).get("/session/history")
+        assertThat(c.str(history, "total")).isEqualTo("1")
+        assertThat(history.bodyAsText()).contains("\"actualFocusMinutes\":17")
+        assertThat(history.bodyAsText()).doesNotContain(foreignId)
+    }
+
+    @Test fun simultaneousFirstSubmissionsCannotBothClaimTheSameIdentifier() = serverTest("flight-owner-concurrent") { c ->
+        val first = registerAndLogin(c, "race-first@airstudy.test")
+        val second = registerAndLogin(c, "race-second@airstudy.test")
+        val id = UUID.randomUUID().toString()
+        val body = """{"sessions":[${flight(id = id)}]}"""
+        val clients = listOf(TestClient(c.http).withToken(first), TestClient(c.http).withToken(second))
+        val results = coroutineScope {
+            val start = CompletableDeferred<Unit>()
+            val work = clients.map { client -> async { start.await(); client.post("/session/sync", body) } }
+            start.complete(Unit)
+            work.awaitAll()
+        }
+        assertThat(results.map { it.status.value }).containsExactly(200, 200)
+        assertThat(results.sumOf { c.str(it, "accepted")!!.toInt() }).isEqualTo(1)
+        assertThat(results.sumOf { c.str(it, "rejected")!!.toInt() }).isEqualTo(1)
+        val counts = listOf(first, second).map { token -> c.str(c.withToken(token).get("/session/history"), "total")!!.toInt() }
+        assertThat(counts).containsExactly(0, 1)
     }
 
     @Test
