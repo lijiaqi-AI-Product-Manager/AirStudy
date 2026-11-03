@@ -88,5 +88,15 @@ class StatsProjectionTest {
         assertTrue(state.isLoading)
         assertTrue(state.readFailed)
         assertNotNull(state.dateRange)
+        assertNull(state.overview)
+    }
+
+    @Test fun `headline rounds precise dual mode totals after aggregation`() {
+        val state=StatsProjection.build(read(independent("first",now),independent("second",now)),query(),now,zone)
+        assertEquals(2,state.flights)
+        assertEquals(3,state.focusMinutes)
+        assertEquals(3.0+2.0/60_000.0,state.overview!!.totalFocusMinutes,1e-10)
+        assertEquals(1,state.overview!!.activeDays)
+        assertNull(state.focusComparison)
     }
 }

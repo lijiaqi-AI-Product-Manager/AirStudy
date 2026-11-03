@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="statsFlights" type="id" />
+    <item name="statsFocus" type="id" />
+    <item name="statsActiveDays" type="id" />
+    <item name="statsLongestSession" type="id" />
+    <item name="statsBestStreak" type="id" />
+</resources>

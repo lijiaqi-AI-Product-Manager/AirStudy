@@ -54,6 +54,7 @@ import com.projectfocus.feature.completion.R as CompletionR
 import com.projectfocus.feature.stats.R as StatsR
 
 
+
 @RunWith(RobolectricTestRunner::class)
 @Config(application = ProjectFocusApp::class, sdk = [34], qualifiers = "zh-rCN-w432dp-h960dp-mdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -243,7 +244,7 @@ class FreeFlightHomeWindowTest {
                 host.navController.navigate(android.net.Uri.parse("projectfocus://stats"))
                 host.childFragmentManager.executePendingTransactions()
                 await("Actual statistics includes the independent committed flight") {
-                    activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()=="1 "+activity.getString(StatsR.string.stats_unit_flights)
+                    activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()=="1"
                 }
                 capture("freeflight-actual-statistics")
                 assertTrue(host.navController.popBackStack());host.childFragmentManager.executePendingTransactions()
@@ -273,7 +274,7 @@ class FreeFlightHomeWindowTest {
                     runBlocking(Dispatchers.IO) { withTimeout(5_000) { held.join() } }
                 }
                 await("Recreated statistics renders its retained current-account data after the real lease releases") {
-                    activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()=="1 "+activity.getString(StatsR.string.stats_unit_flights) &&
+                    activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()=="1" &&
                         activity.findViewById<android.view.ViewGroup>(StatsR.id.statsCountryList)?.childCount==1
                 }
                 activity.findViewById<android.view.ViewGroup>(StatsR.id.statsCountryList).getChildAt(0).performClick()
@@ -283,7 +284,7 @@ class FreeFlightHomeWindowTest {
                 }
                 runBlocking(Dispatchers.IO) { TokenStore.setCancellable("replacement-after-arrival") }
                 await("The new account has its own empty statistics and the old country dialog closes") {
-                    activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()=="0 "+activity.getString(StatsR.string.stats_unit_flights) &&
+                    activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()=="0" &&
                         statistics.childFragmentManager.findFragmentByTag("country_airports")==null
                 }
                 assertTrue(host.navController.popBackStack());host.childFragmentManager.executePendingTransactions()

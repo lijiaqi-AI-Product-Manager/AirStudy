@@ -26,8 +26,14 @@ data class StatsUiState(
     val canNextPeriod: Boolean = false,
     val queryRevision: Long = 0,
     val nowWallMs: Long = 0,
+    val overview: StatsOverviewMetrics? = null,
+    val focusComparison: StatsFocusComparison? = null,
 ) {
     val focusHours: Int get() = focusMinutes / 60
     val focusRemainderMinutes: Int get() = focusMinutes % 60
     val hasFocusHours: Boolean get() = focusHours > 0
+}
+
+data class StatsFocusComparison(val deltaMinutes: Double, val ratio: Double?) {
+    init { require(deltaMinutes.isFinite() && (ratio == null || ratio.isFinite())) }
 }

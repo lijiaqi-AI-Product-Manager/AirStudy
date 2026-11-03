@@ -17,7 +17,9 @@ object StatsProjection {
         if (read is HistoryReadState.Failure) return base.copy(readFailed = true)
         read as HistoryReadState.Loaded
         val summary = HistoryStatistics.calculate(read.records.filter { it.recordedAtWallMs in range }, read.airportCounts, read.airportCodes)
-        return base.copy(flights = summary.flights, distanceKm = summary.distanceKm, focusMinutes = summary.focusMinutes,
+        val overview = StatsOverviewMetrics.calculate(read.records, range, zone)
+        return base.copy(flights = summary.flights, distanceKm = summary.distanceKm,
+            focusMinutes = Math.round(overview.totalFocusMinutes).coerceIn(0,Int.MAX_VALUE.toLong()).toInt(), overview = overview,
             airports = summary.destinations.size, countries = summary.countries.size, countryBreakdown = summary.countries,
             destinations = summary.destinations, isLoading = false)
     }

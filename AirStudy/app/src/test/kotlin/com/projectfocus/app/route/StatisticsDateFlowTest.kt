@@ -25,6 +25,7 @@ import com.projectfocus.feature.stats.StatsDateControls
 import com.projectfocus.feature.stats.StatsDateRangeDialog
 import com.projectfocus.feature.stats.StatsPeriod
 import com.projectfocus.feature.stats.StatsFragment
+import com.projectfocus.feature.stats.StatsHeadlineView
 import com.projectfocus.feature.stats.StatsViewModel
 import com.projectfocus.service.focus.freeflight.RoomFreeFlightArchiveStore
 import java.io.File
@@ -103,8 +104,9 @@ class StatisticsDateFlowTest {
         assertEquals(activity.getString(StatsR.string.stats_period_day),controls().periodButtons[StatsPeriod.DAY.ordinal].text.toString())
     }
     private fun controls()=activity.findViewById<StatsDateControls>(StatsR.id.statsDateControls)
-    private fun count()=activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()
-    private fun expected(count: Int)="$count ${activity.getString(StatsR.string.stats_unit_flights)}"
+    private fun count(): String? = if(activity.findViewById<StatsHeadlineView>(StatsR.id.statsHeadline)?.isAnimating==true)null
+        else activity.findViewById<TextView>(StatsR.id.statsFlights)?.text?.toString()
+    private fun expected(count: Int)=count.toString()
     private fun custom(): StatsDateRangeDialog {
         controls().periodButtons[StatsPeriod.CUSTOM.ordinal].performClick()
         await { ShadowDialog.getLatestDialog() is StatsDateRangeDialog && ShadowDialog.getLatestDialog().isShowing }
@@ -138,6 +140,9 @@ class StatisticsDateFlowTest {
         launch()
         controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
         await { count()==expected(2) && controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
+        assertEquals("7m",activity.findViewById<TextView>(StatsR.id.statsFocus).text.toString())
+        assertEquals("1",activity.findViewById<TextView>(StatsR.id.statsActiveDays).text.toString())
+        assertEquals("5m",activity.findViewById<TextView>(StatsR.id.statsLongestSession).text.toString())
         assertFalse(controls().next.isEnabled)
         controls().previous.performClick()
         await { count()==expected(1) && controls().next.isEnabled }
@@ -168,6 +173,7 @@ class StatisticsDateFlowTest {
         idle()
         assertTrue(controls().periodButtons[StatsPeriod.WEEK.ordinal].isSelected)
         assertEquals(expected(1),count())
+        assertEquals("5m",activity.findViewById<TextView>(StatsR.id.statsFocus).text.toString())
     }
 
     @Test fun recreationRetainsTheDateQueryAndBackgroundCancelsAnUnconfirmedDraft() {

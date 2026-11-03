@@ -68,33 +68,11 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content" />
 
-            <LinearLayout
+            <com.projectfocus.feature.stats.StatsHeadlineView
+                android:id="@+id/statsHeadline"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingVertical="@dimen/space_l">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_total_flights"
-                    android:textAppearance="@style/TextAppearance.Pf.BodyM"
-                    android:textColor="@color/text_secondary" />
-
-                <TextView
-                    android:id="@+id/statsFlights"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_xs"
-                    android:text="@string/stats_placeholder"
-                    android:textAppearance="@style/TextAppearance.Pf.Display"
-                    android:textColor="@color/text_primary" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider" />
+                android:layout_marginTop="14dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -124,33 +102,6 @@
                 android:layout_height="1dp"
                 android:background="@color/divider" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingVertical="@dimen/space_l">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_total_focus"
-                    android:textAppearance="@style/TextAppearance.Pf.BodyM"
-                    android:textColor="@color/text_secondary" />
-
-                <TextView
-                    android:id="@+id/statsFocus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_xs"
-                    android:text="@string/stats_placeholder"
-                    android:textAppearance="@style/TextAppearance.Pf.Display"
-                    android:textColor="@color/text_primary" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider" />
 
             <LinearLayout
                 android:layout_width="match_parent"

@@ -133,13 +133,12 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         val root = view ?: return
         val current = state.account?.isCurrent() == true
         root.findViewById<StatsDateControls>(R.id.statsDateControls).bind(state, viewModel.zone)
+        root.findViewById<StatsHeadlineView>(R.id.statsHeadline).bind(state, viewModel.zone)
         root.findViewById<View>(R.id.statsShare).isEnabled = !state.isLoading && current
 
         if (state.isLoading || !current) {
             val placeholder = getString(R.string.stats_placeholder)
-            root.findViewById<TextView>(R.id.statsFlights).text = placeholder
             root.findViewById<TextView>(R.id.statsDistance).text = placeholder
-            root.findViewById<TextView>(R.id.statsFocus).text = placeholder
             root.findViewById<TextView>(R.id.statsAirports).text = placeholder
             root.findViewById<TextView>(R.id.statsCountries).text = placeholder
             root.findViewById<View>(R.id.statsCountryList).visibility = View.GONE
@@ -151,15 +150,12 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             return
         }
 
-        root.findViewById<TextView>(R.id.statsFlights).text =
-            "${state.flights} ${getString(R.string.stats_unit_flights)}"
         root.findViewById<TextView>(R.id.statsDistance).text = String.format(
             Locale.US,
             "%,.0f %s",
             state.distanceKm,
             getString(R.string.stats_unit_km),
         )
-        root.findViewById<TextView>(R.id.statsFocus).text = formatFocus(state)
         root.findViewById<TextView>(R.id.statsAirports).text =
             "${state.airports} ${getString(R.string.stats_unit_airports)}"
         root.findViewById<TextView>(R.id.statsCountries).text =
@@ -233,16 +229,6 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
                 ).show()
             }
         }
-    }
-
-    private fun formatFocus(state: StatsUiState): String = if (state.hasFocusHours) {
-        getString(
-            R.string.stats_focus_format,
-            state.focusHours,
-            state.focusRemainderMinutes,
-        )
-    } else {
-        getString(R.string.stats_focus_minutes_only, state.focusRemainderMinutes)
     }
 
     private fun shareStats() {
