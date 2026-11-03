@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_all_time_label">全期間</string>
+    <string name="stats_all_time_scenario_subtitle">シーン比率は全成功フライト履歴を基準に計算されます</string>
+    <string name="stats_all_time_scenario_title">全期間のシーン</string>
+    <string name="stats_clear_scenario_filter">シーン絞り込みを解除</string>
+    <string name="stats_current_period_label">現在の期間</string>
+    <string name="stats_empty">データなし</string>
+    <string name="stats_percent_value_fmt">%1$d%%</string>
+    <string name="stats_scenario_chart_accessibility_hint">全期間のシーン比率グラフ。タッチして時間を確認できます</string>
+    <string name="stats_period_scenario_chart_accessibility_hint">現在の期間のシーン比率グラフ。タッチして時間を確認できます</string>
+    <string name="stats_scenario_period_subtitle">選択した期間のシーン比率</string>
+    <string name="stats_scenario_period_title">集中シーン</string>
+    <string name="stats_show_all_scenarios">全シーンを表示</string>
+    <string name="stats_show_current_period">現在の期間に戻る</string>
+    <string name="stats_scene_accessibility_fmt">%1$s、%2$s。タップして絞り込み</string>
+    <string name="stats_scene_time_count_pct_fmt">%1$s · %2$d回 · %3$s</string>
+    <string name="stats_scene_label_study">勉強</string>
+    <string name="stats_scene_label_work">仕事</string>
+    <string name="stats_scene_label_reading">読書</string>
+    <string name="stats_scene_label_meditation">睡眠</string>
+    <string name="stats_scene_label_creative">創作</string>
+    <string name="stats_scene_label_relax">リラックス</string>
+    <string name="stats_scene_label_exercise">スポーツ</string>
+    <string name="stats_scene_label_music">音楽</string>
+    <string name="stats_scene_label_programming">プログラミング</string>
+    <string name="stats_scene_label_gaming">ゲーム</string>
+    <string name="stats_scene_label_starchasing">推し活</string>
+</resources>

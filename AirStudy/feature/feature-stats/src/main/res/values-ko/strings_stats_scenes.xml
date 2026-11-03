@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_all_time_label">전체 기간</string>
+    <string name="stats_all_time_scenario_subtitle">비율은 모든 성공 비행 기록을 기준으로 계산됩니다</string>
+    <string name="stats_all_time_scenario_title">전체 기간 시나리오</string>
+    <string name="stats_clear_scenario_filter">시나리오 필터 해제</string>
+    <string name="stats_current_period_label">현재 기간</string>
+    <string name="stats_empty">데이터 없음</string>
+    <string name="stats_percent_value_fmt">%1$d%%</string>
+    <string name="stats_scenario_chart_accessibility_hint">전체 기간 시나리오 비율 차트입니다. 터치하여 시간을 확인하세요</string>
+    <string name="stats_period_scenario_chart_accessibility_hint">현재 기간의 시나리오 비율 차트입니다. 터치하여 시간을 확인하세요</string>
+    <string name="stats_scenario_period_subtitle">선택한 날짜 범위의 시나리오 비율</string>
+    <string name="stats_scenario_period_title">집중 시나리오</string>
+    <string name="stats_show_all_scenarios">전체 시나리오 보기</string>
+    <string name="stats_show_current_period">현재 기간으로 돌아가기</string>
+    <string name="stats_scene_accessibility_fmt">%1$s, %2$s. 필터하려면 탭하세요</string>
+    <string name="stats_scene_time_count_pct_fmt">%1$s · %2$d회 · %3$s</string>
+    <string name="stats_scene_label_study">공부</string>
+    <string name="stats_scene_label_work">업무</string>
+    <string name="stats_scene_label_reading">독서</string>
+    <string name="stats_scene_label_meditation">수면</string>
+    <string name="stats_scene_label_creative">창작</string>
+    <string name="stats_scene_label_relax">휴식</string>
+    <string name="stats_scene_label_exercise">운동</string>
+    <string name="stats_scene_label_music">음악</string>
+    <string name="stats_scene_label_programming">프로그래밍</string>
+    <string name="stats_scene_label_gaming">게임</string>
+    <string name="stats_scene_label_starchasing">덕질</string>
+</resources>

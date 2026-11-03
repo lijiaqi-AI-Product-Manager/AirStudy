@@ -46,7 +46,8 @@ class StatsViewModel @Inject constructor(
     val state: StateFlow<StatsUiState> = combine(history.records, query, now) { loaded, selected, wall ->
         try { StatsProjection.build(loaded, selected, wall, zone) }
         catch (error: CancellationException) { throw error }
-        catch (_: Exception) { StatsUiState(account = loaded.account, readFailed = true, queryRevision = selected.revision, nowWallMs = wall) }
+        catch (_: Exception) { StatsUiState(account = loaded.account, readFailed = true, queryRevision = selected.revision,
+            nowWallMs = wall, selectedSceneKey = selected.sceneKey.takeIf { selected.generation == loaded.account.generation }.orEmpty()) }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StatsUiState())
 
     fun retry() { history.retry() }
@@ -72,6 +73,19 @@ class StatsViewModel @Inject constructor(
         retryFailedRead()
     }
 
+    fun selectScene(account: HistoryAccount, revision: Long, key: String) {
+        if (!isCurrentQuery(account, revision)) return
+        val loaded = state.value
+        if (key.isNotEmpty() && (loaded.account != account || loaded.isLoading || loaded.queryRevision != revision ||
+            (loaded.allTimeScenes + loaded.periodScenes).none { it.key == key })) return
+        query.update { current ->
+            if (!account.isCurrent() || current.generation != account.generation || current.revision != revision) current
+            else current.copy(sceneKey = if (current.sceneKey == key) "" else key, revision = current.revision + 1)
+        }
+        refreshNow()
+        retryFailedRead()
+    }
+
     private fun change(account: HistoryAccount, transform: (StatsDateSelection) -> StatsDateSelection) {
         if (!account.isCurrent()) return
         query.update { current ->
@@ -80,6 +94,7 @@ class StatsViewModel @Inject constructor(
                 val base = if (current.generation == account.generation) current.dates else StatsDateSelection.current(clock.millis(), zone)
                 val next = transform(base)
                 if (next == base && current.generation == account.generation) current
+                else if (current.generation == account.generation) current.copy(dates = next, revision = current.revision + 1)
                 else StatsQuery(account.generation, next, current.revision + 1)
             }
         }

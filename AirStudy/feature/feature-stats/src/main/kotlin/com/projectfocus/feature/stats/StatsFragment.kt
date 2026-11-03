@@ -62,6 +62,18 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
                 if (!dateControlsActive()) return@action
                 lastState?.account?.let { account -> withAccount(account, ::dateControlsActive) { viewModel.movePeriod(account, direction) } }
             }
+            onClearSceneRequested = action@{ account, revision ->
+                if (!dateControlsActive()) return@action
+                withAccount(account, ::dateControlsActive) { viewModel.selectScene(account, revision, "") }
+            }
+        }
+        view.findViewById<StatsScenePanel>(R.id.statsScenePanel).apply {
+            interactionAllowed = ::dateControlsActive
+            onSceneRequested = action@{ key, captured ->
+                if (!dateControlsActive()) return@action
+                val account = captured.account ?: return@action
+                withAccount(account, ::dateControlsActive) { viewModel.selectScene(account, captured.queryRevision, key) }
+            }
         }
 
         // 下钻对话框用 childFragmentManager 弹出（见 showCountryAirports），
@@ -134,6 +146,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         val current = state.account?.isCurrent() == true
         root.findViewById<StatsDateControls>(R.id.statsDateControls).bind(state, viewModel.zone)
         root.findViewById<StatsHeadlineView>(R.id.statsHeadline).bind(state, viewModel.zone)
+        root.findViewById<StatsScenePanel>(R.id.statsScenePanel).bind(state)
         root.findViewById<View>(R.id.statsShare).isEnabled = !state.isLoading && current
 
         if (state.isLoading || !current) {
@@ -242,9 +255,11 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             state.airports,
             state.countries,
         )
-        val text = state.dates?.let {
+        val dated = state.dates?.let {
             getString(R.string.stats_share_period, StatsDateLabels.label(requireContext(), it, viewModel.zone, state.nowWallMs, false), summary)
         } ?: summary
+        val text = if (state.selectedSceneKey.isEmpty()) dated else
+            StatsSceneLabels(requireContext()).label(state.selectedSceneKey) + "\n" + dated
         val send = Intent(Intent.ACTION_SEND).apply {
             type = "text/plain"
             putExtra(Intent.EXTRA_TEXT, text)
@@ -282,7 +297,8 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     override fun onStop() { closeDateRange(); super.onStop() }
     override fun onDestroyView() {
         closeDateRange()
-        view?.findViewById<StatsDateControls>(R.id.statsDateControls)?.apply { onPeriodRequested = null; onMoveRequested = null }
+        view?.findViewById<StatsDateControls>(R.id.statsDateControls)?.apply { onPeriodRequested = null; onMoveRequested = null; onClearSceneRequested = null }
+        view?.findViewById<StatsScenePanel>(R.id.statsScenePanel)?.apply { onSceneRequested = null; interactionAllowed = { false } }
         lastState = null
         renderRevision++
         super.onDestroyView()

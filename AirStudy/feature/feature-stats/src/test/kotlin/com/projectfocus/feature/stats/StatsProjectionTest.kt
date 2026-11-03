@@ -2,6 +2,8 @@ package com.projectfocus.feature.stats
 
 import com.projectfocus.core.database.entity.FlightHistoryEntity
 import com.projectfocus.core.model.flight.PlannedAirport
+import com.projectfocus.core.model.flight.PlannedFlightMetadataCodec
+import com.projectfocus.core.model.flight.PlannedScene
 import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.service.focus.history.*
@@ -98,5 +100,48 @@ class StatsProjectionTest {
         assertEquals(3.0+2.0/60_000.0,state.overview!!.totalFocusMinutes,1e-10)
         assertEquals(1,state.overview!!.activeDays)
         assertNull(state.focusComparison)
+    }
+
+    @Test fun `scene filtering changes the headline while both distributions remain unfiltered`() {
+        val today = StatsDateSelection(date).custom(date,date)
+        val range = today.range(zone)
+        fun study(id: String, at: Long, title: String) = legacy(id,at).let { row ->
+            row.copy(record=row.record.copy(sceneSnapshotJson=PlannedFlightMetadataCodec.encodeScene(PlannedScene("study-option",title,"study",0,true))))
+        }
+        val loaded = read(study("before",range.fromWallMs-1,"Study"),study("now",now,"学习"),
+            legacy("no-scene",now),independent("other-scene",now).let { row ->
+                row.copy(archive=row.archive.copy(scene=FreeFlightScene(3,"reading","reading")))
+            })
+        val state = StatsProjection.build(loaded,query(today).copy(sceneKey="Study"),now,zone)
+        assertEquals("Study",state.selectedSceneKey)
+        assertEquals(1,state.flights)
+        assertEquals(5,state.focusMinutes)
+        assertEquals(setOf("学习","reading"),state.periodScenes.map { it.key }.toSet())
+        assertEquals(2,state.allTimeScenes.first { it.canonicalKey=="study" }.completedFlights)
+        assertEquals(1,state.periodScenes.first { it.canonicalKey=="study" }.completedFlights)
+        assertEquals(2,state.periodScenes.sumOf { it.completedFlights })
+        assertEquals(3,state.allTimeScenes.sumOf { it.completedFlights })
+    }
+
+    @Test fun `an absent scene retains a clearable filter without inventing a distribution row`() {
+        val selected = query().copy(sceneKey="Removed project")
+        val state = StatsProjection.build(read(legacy("no-scene",now)),selected,now,zone)
+        assertEquals(0,state.flights)
+        assertEquals("Removed project",state.selectedSceneKey)
+        assertTrue(state.periodScenes.isEmpty())
+        val failure = StatsProjection.build(HistoryReadState.Failure(account,IllegalStateException("fixture")),selected,now,zone)
+        assertEquals("Removed project",failure.selectedSceneKey)
+        assertTrue(failure.readFailed)
+        assertNull(failure.overview)
+    }
+
+    @Test fun `an account transition discards the scene filter and all old distributions`() {
+        val selected=query().copy(sceneKey="学习")
+        TokenStore.set("statistics-next-scene-owner")
+        val next=HistoryAccount(TokenStore.storageScope(),TokenStore.snapshot().generation)
+        val state=StatsProjection.build(HistoryReadState.Loaded(next,emptyList(),emptyMap(),emptyMap()),selected,now,zone)
+        assertEquals("",state.selectedSceneKey)
+        assertTrue(state.periodScenes.isEmpty())
+        assertTrue(state.allTimeScenes.isEmpty())
     }
 }

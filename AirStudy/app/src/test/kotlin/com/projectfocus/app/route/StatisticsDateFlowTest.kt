@@ -19,6 +19,8 @@ import com.projectfocus.app.R
 import com.projectfocus.app.testing.shutdownRealApplicationAfterTest
 import com.projectfocus.core.database.entity.FlightHistoryEntity
 import com.projectfocus.core.model.flight.PlannedAirport
+import com.projectfocus.core.model.flight.PlannedFlightMetadataCodec
+import com.projectfocus.core.model.flight.PlannedScene
 import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.feature.stats.StatsDateControls
@@ -26,6 +28,7 @@ import com.projectfocus.feature.stats.StatsDateRangeDialog
 import com.projectfocus.feature.stats.StatsPeriod
 import com.projectfocus.feature.stats.StatsFragment
 import com.projectfocus.feature.stats.StatsHeadlineView
+import com.projectfocus.feature.stats.StatsScenePanel
 import com.projectfocus.feature.stats.StatsViewModel
 import com.projectfocus.service.focus.freeflight.RoomFreeFlightArchiveStore
 import java.io.File
@@ -91,7 +94,8 @@ class StatisticsDateFlowTest {
     private fun legacy(id: String, at: Long, owner: String=TokenStore.storageScope(),status: String="COMPLETED") = FlightHistoryEntity(
         id,null,"SOLO",null,"PEK","Beijing Airport","北京","CN",40.0,116.0,
         "TSN","Tianjin Airport","天津","CN",39.0,117.0,at,at+300_000,25,5,99.25,status,
-        null,"12A",false,false,false,null,false,at,at,ownerScope=owner)
+        null,"12A",false,false,false,null,false,at,at,ownerScope=owner,
+        sceneSnapshotJson=PlannedFlightMetadataCodec.encodeScene(PlannedScene("statistics-study","","study",0,false)))
     private fun launch() {
         scenario=ActivityScenario.launch(MainActivity::class.java)
         scenario!!.onActivity { actual ->
@@ -232,5 +236,53 @@ class StatisticsDateFlowTest {
                 app.database.openHelper.writableDatabase.execSQL("ALTER TABLE statistics_unavailable_history RENAME TO flight_history")
             }
         }
+    }
+
+    @Test fun sceneSelectionSurvivesDatesAndRecreationThenClearsForANewAccount() {
+        launch()
+        controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { count()==expected(2) && controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
+        fun panel()=activity.findViewById<StatsScenePanel>(StatsR.id.statsScenePanel)
+        fun reading()=panel().legend.findViewWithTag<View>("阅读")
+        await { reading()!=null }
+        reading().performClick()
+        await { count()==expected(1) && controls().sceneFilter.visibility==View.VISIBLE }
+        assertEquals("阅读",controls().sceneFilterLabel.text.toString())
+        assertEquals("2m",activity.findViewById<TextView>(StatsR.id.statsFocus).text.toString())
+        assertEquals(2,(0 until panel().legend.childCount).count { panel().legend.getChildAt(it) is android.widget.LinearLayout })
+        reading().performClick()
+        await { count()==expected(2) && controls().sceneFilter.visibility==View.GONE }
+        reading().performClick()
+        await { count()==expected(1) && controls().sceneFilter.visibility==View.VISIBLE }
+        panel().toggle.performClick()
+        await { panel().allTime }
+        assertEquals(expected(1),count())
+        val staleRow=reading()
+        scenario!!.recreate()
+        scenario!!.onActivity { activity=it }
+        await { count()==expected(1) && controls().sceneFilterLabel.text.toString()=="阅读" }
+        staleRow.performClick();idle()
+        assertEquals(View.VISIBLE,controls().sceneFilter.visibility)
+        controls().previous.performClick()
+        await { count()==expected(0) && controls().sceneFilter.visibility==View.VISIBLE && controls().next.isEnabled }
+        controls().sceneFilter.performClick()
+        await { count()==expected(1) && controls().sceneFilter.visibility==View.GONE }
+        controls().next.performClick()
+        await { count()==expected(2) }
+        reading().performClick()
+        await { count()==expected(1) && controls().sceneFilter.visibility==View.VISIBLE }
+        capture("statistics-actual-scene-filter")
+        val oldRow=reading()
+        val oldClear=controls().sceneFilter
+        val nextToken="statistics-scene-owner-two"
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(legacy("next-scene-owner",wall,TokenStore.storageScope(TokenStore.Snapshot(nextToken,0))))
+            TokenStore.setCancellable(nextToken)
+        }
+        await { count()==expected(1) && controls().sceneFilter.visibility==View.GONE && controls().periodButtons[StatsPeriod.WEEK.ordinal].isSelected }
+        oldRow.performClick();oldClear.performClick();idle()
+        assertEquals(expected(1),count())
+        assertEquals("5m",activity.findViewById<TextView>(StatsR.id.statsFocus).text.toString())
+        assertEquals(View.GONE,controls().sceneFilter.visibility)
     }
 }
