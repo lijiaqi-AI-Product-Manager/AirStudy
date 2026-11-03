@@ -34,6 +34,7 @@ import com.projectfocus.feature.stats.StatsTrendMetric
 import com.projectfocus.feature.stats.StatsTrendMode
 import com.projectfocus.feature.stats.StatsViewModel
 import com.projectfocus.feature.stats.StatsHeatmapPanel
+import com.projectfocus.feature.stats.StatsCareerPanel
 import com.projectfocus.service.focus.freeflight.RoomFreeFlightArchiveStore
 import java.io.File
 import java.time.LocalDate
@@ -63,6 +64,46 @@ import com.projectfocus.feature.stats.R as StatsR
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class StatisticsDateFlowTest {
+    @Test fun careerUsesAllSuccessfulAccountRecordsAcrossDateAndSceneChanges() {
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(legacy("career-outside-current-range",today.minusYears(2).atStartOfDay(zone).toInstant().toEpochMilli()))
+        }
+        launch()
+        fun panel()=activity.findViewById<StatsCareerPanel>(StatsR.id.statsCareerPanel)
+        fun model(): StatsViewModel {
+            val host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+            return ViewModelProvider(host.childFragmentManager.primaryNavigationFragment as StatsFragment)[StatsViewModel::class.java]
+        }
+        await { model().state.value.career!=null && !model().state.value.isLoading && panel().countryRows.childCount==1 }
+        val initial=model().state.value.career!!
+        assertEquals(4,initial.completedFlights)
+        assertNull(initial.onTimeRate)
+        controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { count()==expected(2) && model().state.value.dates!!.period==StatsPeriod.DAY }
+        assertEquals(initial,model().state.value.career)
+        activity.findViewById<StatsScenePanel>(StatsR.id.statsScenePanel).legend.findViewWithTag<View>("阅读").performClick()
+        await { count()==expected(1) && model().state.value.selectedSceneKey.isNotEmpty() }
+        assertEquals(initial,model().state.value.career)
+        scenario!!.recreate();scenario!!.onActivity { activity=it }
+        await { count()==expected(1) && panel().countryRows.childCount==1 && !model().state.value.isLoading }
+        assertEquals(initial,model().state.value.career)
+        val scroll=generateSequence(panel().parent) { it.parent }.filterIsInstance<android.widget.ScrollView>().first()
+        layout();scroll.scrollTo(0,panel().top);idle()
+        capture("statistics-actual-career-scene")
+        val oldRow=panel().countryRows.getChildAt(0)
+        val nextToken="statistics-career-route-next-owner"
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(legacy("career-next-owner",wall,TokenStore.storageScope(TokenStore.Snapshot(nextToken,0))))
+            TokenStore.setCancellable(nextToken)
+        }
+        await { model().state.value.career?.completedFlights==1 && model().state.value.selectedSceneKey.isEmpty() && panel().countryRows.childCount==1 }
+        oldRow.performClick();idle()
+        val host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+        val page=host.childFragmentManager.primaryNavigationFragment as StatsFragment
+        assertTrue(page.childFragmentManager.fragments.none { it is com.projectfocus.feature.stats.CountryAirportsDialogFragment })
+        assertEquals(99.25,model().state.value.career!!.distanceKm,0.0)
+    }
+
     @Test fun annualHeatmapKeepsItsOwnYearAndUsesRealFilteredAccountRecords() {
         launch()
         fun heatmap()=activity.findViewById<StatsHeatmapPanel>(StatsR.id.statsHeatmapPanel)

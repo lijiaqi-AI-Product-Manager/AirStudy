@@ -36,6 +36,8 @@ data class StatsUiState(
     val heatmapRevision: Long = 0,
     val canNextHeatmapYear: Boolean = false,
     val annualHeatmap: StatsAnnualHeatmap? = null,
+    val career: StatsCareer? = null,
+    val flightStreak: StatsFlightStreak? = null,
 ) {
     val focusHours: Int get() = focusMinutes / 60
     val focusRemainderMinutes: Int get() = focusMinutes % 60

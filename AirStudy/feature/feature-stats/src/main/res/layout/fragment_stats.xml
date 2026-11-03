@@ -92,112 +92,11 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp" />
 
-            <LinearLayout
+            <com.projectfocus.feature.stats.StatsCareerPanel
+                android:id="@+id/statsCareerPanel"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:paddingVertical="@dimen/space_l">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/stats_total_distance"
-                    android:textAppearance="@style/TextAppearance.Pf.BodyM"
-                    android:textColor="@color/text_secondary" />
-
-                <TextView
-                    android:id="@+id/statsDistance"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="@dimen/space_xs"
-                    android:text="@string/stats_placeholder"
-                    android:textAppearance="@style/TextAppearance.Pf.Display"
-                    android:textColor="@color/text_primary" />
-            </LinearLayout>
-
-            <View
-                android:layout_width="match_parent"
-                android:layout_height="1dp"
-                android:background="@color/divider" />
-
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:paddingVertical="@dimen/space_l">
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/stats_airports"
-                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
-                        android:textColor="@color/text_secondary" />
-
-                    <TextView
-                        android:id="@+id/statsAirports"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_xs"
-                        android:text="@string/stats_unit_airports"
-                        android:textAppearance="@style/TextAppearance.Pf.TitleM"
-                        android:textColor="@color/text_primary" />
-                </LinearLayout>
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/stats_countries"
-                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
-                        android:textColor="@color/text_secondary" />
-
-                    <TextView
-                        android:id="@+id/statsCountries"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="@dimen/space_xs"
-                        android:text="@string/stats_unit_countries"
-                        android:textAppearance="@style/TextAppearance.Pf.TitleM"
-                        android:textColor="@color/text_primary" />
-                </LinearLayout>
-            </LinearLayout>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_l"
-                android:text="@string/stats_country_breakdown"
-                android:textAppearance="@style/TextAppearance.Pf.TitleM"
-                android:textColor="@color/text_primary" />
-
-            <LinearLayout
-                android:id="@+id/statsCountryList"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_s"
-                android:orientation="vertical" />
-
-            <TextView
-                android:id="@+id/statsCountryEmpty"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="@dimen/space_s"
-                android:text="@string/stats_country_empty"
-                android:textAppearance="@style/TextAppearance.Pf.BodyM"
-                android:textColor="@color/text_secondary"
-                android:visibility="gone" />
+                android:layout_marginTop="14dp" />
 
             <TextView
                 android:id="@+id/statsSourceNote"

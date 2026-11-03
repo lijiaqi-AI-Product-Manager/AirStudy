@@ -32,6 +32,8 @@ object StatsProjection {
             periodScenes = StatsScenes.group(read.records, range), allTimeScenes = StatsScenes.group(read.records),
             trend = StatsTrend.calculate(filtered, range, zone),
             focusComparison = StatsPeriodComparison.calculate(filtered,overview.totalFocusMinutes,dates,zone),
-            annualHeatmap = StatsAnnualHeatmap.calculate(filtered, year, zone))
+            annualHeatmap = StatsAnnualHeatmap.calculate(filtered, year, zone),
+            career = StatsCareer.calculate(read.records, read.airportCounts, read.airportCodes),
+            flightStreak = StatsFlightStreak.calculate(filtered, range, nowWallMs, zone))
     }
 }

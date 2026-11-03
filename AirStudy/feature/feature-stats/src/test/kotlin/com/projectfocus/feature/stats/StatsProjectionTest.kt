@@ -20,6 +20,24 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28],manifest=Config.NONE)
 class StatsProjectionTest {
+    @Test fun `career stays all time while date and scene selections change the current streak`() {
+        val yesterday=date.minusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()
+        val old=date.minusYears(2).atStartOfDay(zone).toInstant().toEpochMilli()
+        val loaded=read(legacy("today",now),legacy("yesterday",yesterday),legacy("old",old),independent("today-up",now))
+        val baseline=StatsProjection.build(loaded,query(),now,zone)
+        val selected=StatsProjection.build(loaded,query(StatsDateSelection(date,StatsPeriod.DAY)).copy(sceneKey="study"),now,zone)
+        assertEquals(4,baseline.career!!.completedFlights)
+        assertEquals(baseline.career,selected.career)
+        assertEquals(2,baseline.flightStreak!!.currentDays)
+        assertEquals(1,selected.flightStreak!!.currentDays)
+        assertEquals(1,selected.flights)
+        assertNull(selected.career!!.onTimeRate)
+        val failed=StatsProjection.build(HistoryReadState.Failure(account,IllegalStateException("unavailable")),query(),now,zone)
+        assertNull(failed.career);assertNull(failed.flightStreak)
+        TokenStore.set("statistics-career-projection-next-owner")
+        assertNull(StatsProjection.build(loaded,query(),now,zone).career)
+    }
+
     @Test fun `heatmap year is independent from the summary period and keeps exact scene filtered minutes`() {
         val before=date.minusYears(1)
         val loaded=read(legacy("current",now),independent("precise",now),legacy("old",before.atStartOfDay(zone).toInstant().toEpochMilli()))

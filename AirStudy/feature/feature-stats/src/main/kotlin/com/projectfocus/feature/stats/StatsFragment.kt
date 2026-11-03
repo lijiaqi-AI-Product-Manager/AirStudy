@@ -4,8 +4,6 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
 import android.view.View
-import android.widget.LinearLayout
-import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -14,7 +12,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.projectfocus.core.database.dao.AirportDao
 import com.projectfocus.core.ui.nav.AirportNavigator
-import com.projectfocus.core.database.dao.CountryTripCount
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -24,7 +21,6 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.collect
 import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.service.focus.history.HistoryAccount
-import java.util.Locale
 
 /** Statistics for the current account and selected local date range. */
 @AndroidEntryPoint
@@ -85,6 +81,16 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
                 withAccount(account, ::dateControlsActive) {
                     viewModel.moveHeatmapYear(account, captured.queryRevision, captured.heatmapRevision, direction)
                 }
+            }
+        }
+
+        view.findViewById<StatsCareerPanel>(R.id.statsCareerPanel).apply {
+            interactionAllowed = ::dateControlsActive
+            onRetryRequested = viewModel::retry
+            onCountryRequested = action@{ country, captured ->
+                val account = captured.account ?: return@action
+                if (!dateControlsActive() || !viewModel.isCurrentQuery(account, captured.queryRevision)) return@action
+                withAccount(account, ::dateControlsActive) { openCountryAirports(country) }
             }
         }
 
@@ -163,60 +169,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         root.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel).bind(state)
         root.findViewById<View>(R.id.statsShare).isEnabled = !state.isLoading && current
 
-        if (state.isLoading || !current) {
-            val placeholder = getString(R.string.stats_placeholder)
-            root.findViewById<TextView>(R.id.statsDistance).text = placeholder
-            root.findViewById<TextView>(R.id.statsAirports).text = placeholder
-            root.findViewById<TextView>(R.id.statsCountries).text = placeholder
-            root.findViewById<View>(R.id.statsCountryList).visibility = View.GONE
-            root.findViewById<TextView>(R.id.statsCountryEmpty).apply {
-                visibility = if (state.readFailed && current) View.VISIBLE else View.GONE
-                setText(R.string.stats_read_failed)
-                setOnClickListener { viewModel.retry() }
-            }
-            return
-        }
-
-        root.findViewById<TextView>(R.id.statsDistance).text = String.format(
-            Locale.US,
-            "%,.0f %s",
-            state.distanceKm,
-            getString(R.string.stats_unit_km),
-        )
-        root.findViewById<TextView>(R.id.statsAirports).text =
-            "${state.airports} ${getString(R.string.stats_unit_airports)}"
-        root.findViewById<TextView>(R.id.statsCountries).text =
-            "${state.countries} ${getString(R.string.stats_unit_countries)}"
-        renderCountryBreakdown(root, state.countryBreakdown)
-    }
-
-    private fun renderCountryBreakdown(root: View, rows: List<CountryTripCount>) {
-        val list = root.findViewById<LinearLayout>(R.id.statsCountryList)
-        val empty = root.findViewById<View>(R.id.statsCountryEmpty)
-        (empty as TextView).setText(R.string.stats_country_empty)
-        empty.setOnClickListener(null)
-        list.visibility = View.VISIBLE
-        list.removeAllViews()
-        empty.visibility = if (rows.isEmpty()) View.VISIBLE else View.GONE
-        rows.forEach { row ->
-            val item = layoutInflater.inflate(R.layout.item_stats_country, list, false)
-            item.findViewById<TextView>(R.id.statsCountryName).text = row.country
-            val progress = item.findViewById<TextView>(R.id.statsCountryProgress)
-            if (row.totalAirports > 0) {
-                progress.visibility = View.VISIBLE
-                progress.text = getString(
-                    R.string.stats_country_progress_fmt,
-                    row.visitedAirports,
-                    row.totalAirports,
-                )
-            } else {
-                progress.visibility = View.GONE
-            }
-            item.findViewById<TextView>(R.id.statsCountryCount).text =
-                getString(R.string.stats_country_count, row.tripCount)
-            item.setOnClickListener { openCountryAirports(row.country) }
-            list.addView(item)
-        }
+        root.findViewById<StatsCareerPanel>(R.id.statsCareerPanel).bind(state)
     }
 
     private fun openCountryAirports(country: String) {
@@ -224,7 +177,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         viewLifecycleOwner.lifecycleScope.launch {
             val loaded = runCatching {
                 val airports = airportDao.byCountry(country)
-                val destinations = captured.destinations.filter { it.country == country }
+                val destinations = captured.career?.destinations.orEmpty().filter { it.country == country }
                 val visited = destinations.map { it.code }.toSet()
                 val knownCodes = airports.map { it.iataCode.ifBlank { it.icaoCode } }.toSet()
                 ArrayList(
@@ -315,6 +268,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         view?.findViewById<StatsScenePanel>(R.id.statsScenePanel)?.apply { onSceneRequested = null; interactionAllowed = { false } }
         view?.findViewById<StatsTrendPanel>(R.id.statsTrendPanel)?.interactionAllowed={ false }
         view?.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel)?.release()
+        view?.findViewById<StatsCareerPanel>(R.id.statsCareerPanel)?.release()
         lastState = null
         renderRevision++
         super.onDestroyView()
