@@ -28,7 +28,8 @@ internal fun shutdownRealApplicationAfterTest(app: ProjectFocusApp) {
     val roomJob = checkNotNull(room.coroutineContext[Job])
     var waitingFor = "cancellation"
     try { runBlocking(Dispatchers.IO) {
-        withTimeout(10_000) {
+        // Native initialization can still be unwinding during the first Application shutdown.
+        withTimeout(60_000) {
             jobs.forEach { it.cancel() }
             jobs.forEachIndexed { index, job -> waitingFor = listOf("application", "widgets", "network")[index];job.join() }
             // Finish producers while settings remain available to their real in-flight cleanup.

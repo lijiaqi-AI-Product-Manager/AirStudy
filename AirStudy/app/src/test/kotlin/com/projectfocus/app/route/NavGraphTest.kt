@@ -20,6 +20,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.SQLiteMode
 
 
 
@@ -59,6 +60,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [34])
+@SQLiteMode(SQLiteMode.Mode.NATIVE)
 class NavGraphTest {
     @get:org.junit.Rule
     val realApplicationLifetime = com.projectfocus.app.testing.RealApplicationLifetimeRule()
