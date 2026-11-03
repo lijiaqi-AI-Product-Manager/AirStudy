@@ -29,6 +29,9 @@ import com.projectfocus.feature.stats.StatsPeriod
 import com.projectfocus.feature.stats.StatsFragment
 import com.projectfocus.feature.stats.StatsHeadlineView
 import com.projectfocus.feature.stats.StatsScenePanel
+import com.projectfocus.feature.stats.StatsTrendPanel
+import com.projectfocus.feature.stats.StatsTrendMetric
+import com.projectfocus.feature.stats.StatsTrendMode
 import com.projectfocus.feature.stats.StatsViewModel
 import com.projectfocus.service.focus.freeflight.RoomFreeFlightArchiveStore
 import java.io.File
@@ -222,6 +225,7 @@ class StatisticsDateFlowTest {
                     message.text.toString()==activity.getString(StatsR.string.stats_read_failed)
             }
             assertEquals(activity.getString(StatsR.string.stats_placeholder),count())
+            assertEquals(activity.getString(StatsR.string.stats_placeholder),activity.findViewById<StatsTrendPanel>(StatsR.id.statsTrendPanel).totalText.text.toString())
             assertFalse(activity.findViewById<View>(StatsR.id.statsShare).isEnabled)
             runBlocking(Dispatchers.IO) {
                 app.database.openHelper.writableDatabase.execSQL("ALTER TABLE statistics_unavailable_history RENAME TO flight_history")
@@ -284,5 +288,58 @@ class StatisticsDateFlowTest {
         assertEquals(expected(1),count())
         assertEquals("5m",activity.findViewById<TextView>(StatsR.id.statsFocus).text.toString())
         assertEquals(View.GONE,controls().sceneFilter.visibility)
+    }
+
+    @Test fun trendModesUseRealDualModeRecordsAndKeepDatesAndSceneQueriesIndependent() {
+        launch()
+        fun panel()=activity.findViewById<StatsTrendPanel>(StatsR.id.statsTrendPanel)
+        controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { count()==expected(2) && !panel().isAnimating && panel().totalText.text.toString()=="2 次" }
+        assertEquals("较上期 ↑ 30%",activity.findViewById<StatsHeadlineView>(StatsR.id.statsHeadline).comparisonLabel.text.toString())
+        assertEquals(24,panel().activeChart.bucketCount)
+        assertEquals("2 次",panel().peakText.text.toString())
+        panel().metricButtons[1].performClick()
+        await { panel().metric==StatsTrendMetric.FOCUS && !panel().isAnimating && panel().totalText.text.toString()=="7m" }
+        panel().barButton.performClick()
+        await { panel().mode==StatsTrendMode.STACKED_BAR && !panel().isAnimating }
+        val host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+        val page=host.childFragmentManager.primaryNavigationFragment as StatsFragment
+        val model=ViewModelProvider(page)[StatsViewModel::class.java]
+        val revision=model.state.value.queryRevision
+        val chart=panel().activeChart
+        for(action in listOf(android.view.MotionEvent.ACTION_DOWN,android.view.MotionEvent.ACTION_UP)) {
+            android.view.MotionEvent.obtain(0,0,action,82f,100f,0).also { chart.onTouchEvent(it);it.recycle() }
+        }
+        idle()
+        assertEquals(1,chart.selectedIndex)
+        assertEquals(revision,model.state.value.queryRevision)
+        controls().previous.performClick()
+        await { count()==expected(1) && !panel().isAnimating && panel().totalText.text.toString()=="5m" }
+        assertEquals(StatsTrendMetric.FOCUS,panel().metric)
+        assertEquals(StatsTrendMode.STACKED_BAR,panel().mode)
+        assertEquals(-1,panel().activeChart.selectedIndex)
+        controls().next.performClick()
+        await { count()==expected(2) && !panel().isAnimating }
+        activity.findViewById<StatsScenePanel>(StatsR.id.statsScenePanel).legend.findViewWithTag<View>("阅读").performClick()
+        await { count()==expected(1) && !panel().isAnimating && panel().totalText.text.toString()=="2m" }
+        assertEquals("较上期 新增",activity.findViewById<StatsHeadlineView>(StatsR.id.statsHeadline).comparisonLabel.text.toString())
+        panel().metricButtons[0].performClick()
+        await { panel().metric==StatsTrendMetric.COMPLETED && !panel().isAnimating && panel().totalText.text.toString()=="1 次" }
+        assertEquals("1 次",panel().peakText.text.toString())
+        capture("statistics-actual-trend-filter")
+        controls().sceneFilter.performClick()
+        await { count()==expected(2) && !panel().isAnimating && panel().totalText.text.toString()=="2 次" }
+        val old=panel()
+        scenario!!.moveToState(Lifecycle.State.CREATED)
+        old.lineButton.performClick();idle()
+        assertEquals(StatsTrendMode.STACKED_BAR,old.mode)
+        scenario!!.moveToState(Lifecycle.State.RESUMED)
+        await { panel().mode==StatsTrendMode.STACKED_BAR && !panel().isAnimating }
+        scenario!!.recreate();scenario!!.onActivity { activity=it }
+        await { count()==expected(2) && !panel().isAnimating && panel().mode==StatsTrendMode.LINE }
+        old.lineButton.performClick();idle()
+        assertEquals(StatsTrendMode.STACKED_BAR,old.mode)
+        assertTrue(controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected)
+        assertEquals("2 次",panel().totalText.text.toString())
     }
 }

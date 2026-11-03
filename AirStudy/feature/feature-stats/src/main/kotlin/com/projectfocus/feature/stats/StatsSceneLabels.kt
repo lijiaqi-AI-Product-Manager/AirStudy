@@ -33,6 +33,8 @@ internal class StatsSceneLabels(private val context: Context) {
     fun color(category: String) = SourceSceneCatalog.builtins.firstOrNull { it.iconKey == category }?.color
         ?: SourceSceneCatalog.builtins.first().color
     fun icon(category: String) = SourceSceneCatalog.icon(category)
+    fun trendLabel(key: String, category: String): String =
+        (resources[category] ?: resources[key])?.let(context::getString) ?: key.ifEmpty { category }
     fun category(state: StatsUiState): String =
         (state.periodScenes + state.allTimeScenes).firstOrNull { it.key == state.selectedSceneKey }?.iconKey
             ?: state.selectedSceneKey.takeIf { it in resources } ?: "study"

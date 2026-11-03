@@ -10,6 +10,7 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
 import android.util.AttributeSet
+import android.util.TypedValue
 import android.view.MotionEvent
 import android.view.View
 import android.view.animation.DecelerateInterpolator
@@ -65,7 +66,7 @@ class StatsDonutView @JvmOverloads constructor(context: Context, attrs: Attribut
 
     init { isClickable = true; isFocusable = true }
     private fun dp(value: Float) = value * resources.displayMetrics.density
-    private fun sp(value: Float) = value * resources.displayMetrics.scaledDensity
+    private fun sp(value: Float) = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,value,resources.displayMetrics)
     private fun textPaint(size: Float, color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         textSize = sp(size); this.color = visual.color(color); typeface = medium
     }

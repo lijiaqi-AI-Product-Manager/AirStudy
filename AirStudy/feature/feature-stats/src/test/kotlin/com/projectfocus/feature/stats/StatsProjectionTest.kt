@@ -91,6 +91,7 @@ class StatsProjectionTest {
         assertTrue(state.readFailed)
         assertNotNull(state.dateRange)
         assertNull(state.overview)
+        assertNull(state.trend)
     }
 
     @Test fun `headline rounds precise dual mode totals after aggregation`() {
@@ -99,7 +100,8 @@ class StatsProjectionTest {
         assertEquals(3,state.focusMinutes)
         assertEquals(3.0+2.0/60_000.0,state.overview!!.totalFocusMinutes,1e-10)
         assertEquals(1,state.overview!!.activeDays)
-        assertNull(state.focusComparison)
+        assertEquals(state.overview!!.totalFocusMinutes,state.focusComparison!!.deltaMinutes,1e-10)
+        assertNull(state.focusComparison!!.ratio)
     }
 
     @Test fun `scene filtering changes the headline while both distributions remain unfiltered`() {
@@ -121,6 +123,10 @@ class StatsProjectionTest {
         assertEquals(1,state.periodScenes.first { it.canonicalKey=="study" }.completedFlights)
         assertEquals(2,state.periodScenes.sumOf { it.completedFlights })
         assertEquals(3,state.allTimeScenes.sumOf { it.completedFlights })
+        assertEquals(1,state.trend!!.buckets.sumOf { it.completedFlights })
+        assertEquals(5.0,state.trend!!.buckets.sumOf { it.focusMinutes },0.0)
+        assertEquals(0.0,state.focusComparison!!.deltaMinutes,0.0)
+        assertEquals(0.0,state.focusComparison!!.ratio!!,0.0)
     }
 
     @Test fun `an absent scene retains a clearable filter without inventing a distribution row`() {

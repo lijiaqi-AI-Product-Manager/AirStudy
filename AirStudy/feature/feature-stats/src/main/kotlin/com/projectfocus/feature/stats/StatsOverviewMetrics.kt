@@ -15,10 +15,7 @@ data class StatsOverviewMetrics(
     companion object {
         fun calculate(records: List<RecordedFlight>, range: StatsDateRange, zone: ZoneId): StatsOverviewMetrics {
             val completed = records.filter { it.completed && it.recordedAtWallMs in range }
-            fun minutes(record: RecordedFlight): Double = when (record) {
-                is RecordedFlight.Countdown -> record.record.actualFocusMinutes.coerceAtLeast(0).toDouble()
-                is RecordedFlight.CountUp -> record.archive.clock.activeElapsedMs / 60_000.0
-            }
+            fun minutes(record: RecordedFlight): Double = StatsFocusMinutes.value(record)
             val total = completed.sumOf(::minutes)
             require(total.isFinite() && total >= 0.0)
             val dates = completed.map { Instant.ofEpochMilli(it.recordedAtWallMs).atZone(zone).toLocalDate() }.toSortedSet()

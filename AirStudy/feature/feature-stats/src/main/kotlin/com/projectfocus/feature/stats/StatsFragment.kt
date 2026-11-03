@@ -75,6 +75,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
                 withAccount(account, ::dateControlsActive) { viewModel.selectScene(account, captured.queryRevision, key) }
             }
         }
+        view.findViewById<StatsTrendPanel>(R.id.statsTrendPanel).interactionAllowed=::dateControlsActive
 
         // 下钻对话框用 childFragmentManager 弹出（见 showCountryAirports），
         // 它的 setFragmentResult 走的就是这个管理器，监听必须挂在同一个上。
@@ -146,6 +147,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         val current = state.account?.isCurrent() == true
         root.findViewById<StatsDateControls>(R.id.statsDateControls).bind(state, viewModel.zone)
         root.findViewById<StatsHeadlineView>(R.id.statsHeadline).bind(state, viewModel.zone)
+        root.findViewById<StatsTrendPanel>(R.id.statsTrendPanel).bind(state, viewModel.zone)
         root.findViewById<StatsScenePanel>(R.id.statsScenePanel).bind(state)
         root.findViewById<View>(R.id.statsShare).isEnabled = !state.isLoading && current
 
@@ -299,6 +301,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         closeDateRange()
         view?.findViewById<StatsDateControls>(R.id.statsDateControls)?.apply { onPeriodRequested = null; onMoveRequested = null; onClearSceneRequested = null }
         view?.findViewById<StatsScenePanel>(R.id.statsScenePanel)?.apply { onSceneRequested = null; interactionAllowed = { false } }
+        view?.findViewById<StatsTrendPanel>(R.id.statsTrendPanel)?.interactionAllowed={ false }
         lastState = null
         renderRevision++
         super.onDestroyView()

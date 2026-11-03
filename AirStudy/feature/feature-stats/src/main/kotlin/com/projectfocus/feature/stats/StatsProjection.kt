@@ -26,6 +26,8 @@ object StatsProjection {
             focusMinutes = Math.round(overview.totalFocusMinutes).coerceIn(0,Int.MAX_VALUE.toLong()).toInt(), overview = overview,
             airports = summary.destinations.size, countries = summary.countries.size, countryBreakdown = summary.countries,
             destinations = summary.destinations, isLoading = false,
-            periodScenes = StatsScenes.group(read.records, range), allTimeScenes = StatsScenes.group(read.records))
+            periodScenes = StatsScenes.group(read.records, range), allTimeScenes = StatsScenes.group(read.records),
+            trend = StatsTrend.calculate(filtered, range, zone),
+            focusComparison = StatsPeriodComparison.calculate(filtered,overview.totalFocusMinutes,dates,zone))
     }
 }

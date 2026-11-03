@@ -52,10 +52,7 @@ object StatsScenes {
         for(record in records) {
             if(!record.completed || (range!=null && record.recordedAtWallMs !in range))continue
             val scene=identity(record) ?: continue
-            val minutes=when(record) {
-                is RecordedFlight.Countdown -> record.record.actualFocusMinutes.coerceAtLeast(0).toDouble()
-                is RecordedFlight.CountUp -> record.archive.clock.activeElapsedMs / 60_000.0
-            }
+            val minutes=StatsFocusMinutes.value(record)
             val previous=rows[scene.canonicalKey]
             val total=(previous?.focusMinutes ?: 0.0)+minutes
             require(total.isFinite() && total>=0.0)

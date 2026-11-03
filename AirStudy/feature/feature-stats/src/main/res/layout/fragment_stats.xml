@@ -74,6 +74,12 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp" />
 
+            <com.projectfocus.feature.stats.StatsTrendPanel
+                android:id="@+id/statsTrendPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+
             <com.projectfocus.feature.stats.StatsScenePanel
                 android:id="@+id/statsScenePanel"
                 android:layout_width="match_parent"

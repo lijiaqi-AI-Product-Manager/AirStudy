@@ -31,6 +31,7 @@ data class StatsUiState(
     val selectedSceneKey: String = "",
     val periodScenes: List<StatsSceneEntry> = emptyList(),
     val allTimeScenes: List<StatsSceneEntry> = emptyList(),
+    val trend: StatsTrendSeries? = null,
 ) {
     val focusHours: Int get() = focusMinutes / 60
     val focusRemainderMinutes: Int get() = focusMinutes % 60
