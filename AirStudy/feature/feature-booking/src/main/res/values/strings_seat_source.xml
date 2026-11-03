@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_seat_available_accessibility">座位 %1$s，可选择</string>
+    <string name="pf_seat_selected_accessibility">座位 %1$s，已选择</string>
+    <string name="pf_seat_occupied_accessibility">座位 %1$s，不可选择</string>
+    <string name="pf_seat_continue_selection">继续选座</string>
+</resources>

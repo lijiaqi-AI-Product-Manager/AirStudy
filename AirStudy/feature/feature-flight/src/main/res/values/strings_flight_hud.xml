@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_flight_pause">暂停飞行</string>
+    <string name="pf_flight_resume">继续飞行</string>
+    <string name="pf_flight_hold_cancel">长按取消飞行</string>
+    <string name="pf_flight_paused">飞行已暂停</string>
+    <string name="pf_flight_show_map">查看地图</string>
+    <string name="pf_flight_show_window">查看舷窗</string>
+    <string name="pf_flight_map_style">地图样式</string>
+    <string name="pf_flight_audio">环境音与音量</string>
+    <string name="pf_flight_km">km</string>
+    <string name="pf_flight_min">min</string>
+    <string name="pf_flight_distance_remaining">剩余距离</string>
+    <string name="pf_flight_time_remaining">剩余时间</string>
+    <string name="pf_flight_summary">%1$s；已飞 %2$s km；剩余 %3$s km；剩余 %4$s</string>
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="PfAuthInputView">
+        <attr name="pf_auth_inputLabel" format="string" />
+        <attr name="pf_auth_inputHint" format="string" />
+        <attr name="android:inputType" />
+    </declare-styleable>
+</resources>

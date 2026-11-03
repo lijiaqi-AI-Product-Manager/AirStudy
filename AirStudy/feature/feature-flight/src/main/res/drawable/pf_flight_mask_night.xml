@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector android:height="390.0dip" android:width="270.0dip" android:viewportWidth="270.0" android:viewportHeight="390.0"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt">
+    <path android:pathData="M15,135                           a120,120 0 0 1 240,0                           v120                           a120,120 0 0 1 -240,0                           z" android:strokeColor="@color/pf_flight_mask_night_0" android:strokeWidth="30.0" />
+    <path android:pathData="M29,135                           a106,106 0 0 1 212,0                           v120                           a106,106 0 0 1 -212,0                           z" android:strokeColor="@color/pf_flight_mask_night_1" android:strokeWidth="4.0" />
+    <path android:pathData="M30,135                           a105,105 0 0 1 210,0                           v120                           a105,105 0 0 1 -210,0                           z" android:strokeColor="@color/pf_flight_mask_night_source_0" android:strokeWidth="1.0" />
+    <path android:fillColor="@color/pf_flight_mask_night_2" android:pathData="M29,135                           a106,106 0 0 1 212,0                           v120                           a106,106 0 0 1 -212,0                           z" />
+    <path android:fillColor="@color/pf_flight_mask_night_3" android:pathData="M29,135                           a106,106 0 0 1 212,0                           v120                           a106,106 0 0 1 -212,0                           z" />
+    <path android:pathData="M29,135                           a106,106 0 0 1 212,0                           v120                           a106,106 0 0 1 -212,0                           z" android:strokeColor="@color/pf_flight_mask_night_4" android:strokeWidth="12.0" />
+</vector>

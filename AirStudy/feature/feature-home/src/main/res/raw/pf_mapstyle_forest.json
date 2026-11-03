@@ -1,0 +1,214 @@
+[
+    {
+        "mapFeature": "all",
+        "options": "geometry",
+        "paint": {
+            "color": "#1a2e1a"
+        }
+    },
+    {
+        "mapFeature": "all",
+        "options": "labels.text.stroke",
+        "paint": {
+            "color": "#1a2e1a"
+        }
+    },
+    {
+        "mapFeature": "all",
+        "options": "labels.icon",
+        "paint": {
+            "icon-type": "forest"
+        }
+    },
+    {
+        "mapFeature": "administrative",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#e6ffe6"
+        }
+    },
+    {
+        "mapFeature": "administrative.country",
+        "options": "geometry.fill",
+        "paint": {
+            "color": "#2d4a2d"
+        }
+    },
+    {
+        "mapFeature": "administrative.country",
+        "visibility": true,
+        "options": "geometry.stroke",
+        "paint": {
+            "color": "#2d4a2d"
+        }
+    },
+    {
+        "mapFeature": "administrative.province",
+        "options": "geometry",
+        "paint": {
+            "color": "#3d5a3d"
+        }
+    },
+    {
+        "mapFeature": "administrative.province",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#ccffcc"
+        }
+    },
+    {
+        "mapFeature": "administrative.district",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#b3ffb3"
+        }
+    },
+    {
+        "mapFeature": "administrative.locality",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#99ff99"
+        }
+    },
+    {
+        "mapFeature": "landcover.parkland.natural",
+        "options": "geometry",
+        "paint": {
+            "color": "#0d4d0d"
+        }
+    },
+    {
+        "mapFeature": "landcover.parkland.public-garden",
+        "options": "geometry",
+        "paint": {
+            "color": "#1a5a1a"
+        }
+    },
+    {
+        "mapFeature": "landcover.parkland.public-garden",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#7fd47f"
+        }
+    },
+    {
+        "mapFeature": "landcover.parkland.human-made",
+        "visibility": false,
+        "options": "geometry",
+        "paint": {
+            "color": "#1a2e1a"
+        }
+    },
+    {
+        "mapFeature": "landcover.hospital",
+        "options": "geometry",
+        "paint": {
+            "color": "#2b4f2b"
+        }
+    },
+    {
+        "mapFeature": "landcover.hospital",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#87eb87"
+        }
+    },
+    {
+        "mapFeature": "landcover.college",
+        "options": "geometry",
+        "paint": {
+            "color": "#254525"
+        }
+    },
+    {
+        "mapFeature": "landcover",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#b3ffb3"
+        }
+    },
+    {
+        "mapFeature": "transit.subway",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#4fd94f"
+        }
+    },
+    {
+        "mapFeature": "water",
+        "options": "geometry",
+        "paint": {
+            "color": "#006666"
+        }
+    },
+    {
+        "mapFeature": "road",
+        "options": "geometry",
+        "paint": {
+            "color": "#4a854a"
+        }
+    },
+    {
+        "mapFeature": "road",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#e6ffe6"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#5bd45b"
+        }
+    },
+    {
+        "mapFeature": "poi.shopping.shopping mall",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#4ac24a"
+        }
+    },
+    {
+        "mapFeature": "poi.tourism",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#6bd66b"
+        }
+    },
+    {
+        "mapFeature": "poi.eating&drinking",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#7ce87c"
+        }
+    },
+    {
+        "mapFeature": "poi.lodging",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#8df98d"
+        }
+    },
+    {
+        "mapFeature": "poi.health-care",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#9eff9e"
+        }
+    },
+    {
+        "mapFeature": "poi.public-service",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#5fc45f"
+        }
+    },
+    {
+        "mapFeature": "poi.business",
+        "options": "labels.text.fill",
+        "paint": {
+            "color": "#4ab34a"
+        }
+    }
+]

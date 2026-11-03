@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_career_title">Данные за всё время</string>
+    <string name="stats_career_subtitle">Итоги по всем успешным полётам</string>
+    <string name="stats_total_mileage_label">Общий пробег</string>
+    <string name="stats_completed_flights_label">Завершённые полёты</string>
+    <string name="stats_ontime_label">Пунктуальность</string>
+    <string name="stats_current_streak_title">Серия полётов</string>
+    <string name="stats_streak_best_value_fmt">Рекорд: %1$d дн.</string>
+    <string name="stats_streak_days_fmt">%1$d дн.</string>
+    <string name="stats_km_value_fmt">%1$s км</string>
+    <string name="stats_ontime_rate_value_fmt">%1$d%%</string>
+    <string name="stats_record_city_stats_title">Статистика прибытия в города</string>
+    <string name="stats_record_top_countries_title">Популярные страны</string>
+    <string name="stats_top_country_most_visited_label">Самая часто посещаемая страна</string>
+</resources>

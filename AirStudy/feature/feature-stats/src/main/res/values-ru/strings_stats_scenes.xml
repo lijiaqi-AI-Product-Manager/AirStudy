@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_all_time_label">За всё время</string>
+    <string name="stats_all_time_scenario_subtitle">Доли рассчитаны по всей истории успешных полётов</string>
+    <string name="stats_all_time_scenario_title">Сценарии за всё время</string>
+    <string name="stats_clear_scenario_filter">Сбросить фильтр сценария</string>
+    <string name="stats_current_period_label">Текущий период</string>
+    <string name="stats_empty">Нет данных</string>
+    <string name="stats_percent_value_fmt">%1$d%%</string>
+    <string name="stats_scenario_chart_accessibility_hint">Диаграмма сценариев за всё время. Коснитесь для просмотра.</string>
+    <string name="stats_period_scenario_chart_accessibility_hint">Диаграмма сценариев за текущий период. Коснитесь для просмотра.</string>
+    <string name="stats_scenario_period_subtitle">Доли сценариев за выбранный период</string>
+    <string name="stats_scenario_period_title">Сценарии фокуса</string>
+    <string name="stats_show_all_scenarios">Показать все сценарии</string>
+    <string name="stats_show_current_period">Вернуться к периоду</string>
+    <string name="stats_scene_accessibility_fmt">%1$s, %2$s. Нажмите для фильтрации.</string>
+    <string name="stats_scene_time_count_pct_fmt">%1$s · %2$d сесс. · %3$s</string>
+    <string name="stats_scene_label_study">Учеба</string>
+    <string name="stats_scene_label_work">Работа</string>
+    <string name="stats_scene_label_reading">Чтение</string>
+    <string name="stats_scene_label_meditation">Сон</string>
+    <string name="stats_scene_label_creative">Творчество</string>
+    <string name="stats_scene_label_relax">Отдых</string>
+    <string name="stats_scene_label_exercise">Спорт</string>
+    <string name="stats_scene_label_music">Музыка</string>
+    <string name="stats_scene_label_programming">Программирование</string>
+    <string name="stats_scene_label_gaming">Игры</string>
+    <string name="stats_scene_label_starchasing">Кумиры</string>
+</resources>

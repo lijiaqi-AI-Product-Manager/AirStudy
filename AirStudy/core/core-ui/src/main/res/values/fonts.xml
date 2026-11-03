@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<resources>
+
+    <!-- 正文 / 标题：思源黑体可变字重 -->
+    <string name="pf_font_family_sans" translatable="false">@null</string>
+    <!-- 仪式感场景（登机牌 / 飞行报告 / 印章）：思源宋体 -->
+    <string name="pf_font_family_serif" translatable="false">@null</string>
+    <!-- 数字（倒计时 / 距离 / 时长）：等宽，避免数字跳动时宽度变化 -->
+    <string name="pf_font_family_mono" translatable="false">monospace</string>
+
+</resources>

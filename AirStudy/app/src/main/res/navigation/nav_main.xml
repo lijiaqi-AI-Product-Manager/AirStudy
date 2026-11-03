@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/nav_main"
+    app:startDestination="@id/permissionGuideFragment">
+
+    
+    <fragment
+        android:id="@+id/permissionGuideFragment"
+        android:name="com.projectfocus.feature.onboarding.permission.PermissionGuideFragment"
+        android:label="@string/nav_label_permission"
+        tools:layout="@layout/fragment_permission_guide"
+        xmlns:tools="http://schemas.android.com/tools">
+        <action
+            android:id="@+id/action_permission_to_home"
+            app:destination="@id/homeFragment" />
+    </fragment>
+
+    
+    <fragment
+        android:id="@+id/homeFragment"
+        android:name="com.projectfocus.app.home.HomeFragment"
+        android:label="@string/nav_label_home">
+
+        <!-- R8：结算完成后从落地页清栈回首页，走深链而不是引用 app R.id。 -->
+        <deepLink app:uri="projectfocus://home" />
+
+        <action
+            android:id="@+id/action_home_to_airport"
+            app:destination="@id/airportSearchFragment" />
+
+        <action
+            android:id="@+id/action_home_to_record"
+            app:destination="@id/recordListFragment" />
+
+        <action
+            android:id="@+id/action_home_to_flight_mode"
+            app:destination="@id/flightModeSelectionFragment" />
+
+        <action
+            android:id="@+id/action_home_to_flight_preparation"
+            app:destination="@id/flightPreparationFragment" />
+
+        <action
+            android:id="@+id/action_home_to_settings"
+            app:destination="@id/settingsFragment" />
+
+        <action
+            android:id="@+id/action_home_to_achievements"
+            app:destination="@id/achievementFragment" />
+
+        <action
+            android:id="@+id/action_home_to_sound"
+            app:destination="@id/soundFragment" />
+
+    </fragment>
+
+    
+    <fragment
+        android:id="@+id/airportSearchFragment"
+        android:name="com.projectfocus.app.route.AirportSearchHostFragment"
+        android:label="@string/nav_label_airport" />
+
+    <!--
+      飞行记录页 —— 宿主壳。结构同上。
+    -->
+    <fragment
+        android:id="@+id/recordListFragment"
+        android:name="com.projectfocus.app.route.RecordListHostFragment"
+        android:label="@string/nav_label_record">
+
+        <action
+            android:id="@+id/action_recordList_to_boardingPass"
+            app:destination="@id/boardingPassFragment" />
+    </fragment>
+
+
+
+
+
+
+
+    <fragment
+        android:id="@+id/boardingPassFragment"
+        android:name="com.projectfocus.feature.completion.pass.BoardingPassFragment"
+        android:label="@string/nav_label_boarding_pass">
+        <argument
+            android:name="arg_boarding_pass"
+            app:argType="java.io.Serializable" />
+    </fragment>
+
+    <!--
+      R7 · 落地页。
+      原版是 Activity + 全屏 overlay；这里按 NavHost 目的地接。
+      R7 只保证深链可达；"飞行结束自动进入"留给 R8 的 SessionController 收尾链路。
+    -->
+    <fragment
+        android:id="@+id/flightCompletionFragment"
+        android:name="com.projectfocus.feature.completion.arrival.FlightCompletionFragment"
+        android:label="@string/nav_label_completion">
+
+        <argument
+            android:name="recordId"
+            app:argType="string" />
+
+        <deepLink app:uri="projectfocus://completion/{recordId}" />
+
+    </fragment>
+
+
+
+
+
+    <fragment
+        android:id="@+id/airportDetailFragment"
+        android:name="com.projectfocus.feature.airport.detail.AirportDetailFragment"
+        android:label="@string/airport_detail_title">
+
+        <argument
+            android:name="code"
+            app:argType="string" />
+
+
+        <argument
+            android:name="report"
+            android:defaultValue="false"
+            app:argType="boolean" />
+
+        <deepLink app:uri="projectfocus://airport/{code}" />
+        <deepLink app:uri="projectfocus://airport/{code}?report={report}" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/flightModeSelectionFragment"
+        android:name="com.projectfocus.feature.focus.selection.FlightModeSelectionFragment"
+        android:label="@string/flight_mode_selection_title" />
+
+    <fragment
+        android:id="@+id/flightPreparationFragment"
+        android:name="com.projectfocus.app.booking.FlightPreparationFragment"
+        android:label="@string/flight_preparation_title">
+        <argument android:name="origin" android:defaultValue="" app:argType="string" />
+        <argument android:name="destination" android:defaultValue="" app:argType="string" />
+        <deepLink app:uri="projectfocus://prepare?origin={origin}&amp;destination={destination}" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.projectfocus.feature.profile.settings.SettingsFragment"
+        android:label="@string/pref_title" />
+
+
+
+
+
+    <fragment
+        android:id="@+id/achievementFragment"
+        android:name="com.projectfocus.feature.achievement.ui.AchievementFragment"
+        android:label="@string/achievements_title">
+        <deepLink app:uri="projectfocus://achievements" />
+    </fragment>
+
+
+
+
+
+
+
+
+
+    <fragment
+        android:id="@+id/soundFragment"
+        android:name="com.projectfocus.feature.sound.SoundFragment"
+        android:label="@string/sound_title">
+        <deepLink app:uri="projectfocus://sound" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/statsFragment"
+        android:name="com.projectfocus.feature.stats.StatsFragment"
+        android:label="@string/stats_title">
+        <deepLink app:uri="projectfocus://stats" />
+    </fragment>
+
+
+
+
+
+    <fragment
+        android:id="@+id/seatSelectionFragment"
+        android:name="com.projectfocus.feature.booking.seat.SeatSelectionFragment"
+        android:label="@string/seat_selection_title">
+        <argument
+            android:name="flightNo"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="from"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="to"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="recordId"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="seat"
+            android:defaultValue=""
+            app:argType="string" />
+        <argument
+            android:name="draftKey"
+            android:defaultValue=""
+            app:argType="string" />
+        <deepLink app:uri="projectfocus://seat?flightNo={flightNo}&amp;from={from}&amp;to={to}&amp;recordId={recordId}&amp;seat={seat}&amp;draftKey={draftKey}" />
+    </fragment>
+
+</navigation>

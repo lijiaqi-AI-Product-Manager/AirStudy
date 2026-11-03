@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="pf_hud_source_distance_remaining">Осталось</string><string name="pf_hud_source_distance_traveled">Пройдено</string><string name="pf_hud_source_time_remaining">Осталось</string><string name="pf_hud_source_time_elapsed">Прошло</string></resources>

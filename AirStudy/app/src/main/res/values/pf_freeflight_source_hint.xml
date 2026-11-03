@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="pf_ff_battery_opt_warning_guide_action">查看设置指引</string><string name="pf_ff_battery_opt_warning_message">手机省电策略可能导致后台运行时无法存档甚至进程中断，为确保后台存档正常，请将本应用加入手机省电白名单/允许后台运行。</string><string name="pf_ff_battery_opt_warning_title">后台运行提醒</string><string name="pf_ff_confirm">确认</string></resources>

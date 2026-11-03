@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/statsRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/stats_background"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:id="@+id/statsTitleBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="@dimen/space_l"
+        android:paddingTop="@dimen/space_m"
+        android:paddingBottom="@dimen/space_s">
+
+        <TextView
+            android:id="@+id/statsBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stats_back"
+            android:gravity="center"
+            android:text="‹"
+            android:textColor="@color/text_primary"
+            android:textSize="30sp" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/space_xs"
+            android:layout_weight="1"
+            android:accessibilityHeading="true"
+            android:text="@string/stats_title"
+            android:textAppearance="@style/TextAppearance.Pf.TitleL"
+            android:textColor="@color/text_primary" />
+
+        <ImageButton
+            android:id="@+id/statsShare"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/stats_share"
+            android:padding="8dp"
+            android:src="@drawable/ic_share"
+            app:tint="@color/text_primary"
+            xmlns:app="http://schemas.android.com/apk/res-auto" />
+    </LinearLayout>
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="12dp"
+        android:paddingBottom="40dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <com.projectfocus.feature.stats.StatsDateControls
+                android:id="@+id/statsDateControls"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <com.projectfocus.feature.stats.StatsHeadlineView
+                android:id="@+id/statsHeadline"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+
+            <com.projectfocus.feature.stats.StatsTrendPanel
+                android:id="@+id/statsTrendPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+
+            <com.projectfocus.feature.stats.StatsScenePanel
+                android:id="@+id/statsScenePanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+
+            <com.projectfocus.feature.stats.StatsHourPanel
+                android:id="@+id/statsHourPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+
+            <com.projectfocus.feature.stats.StatsInsightsPanel
+                android:id="@+id/statsInsightsPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+
+            <com.projectfocus.feature.stats.StatsHighlightsPanel
+                android:id="@+id/statsHighlightsPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+
+            <com.projectfocus.feature.stats.StatsHeatmapPanel
+                android:id="@+id/statsHeatmapPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+
+            <com.projectfocus.feature.stats.StatsCareerPanel
+                android:id="@+id/statsCareerPanel"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp" />
+
+            <TextView
+                android:id="@+id/statsSourceNote"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/space_l"
+                android:text="@string/stats_source_note"
+                android:textAppearance="@style/TextAppearance.Pf.Caption"
+                android:textColor="@color/text_tertiary" />
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

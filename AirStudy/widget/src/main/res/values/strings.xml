@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 小组件的显示名 —— 在「添加小组件」的选择列表里出现 -->
+    <string name="widget_flying_label">专注飞行 · 进行中</string>
+    <string name="widget_flying_description">剩余时间与进度，点一下开始专注</string>
+
+
+    <!-- 快捷开始（2x2） -->
+    <string name="widget_quick_start_label">专注飞行 · 快捷开始</string>
+    <string name="widget_quick_start_description">一键开始 25 分钟专注飞行</string>
+
+    <!-- 今日概览（4x2） -->
+    <string name="widget_today_label">专注飞行 · 今日概览</string>
+    <string name="widget_today_description">今天的飞行次数、专注分钟与连续天数</string>
+
+    
+    <string name="widget_flying_idle_title">还没有起飞</string>
+    <string name="widget_flying_idle_hint">点一下开始专注</string>
+    <string name="widget_flying_idle_action">开始</string>
+    <string name="widget_flying_paused_title">已暂停</string>
+
+    <string name="widget_quick_start_title">开始专注</string>
+    <string name="widget_quick_start_unit">分钟</string>
+    <string name="widget_quick_start_action">起飞</string>
+
+    <string name="widget_today_title">今天</string>
+</resources>

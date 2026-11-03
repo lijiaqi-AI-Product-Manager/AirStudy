@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    
+
+    <!-- ============ 一级：Display（28sp）============ -->
+    <!-- 用途：首页问候语、飞行完成报告的主数字 -->
+    <style name="TextAppearance.Pf.Display" parent="TextAppearance.Material3.DisplaySmall">
+        <item name="android:textSize">@dimen/text_display</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <!-- ============ 二级：Title L（22sp）============ -->
+    <!-- 用途：页面标题、弹窗标题 -->
+    <style name="TextAppearance.Pf.TitleL" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">@dimen/text_title_l</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.01</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <!-- ============ 三级：Title M（18sp）============ -->
+    <!-- 用途：卡片标题、分组标题 -->
+    <style name="TextAppearance.Pf.TitleM" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">@dimen/text_title_m</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <!-- ============ 四级：Body L（16sp）============ -->
+    <!-- 用途：正文、按钮文字 -->
+    <style name="TextAppearance.Pf.BodyL" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">@dimen/text_body_l</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <!-- ============ 五级：Body M（14sp）============ -->
+    <!-- 用途：次要正文、列表项副标题 -->
+    <style name="TextAppearance.Pf.BodyM" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">@dimen/text_body_m</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <!-- ============ 六级：Caption（12sp）============ -->
+    <!-- 用途：辅助说明、时间戳、场景标签 -->
+    <style name="TextAppearance.Pf.Caption" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">@dimen/text_caption</item>
+        <item name="android:textColor">@color/text_tertiary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <!-- ============ 七级：Micro（10sp）============ -->
+    <!-- 用途：角标、座位号小字、登机牌细栏目 -->
+    <style name="TextAppearance.Pf.Micro" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">@dimen/text_micro</item>
+        <item name="android:textColor">@color/text_tertiary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+    <!-- ============ 数字：Display（40sp）============ -->
+    <!-- 用途：倒计时主数字 -->
+    
+    <style name="TextAppearance.Pf.NumericXL" parent="TextAppearance.Pf.Display">
+        <item name="android:textSize">@dimen/text_numeric_xl</item>
+        <item name="android:fontFamily">@string/pf_font_family_mono</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
+    <!-- 用途：距离 / 时长数值 -->
+    <style name="TextAppearance.Pf.NumericL" parent="TextAppearance.Pf.TitleL">
+        <item name="android:textSize">@dimen/text_numeric_l</item>
+        <item name="android:fontFamily">@string/pf_font_family_mono</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
+    <!-- 用途：列表里的数值 -->
+    <style name="TextAppearance.Pf.NumericM" parent="TextAppearance.Pf.TitleM">
+        <item name="android:textSize">@dimen/text_numeric_m</item>
+        <item name="android:fontFamily">@string/pf_font_family_mono</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+    </style>
+
+    <!-- ============ 仪式感：登机牌 / 印章（宋体）============ -->
+    <style name="TextAppearance.Pf.BoardingSerif" parent="TextAppearance.Pf.TitleM">
+        <item name="android:fontFamily">@string/pf_font_family_serif</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <!-- ============ 按钮 ============ -->
+    <style name="TextAppearance.Pf.Button" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">@dimen/text_body_l</item>
+        <item name="android:textColor">@color/text_on_accent</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+
+</resources>

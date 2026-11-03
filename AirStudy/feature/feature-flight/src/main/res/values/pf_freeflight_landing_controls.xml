@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_flight_land">降落</string>
+    <string name="pf_flight_return_cruise">返回巡航</string>
+</resources>

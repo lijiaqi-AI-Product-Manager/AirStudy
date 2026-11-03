@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<resources>
+
+    <!-- ==================== 标题区 ==================== -->
+    <string name="permission_title">起飞前检查</string>
+    <string name="permission_subtitle">需要 3 项系统权限，才能真正拦住分心的 App</string>
+
+    <!-- 进度文本：%1$d = 已开数，%2$d = 总数 -->
+    <string name="permission_progress_format">%1$d / %2$d 已开启</string>
+    <string name="permission_progress_desc">权限开启进度</string>
+
+    <!-- 全开后的标题与副标题 -->
+    <string name="permission_title_done">检查完毕</string>
+    <string name="permission_subtitle_done">全部就绪，可以起飞了</string>
+
+    <!-- 部分开启 -->
+    <string name="permission_title_partial">还差 %1$d 项</string>
+
+    <!-- ==================== 步骤 1 使用情况访问 ==================== -->
+    <string name="permission_usage_title">使用情况访问</string>
+    <string name="permission_usage_desc">唯一能识别"你在用哪个 App"的权限。不开启则无法拦截任何 App，专注记录也拿不到应用明细。</string>
+
+    <!-- ==================== 步骤 2 悬浮窗 ==================== -->
+    <string name="permission_overlay_title">悬浮窗</string>
+    <string name="permission_overlay_desc">拦截时在全屏弹一层遮罩。不开启则拦截只会「闪回桌面」，你可以立刻重新点开那个 App。</string>
+
+    <!-- ==================== 步骤 3 通知 ==================== -->
+    <string name="permission_notification_title">通知</string>
+    <string name="permission_notification_desc">飞行中的常驻通知。Android 13 起必须授权，否则飞行服务会被系统随时回收。</string>
+
+    <!-- ==================== 电池优化（可选） ==================== -->
+    <string name="permission_battery_title">后台运行（建议开启）</string>
+    <string name="permission_battery_desc">部分机型会在锁屏 5 分钟后杀掉后台服务。开启后 3 小时的航班也能稳定计时。</string>
+
+    <!-- ==================== 按钮 ==================== -->
+    <string name="permission_action_enable">开启</string>
+    <string name="permission_action_settings">前往设置</string>
+    <string name="permission_action_preview">先看看，稍后再设置</string>
+    <!-- 预览模式下同一位置的按钮文案（同一位置、不同语义，不新增控件） -->
+    <string name="permission_action_back_to_settings">返回设置权限</string>
+
+    <!-- ==================== 兜底提示 ==================== -->
+    <string name="permission_hint_title">没找到开关？</string>
+    <string name="permission_hint_body">部分机型把「使用情况访问」藏在更深的位置：\n· 小米 / Redmi：设置 → 隐私保护 → 特殊权限 → 使用情况访问\n· 华为 / 荣耀：设置 → 安全和隐私 → 更多安全设置 → 使用情况访问\n· OPPO / vivo：设置 → 应用管理 → 特殊应用权限 → 使用情况访问</string>
+    <string name="permission_hint_dismiss">知道了</string>
+
+    <!-- ==================== 预览模式警告 ==================== -->
+    
+    <string name="permission_preview_warning">预览模式下不会拦截任何 App，也不会记录专注时长。</string>
+
+</resources>

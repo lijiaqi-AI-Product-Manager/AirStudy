@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="pf_record_page_airports_reached_zero">Достигнуто аэропортов 0/0</string>
+    <string name="pf_record_page_all">Все</string>
+    <string name="pf_record_page_cities_reached_zero">Достигнуто городов 0/0</string>
+    <string name="pf_record_page_common_back">Назад</string>
+    <string name="pf_record_page_day">День</string>
+    <string name="pf_record_page_month">Месяц</string>
+    <string name="pf_record_page_next_page">Следующая страница</string>
+    <string name="pf_record_page_no_records">Нет записей</string>
+    <string name="pf_record_page_page_1">Страница 1</string>
+    <string name="pf_record_page_previous_page">Предыдущая страница</string>
+    <string name="pf_record_page_record">Запись</string>
+    <string name="pf_record_page_record_tab_records">Записи</string>
+    <string name="pf_record_page_record_tab_statistics">Статистика</string>
+    <string name="pf_record_page_share_card">Поделиться картой</string>
+    <string name="pf_record_page_total_flown_zero">Всего пройдено 0 км</string>
+    <string name="pf_record_page_week">Неделя</string>
+</resources>

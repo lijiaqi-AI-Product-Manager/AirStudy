@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><item name="pf_auth_btn_back" type="id" /><item name="pf_auth_btn_login" type="id" /><item name="pf_auth_btn_wechat_login" type="id" /><item name="pf_auth_cb_agreement" type="id" /><item name="pf_auth_et_login_email" type="id" /><item name="pf_auth_et_login_password" type="id" /><item name="pf_auth_promo_image" type="id" /><item name="pf_auth_tv_agreement" type="id" /></resources>

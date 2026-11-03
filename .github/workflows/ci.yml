@@ -1,0 +1,87 @@
+name: Build and tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+    working-directory: AirStudy
+
+jobs:
+  android:
+    name: Android build and core flight tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+        with:
+          log-accepted-android-sdk-licenses: false
+          packages: 'platform-tools platforms;android-37.0 build-tools;36.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Compile application test dependencies
+        run: bash ./gradlew :app:hiltJavaCompileDebugUnitTest --stacktrace
+      - name: Verify core flight behavior
+        run: >-
+          bash ./gradlew :core:core-model:test :core:core-database:testDebugUnitTest
+          :core:core-network:testDebugUnitTest
+          :core:core-ui:testDebugUnitTest :service-focus:testDebugUnitTest
+          :feature:feature-home:testDebugUnitTest --stacktrace
+      - name: Verify arrival and preparation handoff
+        run: >-
+          bash ./gradlew :feature:feature-flight:testDebugUnitTest
+          :feature:feature-completion:testDebugUnitTest
+          :feature:feature-stats:testDebugUnitTest :app:testDebugUnitTest
+          --tests 'com.projectfocus.app.freeflight.*'
+          --tests 'com.projectfocus.app.admission.freeflight.*'
+          --tests 'com.projectfocus.app.booking.FlightPreparation*'
+          --tests 'com.projectfocus.app.booking.PlanOriginReconciliationIntegrationTest'
+          --tests 'com.projectfocus.app.route.NavGraphTest'
+          --tests 'com.projectfocus.app.route.RecordBrowserFlowTest'
+          --tests 'com.projectfocus.app.route.StatisticsDateFlowTest'
+          --tests 'com.projectfocus.app.auth.EmailAccountSessionStoreTest'
+          --tests 'com.projectfocus.app.auth.EmailLoginViewModelHttpTest'
+          --tests 'com.projectfocus.app.auth.AccountRestoreGateTest'
+          --tests 'com.projectfocus.app.auth.AccountHistoryAssociationFlowTest'
+          --stacktrace
+      - name: Verify flight records
+        run: >-
+          bash ./gradlew :feature:feature-record:hiltJavaCompileDebugUnitTest
+          :feature:feature-record:testDebugUnitTest --stacktrace
+      - name: Verify documented contracts
+        run: >-
+          bash ./gradlew
+          :feature:feature-airport:testDebugUnitTest --tests com.projectfocus.feature.airport.search.SearchRankingDocTest
+          --tests com.projectfocus.feature.airport.ui.ArrivalMarkNativeTest
+          :server:test --tests com.projectfocus.server.ApiContractDocTest
+          --tests com.projectfocus.server.FlightRoutesTest
+          --stacktrace
+      - name: Build application
+        run: bash ./gradlew :app:assembleDebug --stacktrace
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-reports
+          path: |
+            AirStudy/**/build/reports/tests/
+            AirStudy/**/build/test-results/
+            AirStudy/**/build/reports/record-card/
+            AirStudy/**/build/reports/records/
+            AirStudy/**/build/reports/airport-mark/
+            AirStudy/**/build/reports/statistics/
+          retention-days: 7

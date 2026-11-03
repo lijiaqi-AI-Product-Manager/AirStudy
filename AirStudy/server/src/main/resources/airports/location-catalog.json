@@ -1,0 +1,8 @@
+{
+  "source_reference": "OurAirports CC0 airport data",
+  "source_sha256": "190fa7298bfbbfe60ff49336ce6a2422f8c57754b615dab3ded67e9cf94081c0",
+  "source_rows": 83798,
+  "output_rows": 83798,
+  "output_sha256": "a29575efd8c744bccc834b15000d87cb015cfccc5d7c11784f3a547db091696f",
+  "license": "OurAirports CC0 public domain"
+}

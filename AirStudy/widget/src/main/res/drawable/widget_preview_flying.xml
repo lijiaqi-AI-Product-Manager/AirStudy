@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="250dp"
+    android:height="110dp"
+    android:viewportWidth="250"
+    android:viewportHeight="110">
+
+    <!-- 卡片底 -->
+    <path
+        android:fillColor="@color/widget_preview_bg"
+        android:pathData="M24,0 L226,0 A24,24 0 0 1 250,24 L250,86 A24,24 0 0 1 226,110 L24,110 A24,24 0 0 1 0,86 L0,24 A24,24 0 0 1 24,0 Z" />
+
+    <!-- 航线标签 -->
+    <path
+        android:fillColor="@color/widget_preview_text_secondary"
+        android:pathData="M18,20 L78,20 L78,26 L18,26 Z" />
+
+    <!-- 倒计时占位（用色块代替数字） -->
+    <path
+        android:fillColor="@color/widget_preview_text_primary"
+        android:pathData="M18,38 L108,38 L108,64 L18,64 Z" />
+
+    <!-- 进度条轨道 -->
+    <path
+        android:fillColor="@color/widget_preview_track"
+        android:pathData="M18,84 L232,84 L232,88 L18,88 Z" />
+
+    <!-- 进度条填充（示意 50%） -->
+    <path
+        android:fillColor="@color/widget_preview_accent"
+        android:pathData="M18,84 L125,84 L125,88 L18,88 Z" />
+</vector>

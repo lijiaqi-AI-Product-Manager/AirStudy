@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout android:background="@color/pf_auth_background" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <androidx.core.widget.NestedScrollView android:layout_width="fill_parent" android:layout_height="fill_parent" android:fillViewport="true">
+        <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <com.google.android.material.card.MaterialCardView android:layout_width="fill_parent" android:layout_height="280.0dip" android:layout_margin="16.0dip" app:cardBackgroundColor="@color/pf_auth_black" app:cardCornerRadius="24.0dip" app:cardElevation="0.0dip" app:strokeWidth="0.0dip">
+                <ImageView android:id="@id/pf_auth_promo_image" android:layout_width="fill_parent" android:layout_height="fill_parent" android:src="@drawable/pf_auth_forest" android:scaleType="centerCrop" />
+                <ImageView android:layout_width="fill_parent" android:layout_height="fill_parent" android:src="@drawable/pf_auth_gradient_transparent_to_black" android:scaleType="fitXY" />
+                <LinearLayout android:orientation="horizontal" android:paddingTop="32.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingHorizontal="16.0dip">
+                    <com.google.android.material.card.MaterialCardView android:id="@id/pf_auth_btn_back" android:focusable="true" android:clickable="true" android:layout_width="40.0dip" android:layout_height="40.0dip" app:cardBackgroundColor="#40ffffff" app:cardCornerRadius="20.0dip" app:cardElevation="0.0dip" app:strokeWidth="0.0dip">
+                        <ImageView android:layout_gravity="center" android:layout_width="24.0dip" android:layout_height="24.0dip" android:src="@drawable/pf_auth_ic_custom_back" app:tint="@color/pf_auth_white" />
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+                <LinearLayout android:layout_gravity="bottom" android:orientation="vertical" android:paddingBottom="32.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingHorizontal="24.0dip">
+                    <TextView android:textAppearance="@style/pf_auth_text_appearance_metric" android:textSize="32.0sp" android:textColor="@color/pf_auth_white" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pf_auth_login_email_button" />
+                    <TextView android:textSize="16.0sp" android:textColor="#ccffffff" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" android:text="@string/pf_auth_welcome_back_subtitle" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+            <LinearLayout android:orientation="vertical" android:paddingTop="32.0dip" android:paddingBottom="40.0dip" android:layoutAnimation="@anim/pf_auth_login_layout_animation" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingHorizontal="24.0dip">
+                <com.projectfocus.app.auth.SourceAuthInputView android:id="@id/pf_auth_et_login_email" android:layout_width="fill_parent" android:layout_height="wrap_content" android:inputType="textEmailAddress" app:pf_auth_inputHint="@string/pf_auth_email_hint" app:pf_auth_inputLabel="@string/pf_auth_email_label" />
+                <com.projectfocus.app.auth.SourceAuthInputView android:id="@id/pf_auth_et_login_password" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="20.0dip" android:inputType="textPassword" app:pf_auth_inputHint="@string/pf_auth_password_login_hint" app:pf_auth_inputLabel="@string/pf_auth_password_label" />
+                <TextView android:textSize="14.0sp" android:textColor="?colorPrimary" android:layout_gravity="end" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" android:text="@string/pf_auth_forgot_password" android:onClick="openForgotPassword" />
+                <com.google.android.material.button.MaterialButton android:textSize="16.0sp" android:textColor="@color/pf_auth_btn_solid_text" android:id="@id/pf_auth_btn_login" android:layout_width="fill_parent" android:layout_height="55.0dip" android:layout_marginTop="30.0dip" android:text="@string/pf_auth_login_action" app:backgroundTint="@color/pf_auth_btn_solid_bg" app:cornerRadius="28.0dip" style="@style/Widget.Material3.Button" />
+                <LinearLayout android:gravity="center_vertical" android:layout_gravity="center" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="22.0dip">
+                    <com.projectfocus.app.auth.SourceAuthCheckboxView android:id="@id/pf_auth_cb_agreement" android:layout_width="20.0dip" android:layout_height="20.0dip" android:layout_marginEnd="8.0dip" />
+                    <TextView android:textAppearance="@style/pf_auth_text_appearance_caption" android:textSize="12.0sp" android:textColor="@color/pf_auth_text_secondary" android:id="@id/pf_auth_tv_agreement" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+                </LinearLayout>
+                <LinearLayout android:gravity="center" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="30.0dip">
+                    <TextView android:textSize="14.0sp" android:textColor="@color/pf_auth_text_secondary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pf_auth_no_account_prompt" />
+                    <TextView android:textSize="14.0sp" android:textStyle="bold" android:textColor="?colorPrimary" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pf_auth_register_action_register" android:onClick="openRegister" />
+                </LinearLayout>
+                <TextView android:textAppearance="@style/pf_auth_text_appearance_caption" android:textSize="10.0sp" android:textColor="@color/pf_auth_text_copyright" android:layout_gravity="center_horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="36.0dip" android:text="@string/pf_auth_copyright" />
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

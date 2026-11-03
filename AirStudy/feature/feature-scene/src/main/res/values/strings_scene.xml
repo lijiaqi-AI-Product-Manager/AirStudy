@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="scene_title">专注场景</string>
+    <string name="scene_label_creative">创作</string>
+    <string name="scene_label_exercise">运动</string>
+    <string name="scene_label_gaming">游戏</string>
+    <string name="scene_label_meditation">冥想</string>
+    <string name="scene_label_music">音乐</string>
+    <string name="scene_label_reading">阅读</string>
+    <string name="scene_label_relax">放松</string>
+    <string name="scene_label_study">学习</string>
+    <string name="scene_label_work">工作</string>
+</resources>

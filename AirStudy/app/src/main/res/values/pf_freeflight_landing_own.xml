@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_ff_land_loading">正在查找附近机场…</string>
+    <string name="pf_ff_land_empty">当前范围内没有可降落机场</string>
+    <string name="pf_ff_land_retry">附近机场加载失败，点此重试</string>
+</resources>

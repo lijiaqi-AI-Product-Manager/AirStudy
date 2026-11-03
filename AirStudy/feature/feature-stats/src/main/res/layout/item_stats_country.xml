@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="44dp"
+    android:orientation="horizontal"
+    android:paddingTop="@dimen/space_xs"
+    android:paddingBottom="@dimen/space_xs">
+
+    <TextView
+        android:id="@+id/statsCountryName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+        android:textColor="@color/text_primary" />
+
+    <TextView
+        android:id="@+id/statsCountryProgress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/space_s"
+        android:textAppearance="@style/TextAppearance.Pf.Caption"
+        android:textColor="@color/text_tertiary"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/statsCountryCount"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/space_s"
+        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+        android:textColor="@color/text_secondary" />
+</LinearLayout>

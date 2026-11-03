@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/flight_mode_selection_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/flight_mode_overlay"
+    android:clickable="true"
+    android:focusable="true">
+
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/flight_mode_pager"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <ImageButton
+        android:id="@+id/flight_mode_back"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:layout_gravity="top|start"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="24dp"
+        android:background="@drawable/bg_flight_mode_back"
+        android:contentDescription="@string/flight_mode_selection_back"
+        android:padding="8dp"
+        android:src="@drawable/ic_flight_mode_back" />
+
+    <LinearLayout
+        android:id="@+id/flight_mode_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="96dp"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <View
+            android:id="@+id/flight_mode_indicator_0"
+            android:layout_width="7dp"
+            android:layout_height="7dp"
+            android:background="@drawable/bg_flight_mode_indicator_active" />
+
+        <View
+            android:id="@+id/flight_mode_indicator_1"
+            android:layout_width="7dp"
+            android:layout_height="7dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_flight_mode_indicator_inactive" />
+
+        <View
+            android:id="@+id/flight_mode_indicator_2"
+            android:layout_width="7dp"
+            android:layout_height="7dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_flight_mode_indicator_inactive" />
+    </LinearLayout>
+</FrameLayout>

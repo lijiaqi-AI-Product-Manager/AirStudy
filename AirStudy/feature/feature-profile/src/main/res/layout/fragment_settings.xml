@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="?attr/colorSurface">
+
+    <!-- ==================== 顶栏 ==================== -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="@dimen/pref_toolbar_height"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="@dimen/space_s"
+        android:paddingEnd="@dimen/screen_margin">
+
+        <ImageButton
+            android:id="@+id/btn_back"
+            android:layout_width="@dimen/touch_target_min"
+            android:layout_height="@dimen/touch_target_min"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_profile_back"
+            android:tint="?attr/colorOnSurface"
+            android:contentDescription="@string/pref_back"
+            android:scaleType="centerInside" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="@dimen/space_xs"
+            android:text="@string/pref_title"
+            android:textAppearance="@style/TextAppearance.Pf.SettingsPageTitle"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/btn_reset"
+            android:layout_width="wrap_content"
+            android:layout_height="@dimen/touch_target_min"
+            android:gravity="center"
+            android:paddingStart="@dimen/space_m"
+            android:paddingEnd="@dimen/space_m"
+            android:background="?android:attr/selectableItemBackground"
+            android:text="@string/pref_reset_action"
+            android:textAppearance="@style/TextAppearance.Pf.SettingsValue"
+            android:textColor="?attr/colorPrimary" />
+    </LinearLayout>
+
+    <!-- ==================== 内容 ==================== -->
+    <!--
+      clipToPadding=false + 底部 padding：滑到底时最后一行不会贴着导航栏
+      （手势导航条会盖住 16dp），同时滚动过程中内容可以"滑到"padding 区域里，
+      不会在底部出现一条突然截断的空白。
+    -->
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingBottom="12dp"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:id="@+id/settings_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" />
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

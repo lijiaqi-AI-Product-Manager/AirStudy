@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_career_title">Career data</string>
+    <string name="stats_career_subtitle">Authoritative totals from all successful flights</string>
+    <string name="stats_total_mileage_label">Total mileage</string>
+    <string name="stats_completed_flights_label">Completed flights</string>
+    <string name="stats_ontime_label">On-time rate</string>
+    <string name="stats_current_streak_title">Current streak</string>
+    <string name="stats_streak_best_value_fmt">Best: %1$d days</string>
+    <string name="stats_streak_days_fmt">%1$d days</string>
+    <string name="stats_km_value_fmt">%1$s km</string>
+    <string name="stats_ontime_rate_value_fmt">%1$d%%</string>
+    <string name="stats_record_city_stats_title">City Arrival Stats</string>
+    <string name="stats_record_top_countries_title">Top Countries</string>
+    <string name="stats_top_country_most_visited_label">Most visited country</string>
+</resources>
