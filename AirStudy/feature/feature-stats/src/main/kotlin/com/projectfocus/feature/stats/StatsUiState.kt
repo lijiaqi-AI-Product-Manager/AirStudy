@@ -32,6 +32,10 @@ data class StatsUiState(
     val periodScenes: List<StatsSceneEntry> = emptyList(),
     val allTimeScenes: List<StatsSceneEntry> = emptyList(),
     val trend: StatsTrendSeries? = null,
+    val heatmapYear: Int = 0,
+    val heatmapRevision: Long = 0,
+    val canNextHeatmapYear: Boolean = false,
+    val annualHeatmap: StatsAnnualHeatmap? = null,
 ) {
     val focusHours: Int get() = focusMinutes / 60
     val focusRemainderMinutes: Int get() = focusMinutes % 60

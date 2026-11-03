@@ -30,14 +30,16 @@ class StatsViewModel @Inject constructor(
     val zone: ZoneId,
 ) : ViewModel() {
     private val now = MutableStateFlow(clock.millis())
-    private val query = MutableStateFlow(StatsQuery(TokenStore.snapshot().generation, StatsDateSelection.current(now.value, zone)))
+    private val query = MutableStateFlow(StatsQuery(TokenStore.snapshot().generation, StatsDateSelection.current(now.value, zone),
+        heatmapYear = Instant.ofEpochMilli(now.value).atZone(zone).year))
 
     init {
         viewModelScope.launch {
             TokenStore.identities.collect { identity ->
                 if (identity == TokenStore.snapshot()) query.update { current ->
                     if (current.generation == identity.generation) current
-                    else StatsQuery(identity.generation, StatsDateSelection.current(clock.millis(), zone), current.revision + 1)
+                    else StatsQuery(identity.generation, StatsDateSelection.current(clock.millis(), zone), current.revision + 1,
+                        heatmapYear = today().year)
                 }
             }
         }
@@ -47,18 +49,42 @@ class StatsViewModel @Inject constructor(
         try { StatsProjection.build(loaded, selected, wall, zone) }
         catch (error: CancellationException) { throw error }
         catch (_: Exception) { StatsUiState(account = loaded.account, readFailed = true, queryRevision = selected.revision,
-            nowWallMs = wall, selectedSceneKey = selected.sceneKey.takeIf { selected.generation == loaded.account.generation }.orEmpty()) }
+            nowWallMs = wall, selectedSceneKey = selected.sceneKey.takeIf { selected.generation == loaded.account.generation }.orEmpty(),
+            heatmapYear = if (selected.generation == loaded.account.generation) selected.heatmapYear ?: today().year else today().year,
+            heatmapRevision = selected.heatmapRevision.takeIf { selected.generation == loaded.account.generation } ?: 0) }
     }.flowOn(Dispatchers.Default).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StatsUiState())
 
     fun retry() { history.retry() }
     fun refreshNow() { now.value = clock.millis() }
     fun today(): LocalDate = Instant.ofEpochMilli(clock.millis()).atZone(zone).toLocalDate()
+    fun currentWallMs(): Long = clock.millis()
     fun isCurrentQuery(account: HistoryAccount, revision: Long): Boolean = account.isCurrent() &&
         query.value.let { it.generation == account.generation && it.revision == revision }
 
+    fun isCurrentHeatmapQuery(account: HistoryAccount, revision: Long, heatmapRevision: Long): Boolean =
+        isCurrentQuery(account, revision) && query.value.heatmapRevision == heatmapRevision
+
+    fun moveHeatmapYear(account: HistoryAccount, revision: Long, heatmapRevision: Long, direction: Int) {
+        require(direction in -1..1)
+        if (direction == 0 || !isCurrentHeatmapQuery(account, revision, heatmapRevision)) return
+        val currentYear = today().year
+        query.update { current ->
+            if (!account.isCurrent() || current.generation != account.generation || current.revision != revision ||
+                current.heatmapRevision != heatmapRevision) current
+            else {
+                val base = current.heatmapYear ?: currentYear
+                val next = base.toLong() + direction
+                if (next > currentYear || next < Int.MIN_VALUE) current
+                else current.copy(heatmapYear = next.toInt(), heatmapRevision = current.heatmapRevision + 1)
+            }
+        }
+        refreshNow()
+        retryFailedRead()
+    }
+
     fun selectPeriod(account: HistoryAccount, period: StatsPeriod) {
         if (period == StatsPeriod.CUSTOM) return
-        change(account) { it.selectPeriod(period, clock.millis(), zone) }
+        change(account, true) { it.selectPeriod(period, clock.millis(), zone) }
     }
 
     fun movePeriod(account: HistoryAccount, direction: Int) = change(account) { it.move(direction, clock.millis(), zone) }
@@ -67,7 +93,7 @@ class StatsViewModel @Inject constructor(
         if (last.isAfter(today()) || !account.isCurrent()) return
         query.update { current ->
             if (current.generation != account.generation || current.revision != revision || !account.isCurrent()) current
-            else current.copy(dates = current.dates.custom(first, last), revision = current.revision + 1)
+            else current.copy(dates = current.dates.custom(first, last), revision = current.revision + 1, heatmapYear = last.year)
         }
         refreshNow()
         retryFailedRead()
@@ -86,16 +112,17 @@ class StatsViewModel @Inject constructor(
         retryFailedRead()
     }
 
-    private fun change(account: HistoryAccount, transform: (StatsDateSelection) -> StatsDateSelection) {
+    private fun change(account: HistoryAccount, alignYearWhenUnchanged: Boolean = false, transform: (StatsDateSelection) -> StatsDateSelection) {
         if (!account.isCurrent()) return
         query.update { current ->
             if (!account.isCurrent()) current
             else {
                 val base = if (current.generation == account.generation) current.dates else StatsDateSelection.current(clock.millis(), zone)
                 val next = transform(base)
-                if (next == base && current.generation == account.generation) current
-                else if (current.generation == account.generation) current.copy(dates = next, revision = current.revision + 1)
-                else StatsQuery(account.generation, next, current.revision + 1)
+                val year = if (next != base || alignYearWhenUnchanged) next.range(zone).lastDate.year else current.heatmapYear
+                if (next == base && current.generation == account.generation && year == current.heatmapYear) current
+                else if (current.generation == account.generation) current.copy(dates = next, revision = current.revision + 1, heatmapYear = year)
+                else StatsQuery(account.generation, next, current.revision + 1, heatmapYear = year ?: today().year)
             }
         }
         refreshNow()

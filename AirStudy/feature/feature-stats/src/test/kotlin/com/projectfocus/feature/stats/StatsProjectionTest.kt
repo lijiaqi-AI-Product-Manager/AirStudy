@@ -20,6 +20,42 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[28],manifest=Config.NONE)
 class StatsProjectionTest {
+    @Test fun `heatmap year is independent from the summary period and keeps exact scene filtered minutes`() {
+        val before=date.minusYears(1)
+        val loaded=read(legacy("current",now),independent("precise",now),legacy("old",before.atStartOfDay(zone).toInstant().toEpochMilli()))
+        val selected=StatsQuery(account.generation,StatsDateSelection(date,StatsPeriod.DAY),7,heatmapYear=2025,heatmapRevision=9)
+        val state=StatsProjection.build(loaded,selected,now,zone)
+        assertEquals(2,state.flights)
+        assertEquals(2025,state.heatmapYear)
+        assertEquals(7L,state.queryRevision)
+        assertEquals(9L,state.heatmapRevision)
+        assertTrue(state.canNextHeatmapYear)
+        assertEquals(mapOf(before to 5.0),state.annualHeatmap!!.days)
+        val filtered=StatsProjection.build(loaded,selected.copy(sceneKey="study",heatmapYear=2026),now,zone)
+        assertEquals(1,filtered.flights)
+        assertEquals(1.5+1.0/60_000,filtered.annualHeatmap!!.minutes(date),1e-10)
+        val failed=StatsProjection.build(HistoryReadState.Failure(account,IllegalStateException("unavailable")),selected,now,zone)
+        assertTrue(failed.readFailed)
+        assertEquals(2025,failed.heatmapYear)
+        assertNull(failed.annualHeatmap)
+    }
+
+    @Test fun `a cross year week can select the ending year while a new account resets it`() {
+        val ending=StatsDateSelection(LocalDate.parse("2026-12-31"))
+        assertEquals(2027,ending.range(zone).lastDate.year)
+        val selected=StatsQuery(account.generation,ending,4,heatmapYear=2027,heatmapRevision=3)
+        val result=StatsProjection.build(read(),selected,now,zone)
+        assertEquals(2027,result.heatmapYear)
+        assertFalse(result.canNextHeatmapYear)
+        assertTrue(result.annualHeatmap!!.days.isEmpty())
+        TokenStore.set("statistics-projection-next-year-owner")
+        val next=HistoryAccount(TokenStore.storageScope(),TokenStore.snapshot().generation)
+        val nextState=StatsProjection.build(HistoryReadState.Loaded(next,emptyList(),emptyMap(),emptyMap()),selected,now,zone)
+        assertEquals(2026,nextState.heatmapYear)
+        assertEquals(0L,nextState.heatmapRevision)
+        assertEquals(StatsDateSelection.current(now,zone),nextState.dates)
+    }
+
     private val zone = ZoneId.of("Asia/Shanghai")
     private val date = LocalDate.parse("2026-11-03")
     private val now = date.atStartOfDay(zone).toInstant().toEpochMilli()

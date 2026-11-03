@@ -76,6 +76,17 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             }
         }
         view.findViewById<StatsTrendPanel>(R.id.statsTrendPanel).interactionAllowed=::dateControlsActive
+        view.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel).apply {
+            interactionAllowed = ::dateControlsActive
+            currentWallMs = viewModel::currentWallMs
+            onYearRequested = action@{ direction, captured ->
+                val account = captured.account ?: return@action
+                if (!dateControlsActive() || !viewModel.isCurrentHeatmapQuery(account, captured.queryRevision, captured.heatmapRevision)) return@action
+                withAccount(account, ::dateControlsActive) {
+                    viewModel.moveHeatmapYear(account, captured.queryRevision, captured.heatmapRevision, direction)
+                }
+            }
+        }
 
         // 下钻对话框用 childFragmentManager 弹出（见 showCountryAirports），
         // 它的 setFragmentResult 走的就是这个管理器，监听必须挂在同一个上。
@@ -149,6 +160,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         root.findViewById<StatsHeadlineView>(R.id.statsHeadline).bind(state, viewModel.zone)
         root.findViewById<StatsTrendPanel>(R.id.statsTrendPanel).bind(state, viewModel.zone)
         root.findViewById<StatsScenePanel>(R.id.statsScenePanel).bind(state)
+        root.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel).bind(state)
         root.findViewById<View>(R.id.statsShare).isEnabled = !state.isLoading && current
 
         if (state.isLoading || !current) {
@@ -296,12 +308,13 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     }
 
     override fun onResume() { super.onResume(); viewModel.refreshNow() }
-    override fun onStop() { closeDateRange(); super.onStop() }
+    override fun onStop() { closeDateRange(); view?.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel)?.chart?.clearSelection(); super.onStop() }
     override fun onDestroyView() {
         closeDateRange()
         view?.findViewById<StatsDateControls>(R.id.statsDateControls)?.apply { onPeriodRequested = null; onMoveRequested = null; onClearSceneRequested = null }
         view?.findViewById<StatsScenePanel>(R.id.statsScenePanel)?.apply { onSceneRequested = null; interactionAllowed = { false } }
         view?.findViewById<StatsTrendPanel>(R.id.statsTrendPanel)?.interactionAllowed={ false }
+        view?.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel)?.release()
         lastState = null
         renderRevision++
         super.onDestroyView()

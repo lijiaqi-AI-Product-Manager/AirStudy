@@ -10,7 +10,7 @@ import com.projectfocus.core.ui.R as UiR
 import kotlin.math.roundToInt
 
 internal class StatsVisual(val context: Context) {
-    fun dp(value: Float) = (value * context.resources.displayMetrics.density + 0.5f).toInt()
+    fun dp(value: Float) = (value * context.resources.displayMetrics.density).toInt()
     fun dp(value: Int) = dp(value.toFloat())
     fun color(id: Int) = ContextCompat.getColor(context, id)
     val background get() = color(UiR.color.stats_background)

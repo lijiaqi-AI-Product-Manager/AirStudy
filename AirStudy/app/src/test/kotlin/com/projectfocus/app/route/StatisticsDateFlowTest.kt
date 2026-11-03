@@ -33,6 +33,7 @@ import com.projectfocus.feature.stats.StatsTrendPanel
 import com.projectfocus.feature.stats.StatsTrendMetric
 import com.projectfocus.feature.stats.StatsTrendMode
 import com.projectfocus.feature.stats.StatsViewModel
+import com.projectfocus.feature.stats.StatsHeatmapPanel
 import com.projectfocus.service.focus.freeflight.RoomFreeFlightArchiveStore
 import java.io.File
 import java.time.LocalDate
@@ -62,6 +63,75 @@ import com.projectfocus.feature.stats.R as StatsR
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class StatisticsDateFlowTest {
+    @Test fun annualHeatmapKeepsItsOwnYearAndUsesRealFilteredAccountRecords() {
+        launch()
+        fun heatmap()=activity.findViewById<StatsHeatmapPanel>(StatsR.id.statsHeatmapPanel)
+        fun model(): StatsViewModel {
+            val host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+            return ViewModelProvider(host.childFragmentManager.primaryNavigationFragment as StatsFragment)[StatsViewModel::class.java]
+        }
+        val year=today.year
+        await { model().state.value.annualHeatmap!=null && !model().state.value.isLoading && count()!=null && heatmap().yearLabel.text.contains(year.toString()) }
+        val originalDates=model().state.value.dates
+        val originalRevision=model().state.value.queryRevision
+        val originalCount=count()
+        assertEquals(6.5+1.0/60_000,model().state.value.annualHeatmap!!.minutes(today),1e-10)
+        assertFalse(heatmap().next.isEnabled)
+        heatmap().previous.performClick()
+        await { model().state.value.heatmapYear==year-1 && heatmap().yearLabel.text.contains((year-1).toString()) }
+        assertEquals(originalDates,model().state.value.dates)
+        assertEquals(originalRevision,model().state.value.queryRevision)
+        assertEquals(originalCount,count())
+        val obsoleteYearState=model().state.value
+        val obsoleteYearAction=heatmap().onYearRequested!!
+        heatmap().next.performClick()
+        await { model().state.value.heatmapYear==year && heatmap().yearLabel.text.contains(year.toString()) }
+        obsoleteYearAction(-1,obsoleteYearState);idle()
+        assertEquals(year,model().state.value.heatmapYear)
+        activity.findViewById<StatsScenePanel>(StatsR.id.statsScenePanel).legend.findViewWithTag<View>("阅读").performClick()
+        await { count()==expected(1) && model().state.value.selectedSceneKey.isNotEmpty() }
+        assertEquals(1.5+1.0/60_000,model().state.value.annualHeatmap!!.minutes(today),1e-10)
+        heatmap().previous.performClick()
+        await { model().state.value.heatmapYear==year-1 && heatmap().scroll.visibility==View.GONE }
+        assertTrue(model().state.value.annualHeatmap!!.days.isEmpty())
+        scenario!!.recreate();scenario!!.onActivity { activity=it }
+        await { count()==expected(1) && heatmap().yearLabel.text.contains((year-1).toString()) && controls().sceneFilter.visibility==View.VISIBLE }
+        assertEquals(year-1,model().state.value.heatmapYear)
+        controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { count()==expected(1) && model().state.value.heatmapYear==year && heatmap().scroll.visibility==View.VISIBLE }
+        val scroll=generateSequence(heatmap().parent) { it.parent }.filterIsInstance<android.widget.ScrollView>().first()
+        layout();scroll.scrollTo(0,heatmap().top);idle()
+        capture("statistics-actual-annual-scene")
+        scroll.scrollTo(0,0);layout()
+        val pending=custom()
+        val dateRevision=model().state.value.queryRevision
+        heatmap().onYearRequested!!(-1,model().state.value)
+        await { model().state.value.heatmapYear==year-1 }
+        assertEquals(dateRevision,model().state.value.queryRevision)
+        assertTrue(pending.isShowing)
+        pending.dismiss()
+        heatmap().next.performClick()
+        await { model().state.value.heatmapYear==year }
+        val oldAccountState=model().state.value
+        val oldAccountAction=heatmap().onYearRequested!!
+        val nextToken="statistics-annual-route-owner-two"
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(legacy("annual-next-owner",wall,TokenStore.storageScope(TokenStore.Snapshot(nextToken,0))))
+            TokenStore.setCancellable(nextToken)
+        }
+        await { count()==expected(1) && model().state.value.selectedSceneKey.isEmpty() &&
+            model().state.value.annualHeatmap?.minutes(today)==5.0 && model().state.value.heatmapYear==year }
+        oldAccountAction(-1,oldAccountState);idle()
+        assertEquals(year,model().state.value.heatmapYear)
+        val backgroundAction=heatmap().onYearRequested!!
+        val backgroundState=model().state.value
+        scenario!!.moveToState(Lifecycle.State.CREATED)
+        backgroundAction(-1,backgroundState);idle()
+        assertEquals(year,model().state.value.heatmapYear)
+        scenario!!.moveToState(Lifecycle.State.RESUMED)
+        await { model().state.value.heatmapYear==year && !model().state.value.isLoading }
+    }
+
     @get:Rule val lifetime = object : org.junit.rules.ExternalResource() {
         override fun before() { Dispatchers.setMain(Handler(Looper.getMainLooper()).asCoroutineDispatcher()) }
         override fun after() {
@@ -226,6 +296,8 @@ class StatisticsDateFlowTest {
             }
             assertEquals(activity.getString(StatsR.string.stats_placeholder),count())
             assertEquals(activity.getString(StatsR.string.stats_placeholder),activity.findViewById<StatsTrendPanel>(StatsR.id.statsTrendPanel).totalText.text.toString())
+            assertEquals(activity.getString(StatsR.string.stats_heatmap_unavailable),activity.findViewById<StatsHeatmapPanel>(StatsR.id.statsHeatmapPanel).emptyLabel.text.toString())
+            assertNull(model.state.value.annualHeatmap)
             assertFalse(activity.findViewById<View>(StatsR.id.statsShare).isEnabled)
             runBlocking(Dispatchers.IO) {
                 app.database.openHelper.writableDatabase.execSQL("ALTER TABLE statistics_unavailable_history RENAME TO flight_history")
