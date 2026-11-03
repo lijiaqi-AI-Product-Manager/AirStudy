@@ -360,6 +360,22 @@ class RecordBrowserFlowTest {
         } finally { bitmap.recycle() }
     }
 
+    @Test fun cachedRecordsSurviveRepeatedRecreationWithoutAFilterOrAccountChange() {
+        runBlocking(Dispatchers.IO) {
+            saveIndependentRecord()
+            (1..9).forEach { app.database.flightHistoryDao().insert(countdown("cached-$it",at=wall-it*1_000)) }
+        }
+        showRecords()
+        await { list().adapter?.itemCount==10 }
+        repeat(4) {
+            scenario!!.recreate();scenario!!.onActivity { activity=it };idle()
+            host=(activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment)
+                .childFragmentManager.primaryNavigationFragment as RecordListHostFragment
+            await { list().adapter?.itemCount==10 }
+            assertEquals(View.GONE,field(RecordR.id.pf_record_page_empty_records_hint).visibility)
+        }
+    }
+
     @Test fun confirmedRemovalRefreshesTheRealPagerTotalsAndSharePreviewWithoutRemovingTheOtherMode() {
         runBlocking(Dispatchers.IO) {
             saveIndependentRecord()

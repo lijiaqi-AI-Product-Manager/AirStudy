@@ -181,8 +181,8 @@ class RecordListHostFragment : Fragment(com.projectfocus.feature.record.R.layout
         }.also { it.attach() }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { viewModel.state.collect(::renderTotal) }
-                launch { TokenStore.identities.collect { if (it == TokenStore.snapshot()) renderTotal(viewModel.state.value) } }
+                kotlinx.coroutines.flow.combine(viewModel.state, TokenStore.identities) { state, identity -> state to identity }
+                    .collect { (state, identity) -> if (identity == TokenStore.snapshot()) renderTotal(state) }
             }
         }
     }

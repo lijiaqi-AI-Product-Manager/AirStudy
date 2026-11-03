@@ -33,6 +33,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.yield
 
@@ -98,19 +99,15 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         view.findViewById<View>(R.id.pf_record_page_btn_next_page).setOnClickListener { viewModel.next() }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { viewModel.state.collect(::render) }
-                launch { viewModel.sceneSave.collect { render(viewModel.state.value) } }
-                launch {
-                    TokenStore.identities.collect {
-                        if (it == TokenStore.snapshot()) {
-                            if (rendered?.account?.isCurrent() != true) {
-                                preview?.close()
-                                closeScene()
-                            }
-                            render(viewModel.state.value)
+                combine(viewModel.state, viewModel.sceneSave, TokenStore.identities) { state, _, identity -> state to identity }
+                    .collect { (state, identity) ->
+                        if (identity != TokenStore.snapshot()) return@collect
+                        if (rendered?.account?.isCurrent() != true) {
+                            preview?.close()
+                            closeScene()
                         }
+                        render(state)
                     }
-                }
             }
         }
         viewLifecycleOwner.lifecycleScope.launch {
