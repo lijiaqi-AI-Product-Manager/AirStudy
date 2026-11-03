@@ -100,6 +100,8 @@ open class RecordDetailFragment : Fragment() {
 
     private var _binding: FragmentRecordDetailBinding? = null
     protected val binding get() = requireNotNull(_binding) { "binding 在 onDestroyView 后被访问" }
+    private var removalRevision = 0L
+    private var removalDialog: AlertDialog? = null
 
 
 
@@ -328,6 +330,13 @@ open class RecordDetailFragment : Fragment() {
         _binding = null
     }
 
+    override fun onPause() {
+        ++removalRevision
+        removalDialog?.dismiss()
+        removalDialog = null
+        super.onPause()
+    }
+
     // ─────────────────────────────────────────────────────────
     // 装配
     // ─────────────────────────────────────────────────────────
@@ -400,7 +409,22 @@ open class RecordDetailFragment : Fragment() {
             (viewModel.state.value as? RecordDetailState.Content)?.let { onShare(it.detail) }
         }
         binding.btnDelete.setOnClickListener {
-            onConfirmDelete { viewModel.delete() }
+            val root = view
+            val request = ++removalRevision
+            viewLifecycleOwner.lifecycleScope.launch {
+                val target = try { viewModel.prepareDelete() } catch (error: Exception) {
+                    if (error is kotlinx.coroutines.CancellationException) throw error
+                    if (view === root) onDeleteFailed()
+                    null
+                } ?: return@launch
+                if (view === root && removalRevision == request && target.account.isCurrent() &&
+                    viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                    onConfirmDelete {
+                        if (view === root && removalRevision == request && target.account.isCurrent() &&
+                            viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) viewModel.delete(target)
+                    }
+                }
+            }
         }
         // 出发/到达三字码 = 机场详情入口。只对已完成记录有 airport 数据，
         // 未完成记录 fromCode/toCode 可能为空，openAirportDetail 会直接返回。
@@ -484,6 +508,10 @@ open class RecordDetailFragment : Fragment() {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 viewModel.deleteResult.collect { result ->
+                    if (result != null && !viewModel.isDeleteResultCurrent()) {
+                        viewModel.consumeDeleteResult()
+                        return@collect
+                    }
                     when (result) {
                         null -> Unit
                         true -> {
@@ -648,7 +676,8 @@ open class RecordDetailFragment : Fragment() {
     }
 
     private fun showDeleteDialog(confirm: () -> Unit) {
-        AlertDialog.Builder(requireContext())
+        removalDialog?.dismiss()
+        removalDialog = AlertDialog.Builder(requireContext())
             .setTitle(R.string.record_delete_confirm_title)
             .setMessage(R.string.record_delete_confirm_body)
             .setPositiveButton(R.string.record_delete_confirm_ok) { _, _ -> confirm() }

@@ -360,6 +360,55 @@ class RecordBrowserFlowTest {
         } finally { bitmap.recycle() }
     }
 
+    @Test fun confirmedRemovalRefreshesTheRealPagerTotalsAndSharePreviewWithoutRemovingTheOtherMode() {
+        runBlocking(Dispatchers.IO) {
+            saveIndependentRecord()
+            app.database.flightHistoryDao().insert(countdown("shared-id", at = wall - 100_000))
+            (1..9).forEach { app.database.flightHistoryDao().insert(countdown("kept-$it", at = wall - it * 1_000)) }
+        }
+        showRecords()
+        await { list().adapter?.itemCount == 10 }
+        val originalUp = runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().get("shared-id", TokenStore.storageScope()) }
+        val model = androidx.lifecycle.ViewModelProvider(host)[com.projectfocus.feature.record.list.RecordPageViewModel::class.java]
+        val distance = requireNotNull(model.state.value.completedDistanceKm)
+        page().requireView().findViewById<View>(RecordR.id.pf_record_page_btn_next_page).performClick()
+        await { list().adapter?.itemCount == 1 && field(RecordR.id.pf_record_page_text_page_indicator).text.toString() == "第 2 页" }
+        assertTrue(card(0).contentDescription.toString().contains("倒计时"))
+        card(0).performClick()
+        await { activity.findViewById<View>(RecordR.id.pf_record_page_share_preview) != null }
+        val removalHost = com.projectfocus.feature.record.ui.RecordListFragment()
+        host.childFragmentManager.beginTransaction().add(removalHost, "record-removal-owner").commitNow()
+        val removal = androidx.lifecycle.ViewModelProvider(removalHost)[com.projectfocus.feature.record.list.RecordListViewModel::class.java]
+        val target = runBlocking(Dispatchers.IO) { requireNotNull(removal.prepareDelete("shared-id")) }
+        runBlocking(Dispatchers.IO) {
+            app.database.openHelper.writableDatabase.execSQL("CREATE TRIGGER reject_delete_ui BEFORE DELETE ON flight_history BEGIN SELECT RAISE(ABORT, 'temporary delete failure'); END")
+        }
+        var removalResult: Boolean? = null
+        removal.delete(target) { removalResult = it }
+        await { removalResult != null }
+        assertEquals(false, removalResult)
+        assertEquals(1, list().adapter?.itemCount)
+        assertNotNull(activity.findViewById<View>(RecordR.id.pf_record_page_share_preview))
+        assertEquals(distance, model.state.value.completedDistanceKm)
+        runBlocking(Dispatchers.IO) {
+            app.database.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_delete_ui")
+        }
+        removalResult = null
+        removal.delete(target) { removalResult = it }
+        await { list().adapter?.itemCount == 10 && field(RecordR.id.pf_record_page_text_page_indicator).text.toString() == "第 1 页" &&
+            activity.findViewById<View>(RecordR.id.pf_record_page_share_preview) == null && removalResult == true }
+        assertEquals(distance - 99.25, requireNotNull(model.state.value.completedDistanceKm), 0.00001)
+        assertEquals(originalUp, runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().get("shared-id", TokenStore.storageScope()) })
+        capture("records-after-confirmed-removal")
+        scenario!!.recreate()
+        scenario!!.onActivity { activity = it }
+        idle()
+        host = (activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment)
+            .childFragmentManager.fragments.first() as RecordListHostFragment
+        await { list().adapter?.itemCount == 10 }
+        assertNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("shared-id") })
+    }
+
     private fun capture(name: String) {
         val root = activity.findViewById<ViewGroup>(android.R.id.content)
         val bitmap = Bitmap.createBitmap(root.width,root.height,Bitmap.Config.ARGB_8888)

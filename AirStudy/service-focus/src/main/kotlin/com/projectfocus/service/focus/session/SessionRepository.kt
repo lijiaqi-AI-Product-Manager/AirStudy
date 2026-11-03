@@ -436,6 +436,29 @@ class SessionRepository @Inject constructor(
     suspend fun <T> withStableSessionSnapshot(action: (SessionState, RouteInfo) -> T): T =
         runtimeOwnerCommand { action(publishedState.value, route) }
 
+    /** Serializes history removal with start, restore and terminal persistence. */
+    internal suspend fun <T : Any> withHistoryDeletionLease(
+        key: com.projectfocus.service.focus.history.FlightRecordKey, action: suspend () -> T,
+    ): T? = runtimeOwnerCommand {
+        TokenStore.requireSnapshotLease()
+        require(key.id.isNotBlank())
+        val protected = when (key.kind) {
+            com.projectfocus.service.focus.history.FlightRecordKind.COUNTDOWN -> {
+                val activeId = when (val current = controller.state.value) {
+                    SessionState.Idle -> null
+                    is SessionState.Running -> current.sessionId
+                    is SessionState.Paused -> current.sessionId
+                    is SessionState.Arrived -> current.sessionId
+                }
+                key.id == activeId || pendingHistory?.id == key.id
+            }
+            com.projectfocus.service.focus.history.FlightRecordKind.COUNT_UP ->
+                freeFlightReservation?.sessionId == key.id
+        }
+        if (protected) return@runtimeOwnerCommand null
+        FlightRuntimeLeaseContext.run(action)
+    }
+
     /** Mint an application preparation host; no countdown/restore or pending owner is displaced. */
     suspend fun openFreeFlightHost(ownerScope: String): FreeFlightOwnerToken = runtimeOwnerCommand {
         require(ownerScope.isNotBlank())

@@ -6,6 +6,12 @@ import androidx.lifecycle.viewModelScope
 import com.projectfocus.core.common.coroutines.runCatchingCancellable
 import com.projectfocus.core.database.dao.FlightHistoryDao
 import com.projectfocus.core.database.entity.FlightHistoryEntity
+import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.service.focus.history.RecordDeletionOperations
+import com.projectfocus.service.focus.history.RecordDeletionTarget
+import com.projectfocus.service.focus.history.RecordDeletionResult
+import com.projectfocus.service.focus.history.FlightRecordKind
+import kotlinx.coroutines.flow.combine
 import com.projectfocus.feature.completion.pass.BoardingPassData
 import com.projectfocus.feature.record.share.ShareCardMapper
 import com.projectfocus.service.focus.session.TodayStatsNotifier
@@ -119,6 +125,7 @@ class RecordDetailViewModel @Inject constructor(
 
 
     private val todayNotifier: TodayStatsNotifier,
+    private val deletion: RecordDeletionOperations,
 ) : ViewModel() {
 
 
@@ -128,14 +135,16 @@ class RecordDetailViewModel @Inject constructor(
 
     private val idFlow: StateFlow<String?> = savedState.getStateFlow(KEY_RECORD_ID, null)
 
-    private val _state: StateFlow<RecordDetailState> = idFlow
+    private val _state: StateFlow<RecordDetailState> = combine(idFlow, TokenStore.identities) { id, identity -> id to identity }
 
         //   这是"忘了 start"的安全失败模式（转圈，而不是显示别人的数据）。
-        .filterNotNull()
-        .flatMapLatest { id ->
+        .flatMapLatest { (id, identity) ->
+            if (id == null) return@flatMapLatest kotlinx.coroutines.flow.flowOf(RecordDetailState.Loading)
             dao.observeById(id)
                 .map { entity ->
-                    if (entity == null) {
+                    val scope = TokenStore.storageScope(identity)
+                    if (identity != TokenStore.snapshot() || entity == null ||
+                        (entity.ownerScope != scope && !(scope == "local" && entity.ownerScope == null))) {
                         RecordDetailState.NotFound
                     } else {
                         RecordDetailState.Content(
@@ -164,6 +173,8 @@ class RecordDetailViewModel @Inject constructor(
     val deleteResult: StateFlow<Boolean?> = _deleteResult.asStateFlow()
 
     private var deleteJob: Job? = null
+    private var deleteAccount: com.projectfocus.service.focus.history.HistoryAccount? = null
+    fun isDeleteResultCurrent(): Boolean = deleteAccount?.isCurrent() == true
 
 
 
@@ -231,22 +242,28 @@ class RecordDetailViewModel @Inject constructor(
 
 
 
-    fun delete() {
+    suspend fun prepareDelete(): RecordDeletionTarget? = idFlow.value?.let { deletion.captureCountdown(it) }
+
+    fun delete(target: RecordDeletionTarget) {
         if (deleteJob?.isActive == true) return
         val id = idFlow.value ?: return
+        if (target.record.key.kind != FlightRecordKind.COUNTDOWN || target.record.key.id != id || !target.account.isCurrent()) return
+        deleteAccount = target.account
         deleteJob = viewModelScope.launch {
             _deleteResult.value = null
-            val ok = runCatchingCancellable { dao.deleteById(id) }
-                .onSuccess { todayNotifier.notifyChanged() }
+            val result = runCatchingCancellable { deletion.delete(target) }
                 .onFailure { Timber.w(it, "删除记录 %s 失败", id) }
-                .isSuccess
-            _deleteResult.value = ok
+            if (target.account.isCurrent() && idFlow.value == id)
+                _deleteResult.value = result.getOrNull()?.let {
+                    if (it == RecordDeletionResult.OBSOLETE) null else it == RecordDeletionResult.DELETED
+                } ?: if (result.isFailure) false else null
         }
     }
 
     /** 界面处理完删除结果后调用，避免旋转屏幕时重复弹 Toast / 重复 pop。 */
     fun consumeDeleteResult() {
         _deleteResult.value = null
+        deleteAccount = null
     }
 
 

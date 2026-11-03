@@ -3,6 +3,11 @@ package com.projectfocus.feature.record.list
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.projectfocus.core.database.dao.FlightHistoryDao
+import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.service.focus.history.RecordDeletionOperations
+import com.projectfocus.service.focus.history.RecordDeletionTarget
+import com.projectfocus.service.focus.history.RecordDeletionResult
+import kotlinx.coroutines.CancellationException
 import com.projectfocus.service.focus.session.TodayStatsNotifier
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -68,6 +73,7 @@ class RecordListViewModel @Inject constructor(
 
 
     private val todayNotifier: TodayStatsNotifier,
+    private val deletion: RecordDeletionOperations,
 ) : ViewModel() {
 
 
@@ -95,10 +101,14 @@ class RecordListViewModel @Inject constructor(
 
 
 
-    val state: StateFlow<RecordListState> = keywordFlow
-        .flatMapLatest { kw ->
+    val state: StateFlow<RecordListState> = combine(keywordFlow, TokenStore.identities) { kw, identity -> kw to identity }
+        .flatMapLatest { (kw, identity) ->
             dao.observeAll().map { rows ->
-                runCatching { RecordListBuilder.build(rows, zone, clock.millis(), kw) }
+                val scope = TokenStore.storageScope(identity)
+                val owned = if (identity != TokenStore.snapshot()) emptyList() else rows.filter {
+                    it.ownerScope == scope || (scope == "local" && it.ownerScope == null)
+                }
+                runCatching { RecordListBuilder.build(owned, zone, clock.millis(), kw) }
                     .onFailure { Timber.w(it, "构建历史列表失败，回退为空态") }
 
 
@@ -127,17 +137,22 @@ class RecordListViewModel @Inject constructor(
         keywordFlow.value = ""
     }
 
-    fun delete(id: String) {
+    suspend fun prepareDelete(id: String): RecordDeletionTarget? = deletion.captureCountdown(id)
+
+    private var deleting = false
+    fun delete(target: RecordDeletionTarget, completed: (Boolean) -> Unit = {}) {
+        if (deleting || !target.account.isCurrent()) return
+        deleting = true
         viewModelScope.launch {
-            runCatching { dao.deleteById(id) }
-                .onSuccess {
-
-                    //   数据没变，刷了也是白刷 —— 更糟的是会把"连续天数"刷成
-                    //   和库里吻合的值，反而让人以为删除成功了。
-
-                    todayNotifier.notifyChanged()
-                }
-                .onFailure { Timber.w(it, "删除记录 %s 失败", id) }
+            try {
+                val result = deletion.delete(target)
+                if (target.account.isCurrent() && result != RecordDeletionResult.OBSOLETE)
+                    completed(result == RecordDeletionResult.DELETED)
+            } catch (error: CancellationException) { throw error }
+            catch (error: Exception) {
+                Timber.w(error, "删除记录失败")
+                if (target.account.isCurrent()) completed(false)
+            } finally { deleting = false }
         }
     }
 

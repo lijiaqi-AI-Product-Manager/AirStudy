@@ -70,6 +70,7 @@ class RecordDetailFragmentTest {
     fun tearDown() {
         scenario?.close()
         scenario = null
+        com.projectfocus.core.network.di.TokenStore.clear()
     }
 
     private var scenario: ActivityScenario<RecordHostActivity>? = null
@@ -489,6 +490,43 @@ class RecordDetailFragmentTest {
         assertThat(deleted).isEqualTo(1)
     }
 
+    @Test fun retainedDeletionConfirmationCannotRunAfterRecordChangedOrAccountChanged() {
+        val dao = FakeFlightHistoryDao(listOf(entity(id = "rec-1")))
+        scenario = ActivityScenario.launch(RecordHostActivity::class.java)
+        lateinit var frag: TagProbeDetailFragment
+        scenario!!.onActivity { act ->
+            frag = TagProbeDetailFragment(dao, clock, zone, "rec-1")
+            act.install(frag)
+        }
+        settle()
+        var confirm: (() -> Unit)? = null
+        var successes = 0
+        var failures = 0
+        frag.onConfirmDelete = { confirm = it }
+        frag.onDeleted = { successes++ }
+        frag.onDeleteFailed = { failures++ }
+        scenario!!.onActivity { frag.fragBinding.btnDelete.performClick() }
+        settle()
+        assertThat(confirm).isNotNull()
+        dao.rows.value = listOf(entity(id = "rec-1").copy(actualFocusMinutes = 1))
+        settle()
+        scenario!!.onActivity { confirm!!.invoke() }
+        settle()
+        assertThat(dao.rows.value).hasSize(1)
+        assertThat(successes).isEqualTo(0)
+        assertThat(failures).isEqualTo(1)
+        scenario!!.onActivity { frag.fragBinding.btnDelete.performClick() }
+        settle()
+        kotlinx.coroutines.runBlocking { com.projectfocus.core.network.di.TokenStore.setCancellable("detail-different-account") }
+        settle()
+        scenario!!.onActivity { confirm!!.invoke() }
+        settle()
+        assertThat(dao.rows.value).hasSize(1)
+        assertThat(successes).isEqualTo(0)
+        assertThat(failures).isEqualTo(1)
+        com.projectfocus.core.network.di.TokenStore.clear()
+    }
+
     @Test
     fun `删除成功后状态变成不存在`() {
         val dao = FakeFlightHistoryDao(listOf(entity(id = "rec-1")))
@@ -714,6 +752,7 @@ class TagProbeDetailFragment(
             //   但用一个真的（而不是 mock）能顺带守住"构造函数里允许传真的"这条 ——
             //   若哪天 Notifier 变成需要 Context 的类，这条会立刻红。
             todayNotifier = TodayStatsNotifier(),
+            deletion = com.projectfocus.feature.record.testHistoryDeletion(dao, TodayStatsNotifier()),
         )
 
     fun viewModelForTest(): RecordDetailViewModel = detailViewModelForTest()

@@ -57,7 +57,8 @@ sealed interface RecordedFlight {
         override val destinationCountry get() = record.destinationCountry
     }
 
-    data class CountUp(val archive: FreeFlightArchive, override val editedScene: RecordedScene? = null) : RecordedFlight {
+    data class CountUp(val archive: FreeFlightArchive, override val editedScene: RecordedScene? = null,
+                       val storedRow: FreeFlightArchiveEntity? = null) : RecordedFlight {
         init { archive.validated() }
         override val key get() = FlightRecordKey(FlightRecordKind.COUNT_UP, archive.sessionId)
         override val completed get() = archive.status == FreeFlightStatus.COMPLETED
@@ -101,7 +102,7 @@ class FlightHistoryReader @Inject constructor(private val dao: HistoryReadDao) {
                     RecordedFlight.Countdown(it, edited(FlightRecordKind.COUNTDOWN, it.id, it.startTimeMillis))
                 } + countUps.map { row ->
                     val archive = decodeHistoryArchive(row)
-                    RecordedFlight.CountUp(archive, edited(FlightRecordKind.COUNT_UP, archive.sessionId, archive.startedAtWallMs))
+                    RecordedFlight.CountUp(archive, edited(FlightRecordKind.COUNT_UP, archive.sessionId, archive.startedAtWallMs), row)
                 }
                 require(records.all { it.distanceKm.isFinite() && it.distanceKm >= 0.0 })
                 val codes = directory.groupBy { it.country }.mapValues { (_, rows) -> rows.map { it.code }.toSet() }

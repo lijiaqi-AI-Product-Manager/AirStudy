@@ -656,7 +656,8 @@ class RecordListFragmentTest {
             //   链路里没有 `flowOn` / `withContext`，全在 viewModelScope 上，
             //   而 viewModelScope 已由 Robolectric 的 main looper 驱动。
 
-            RecordListViewModel(dao = dao, clock = clock, zone = zone, todayNotifier = TodayStatsNotifier())
+            RecordListViewModel(dao = dao, clock = clock, zone = zone, todayNotifier = TodayStatsNotifier(),
+                deletion = com.projectfocus.feature.record.testHistoryDeletion(dao, TodayStatsNotifier()))
     }
 }
 

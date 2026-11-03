@@ -60,6 +60,8 @@ abstract class AppDatabase : RoomDatabase() {
 
     abstract fun flightRecordSceneDao(): com.projectfocus.core.database.dao.FlightRecordSceneDao
 
+    abstract fun historyDeletionDao(): com.projectfocus.core.database.dao.HistoryDeletionDao
+
 
     abstract fun freeFlightArchiveDao(): FreeFlightArchiveDao
 

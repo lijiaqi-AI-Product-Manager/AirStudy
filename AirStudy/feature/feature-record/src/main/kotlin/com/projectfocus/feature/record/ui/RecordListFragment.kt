@@ -39,6 +39,8 @@ open class RecordListFragment : Fragment() {
 
 
     protected val binding get() = requireNotNull(_binding) { "binding 在 onDestroyView 后被访问" }
+    private var removalRevision = 0L
+    private var removalDialog: AlertDialog? = null
 
 
 
@@ -77,6 +79,11 @@ open class RecordListFragment : Fragment() {
             .show()
     }
 
+    open var onDeleteFailed: () -> Unit = {
+        android.widget.Toast.makeText(requireContext(), R.string.record_detail_delete_failed,
+            android.widget.Toast.LENGTH_SHORT).show()
+    }
+
     // ─────────────────────────────────────────────────────────
     // 生命周期
     // ─────────────────────────────────────────────────────────
@@ -106,6 +113,13 @@ open class RecordListFragment : Fragment() {
         binding.recordList.adapter = null
         super.onDestroyView()
         _binding = null
+    }
+
+    override fun onPause() {
+        ++removalRevision
+        removalDialog?.dismiss()
+        removalDialog = null
+        super.onPause()
     }
 
     // ─────────────────────────────────────────────────────────
@@ -280,20 +294,28 @@ open class RecordListFragment : Fragment() {
 
     /** 请求删除某条记录（由宿主或列表长按调用）。 */
     fun requestDelete(item: RecordItem) {
-        onConfirmDelete(item) { confirmDelete(item) }
-    }
-
-    private fun confirmDelete(item: RecordItem) {
-        viewModel.delete(item.id)
-
-
-        //     等它会让点击有可感知的延迟。而失败已在 ViewModel 里落日志。
-        //     代价是"删了但失败"时用户会看到错误提示 —— 可接受（用户会重试）。
-        onDeleted()
+        val root = view ?: return
+        val request = ++removalRevision
+        viewLifecycleOwner.lifecycleScope.launch {
+            val target = try { viewModel.prepareDelete(item.id) } catch (error: Exception) {
+                if (error is kotlinx.coroutines.CancellationException) throw error
+                if (view === root) onDeleteFailed()
+                null
+            } ?: return@launch
+            fun current() = view === root && removalRevision == request && target.account.isCurrent() &&
+                viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
+            if (!current()) return@launch
+            onConfirmDelete(item) {
+                if (current()) viewModel.delete(target) { success ->
+                    if (current()) { if (success) onDeleted() else onDeleteFailed() }
+                }
+            }
+        }
     }
 
     private fun showDeleteDialog(item: RecordItem, confirm: () -> Unit) {
-        AlertDialog.Builder(requireContext())
+        removalDialog?.dismiss()
+        removalDialog = AlertDialog.Builder(requireContext())
             .setTitle(R.string.record_delete_confirm_title)
             .setMessage(R.string.record_delete_confirm_body)
             .setNegativeButton(R.string.record_delete_confirm_cancel, null)

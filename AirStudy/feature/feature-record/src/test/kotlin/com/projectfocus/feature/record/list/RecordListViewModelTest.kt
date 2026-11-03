@@ -67,7 +67,7 @@ class RecordListViewModelTest {
     private fun TestScope.newVm(rows: List<FlightHistoryEntity> = emptyList()): RecordListViewModel {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         dao = FakeDao(rows)
-        return RecordListViewModel(dao, clock, zone, notifier).also { vm = it }
+        return RecordListViewModel(dao, clock, zone, notifier, com.projectfocus.feature.record.testHistoryDeletion(dao, notifier)).also { vm = it }
     }
 
 
@@ -261,7 +261,7 @@ class RecordListViewModelTest {
         newVm(listOf(entity("a", at(9)), entity("b", at(10))))
         collectState(vm)
 
-        vm.delete("a")
+        launch { vm.prepareDelete("a")?.let { vm.delete(it) } }
         advanceUntilIdle()
 
         val content = vm.content()
@@ -274,7 +274,7 @@ class RecordListViewModelTest {
         newVm(listOf(entity("a", at(9))))
         collectState(vm)
 
-        vm.delete("a")
+        launch { vm.prepareDelete("a")?.let { vm.delete(it) } }
         advanceUntilIdle()
 
         assertThat(vm.state.value).isEqualTo(RecordListState.Empty)
@@ -286,7 +286,7 @@ class RecordListViewModelTest {
         collectState(vm)
 
         dao.failDelete = true
-        vm.delete("a")
+        launch { vm.prepareDelete("a")?.let { vm.delete(it) } }
         advanceUntilIdle()
 
 
@@ -306,14 +306,14 @@ class RecordListViewModelTest {
         val rows = listOf(entity("a", ms))
 
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
-        val cnVm = RecordListViewModel(FakeDao(rows), clock, zone, notifier)
+        val cnVm = FakeDao(rows).let { RecordListViewModel(it, clock, zone, notifier, com.projectfocus.feature.record.testHistoryDeletion(it, notifier)) }
         val cn = collectState(cnVm).last() as RecordListState.Content
         assertThat(cn.groups[0].title).isEqualTo("今天")
 
 
         //   如果两个时区结果一样，说明时区参数被忽略了（很可能实现里
         //   偷偷用了 ZoneId.systemDefault()）。
-        val utcVm = RecordListViewModel(FakeDao(rows), clock, ZoneId.of("UTC"), notifier)
+        val utcVm = FakeDao(rows).let { RecordListViewModel(it, clock, ZoneId.of("UTC"), notifier, com.projectfocus.feature.record.testHistoryDeletion(it, notifier)) }
         val utc = collectState(utcVm).last() as RecordListState.Content
         assertThat(utc.groups[0].title).isEqualTo("昨天")
     }
@@ -329,7 +329,7 @@ class RecordListViewModelTest {
             ZoneId.of("UTC"),
         )
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
-        val laterVm = RecordListViewModel(FakeDao(rows), laterClock, zone, notifier)
+        val laterVm = FakeDao(rows).let { RecordListViewModel(it, laterClock, zone, notifier, com.projectfocus.feature.record.testHistoryDeletion(it, notifier)) }
 
         val content = collectState(laterVm).last() as RecordListState.Content
         // 10-26 相对 10-28 是"前两天"，显示具体日期而不是"今天"
