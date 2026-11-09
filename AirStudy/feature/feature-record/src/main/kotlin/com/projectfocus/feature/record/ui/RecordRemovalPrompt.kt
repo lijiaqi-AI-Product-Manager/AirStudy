@@ -65,7 +65,11 @@ internal class RecordRemovalPrompt(
 
     fun keepFor(state: RecordPageState) {
         selected?.let { (item, target) ->
-            if (state.deletionTarget(item) != target) close()
+            if (state.deletionTarget(item) != target) {
+                val result = model.state.value
+                if (result.target == target && (result.saving || result.notice == RecordRemovalNotice.DELETED)) closeDialog()
+                else close()
+            }
             else {
                 val saving = model.state.value
                 if (saving.target == target) dialog?.setPending(saving.saving)
