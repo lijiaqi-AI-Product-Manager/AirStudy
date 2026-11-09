@@ -305,6 +305,8 @@ class RecordBrowserFlowTest {
         await { list().adapter?.itemCount == 1 }
         assertEquals("资料待恢复", card(0).findViewById<TextView>(RecordR.id.pf_record_card_text_status_desc).text.toString().trim())
         assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().isEmpty() })
+        await { !recordModel().recoveryStatus.value.syncing &&
+            field(RecordR.id.pf_record_recovery_details).text.toString() == activity.getString(RecordR.string.pf_record_recovery_view) }
         capture("records-recovery-pending")
         field(RecordR.id.pf_record_recovery_details).performClick()
         await { ShadowDialog.getLatestDialog().let { it is androidx.appcompat.app.AlertDialog && it.isShowing } }
@@ -313,6 +315,7 @@ class RecordBrowserFlowTest {
         capturePrompt(prompt, "records-recovery-details")
         cloud.seed(identity, mode, original.id, requireNotNull(saved.archive), saved.scene)
         val requests = cloud.requestCount
+        assertTrue(prompt.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).isEnabled)
         prompt.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick()
         await { list().adapter?.itemCount == 1 &&
             page().requireView().findViewById<View>(RecordR.id.pf_record_recovery_notice).visibility == View.GONE }
