@@ -14,6 +14,7 @@ interface RecordCloudWorkerOwner {
     val recordCloudSync: RecordCloudSyncCoordinator
     suspend fun awaitRecordCloudReady()
     fun requestRecordCloudSync() = Unit
+    fun retryRecordCloudSync(account: HistoryAccount) { if (account.isCurrent()) requestRecordCloudSync() }
 }
 
 @Singleton
@@ -44,7 +45,7 @@ class RecordMutationRetryWorker(context: Context, parameters: WorkerParameters) 
             owner.awaitRecordCloudReady()
             val identity = TokenStore.snapshot()
             if (identity.token.isNullOrBlank() || inputData.getString("scope") != TokenStore.storageScope(identity)) return Result.success()
-            val result = owner.recordCloudSync.synchronize()
+            val result = owner.recordCloudSync.synchronize(identity)
             when {
                 result.obsolete -> Result.success()
                 result.authenticationRequired -> Result.failure()

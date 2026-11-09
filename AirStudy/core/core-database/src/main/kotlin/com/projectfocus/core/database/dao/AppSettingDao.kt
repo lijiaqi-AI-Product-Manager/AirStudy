@@ -25,6 +25,9 @@ abstract class AppSettingDao {
     @Query("SELECT `value` FROM `app_setting` WHERE `key` = :key LIMIT 1")
     abstract suspend fun get(key: String): String?
 
+    @Query("SELECT `value` FROM app_setting WHERE `key` = :key LIMIT 1")
+    abstract fun observeValue(key: String): Flow<String?>
+
     /** 写入或覆盖。"删除标记"用 value=null 表达，语义与同步协议一致 */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun put(setting: AppSettingEntity)

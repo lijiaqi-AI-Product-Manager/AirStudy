@@ -77,8 +77,9 @@ class RecordCloudMutationCoordinator @Inject constructor(
         applyScene(identity, confirmed)
     }
 
-    suspend fun recoverPending(): RecordMutationRecovery = writer.withLock {
+    suspend fun recoverPending(expectedIdentity: TokenStore.Snapshot? = null): RecordMutationRecovery = writer.withLock {
         val identity = TokenStore.snapshot()
+        if (expectedIdentity != null && identity != expectedIdentity) return@withLock RecordMutationRecovery(0, 0)
         if (identity.token.isNullOrBlank()) return@withLock RecordMutationRecovery(0, 0)
         val account = HistoryAccount(TokenStore.storageScope(identity), identity.generation)
         val entries = TokenStore.withSnapshotLease(identity) { journal.pending(account.scope) }

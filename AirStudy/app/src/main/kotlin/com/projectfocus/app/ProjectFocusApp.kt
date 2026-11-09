@@ -42,6 +42,25 @@ class ProjectFocusApp : Application(), com.projectfocus.app.freeflight.FreeFligh
         }
     }
 
+    override fun retryRecordCloudSync(account: com.projectfocus.service.focus.history.HistoryAccount) {
+        val identity = com.projectfocus.core.network.di.TokenStore.snapshot()
+        if (!account.isCurrent() || identity.token.isNullOrBlank()) return
+        appScope.launch {
+            awaitRecordCloudReady()
+            if (identity != com.projectfocus.core.network.di.TokenStore.snapshot()) return@launch
+            try {
+                val result = recordCloudSync.synchronize(identity)
+                if (result.retryable && !result.obsolete && identity == com.projectfocus.core.network.di.TokenStore.snapshot())
+                    recordMutationRetries.enqueue(account.scope)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+            catch (_: Exception) {
+                if (identity == com.projectfocus.core.network.di.TokenStore.snapshot()) {
+                    try { recordMutationRetries.enqueue(account.scope) } catch (_: Exception) { Timber.w("记录恢复暂不可用") }
+                }
+            }
+        }
+    }
+
     @Inject lateinit var freeFlightPreparationFactory: com.projectfocus.app.freeflight.AndroidFreeFlightPreparationActionsFactory
 
     override fun freeFlightPreparationActions(activity: MainActivity, restoringPreparationId: String?) =

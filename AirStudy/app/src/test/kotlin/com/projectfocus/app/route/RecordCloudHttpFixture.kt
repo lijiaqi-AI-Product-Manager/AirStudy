@@ -27,6 +27,21 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
     @Volatile var rejectionStatus: Int? = null
     val requestCount: Int get() = server.requestCount
 
+    fun record(identity: com.projectfocus.core.network.di.TokenStore.Snapshot, mode: FlightRecordMode, id: String): CloudFlightRecord? =
+        synchronized(records) { records[recordKey(identity, mode, id)] }
+
+    fun seed(identity: com.projectfocus.core.network.di.TokenStore.Snapshot, mode: FlightRecordMode, id: String,
+        archive: FlightRecordArchiveSnapshot? = null, scene: FlightRecordScenePatch? = null) = synchronized(records) {
+        val authorization = "Bearer " + requireNotNull(identity.token)
+        val version = (counters[authorization] ?: 0L) + 1
+        counters[authorization] = version
+        CloudFlightRecord(mode, id, version, false, archive, scene).also { records[recordKey(identity, mode, id)] = it }
+    }
+
+    private fun recordKey(identity: com.projectfocus.core.network.di.TokenStore.Snapshot, mode: FlightRecordMode, id: String) =
+        "Bearer " + requireNotNull(identity.token) + "\n" + server.url("/").newBuilder()
+            .addPathSegments("v2/flight-records").addPathSegment(mode.path).addPathSegment(id).build().encodedPath
+
     init {
         server.dispatcher = object : Dispatcher() {
             override fun dispatch(request: RecordedRequest): MockResponse = synchronized(records) { reply(request) }

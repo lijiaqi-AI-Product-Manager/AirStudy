@@ -19,6 +19,9 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.collect
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.rules.TemporaryFolder
@@ -44,6 +47,7 @@ class RecordCloudSyncCoordinatorTest {
     private lateinit var snapshots: RecordCloudSnapshots
     private lateinit var mutations: RecordCloudMutationCoordinator
     private lateinit var sync: RecordCloudSyncCoordinator
+    private lateinit var recovery: RecordRecoveryStatusStore
     private val remote = Remote()
     private val work = PlannedScene("work-option", "工作", "work", 0, true, displayName = "工作")
     private val projection = object : RecordSceneWireProjection {
@@ -83,7 +87,8 @@ class RecordCloudSyncCoordinatorTest {
         journal = RecordMutationJournal(db); inbox = RecordCloudSyncJournal(db); snapshots = RecordCloudSnapshots(db, projection)
         mutations = RecordCloudMutationCoordinator(db, remote, remote, snapshots, journal, RecordSceneStore(db, clock), deletion, projection, clock)
         val importer = RecordCloudArchiveImport(db, snapshots, journal, inbox, deletion, projection, notifier, clock)
-        sync = RecordCloudSyncCoordinator(db, remote, mutations, snapshots, journal, inbox, importer, clock)
+        recovery = RecordRecoveryStatusStore(db, journal, inbox, projection, clock)
+        sync = RecordCloudSyncCoordinator(db, remote, mutations, snapshots, journal, inbox, importer, clock, recovery)
     }
     private fun down(id: String = "shared-id", status: String = "COMPLETED", owner: String = account().scope) = FlightHistoryEntity(
         id, null, "SOLO", null, "PEK", "Airport", "Beijing", "CN", 40.0, 116.0,
@@ -117,6 +122,7 @@ class RecordCloudSyncCoordinatorTest {
     private fun stageRecord(archive: FlightRecordArchiveSnapshot, scene: FlightRecordScenePatch? = null) =
         remote.seed(account().scope, archive.mode, archive.id, archive = archive, scene = scene)
     private fun sql(text: String) = db.openHelper.writableDatabase.execSQL(text)
+    private suspend fun recoveryStatus() = withTimeout(5_000) { recovery.observe().first() }
     private suspend fun pendingChange(scene: PlannedScene?): CapturedCloudRecord {
         val key = FlightRecordKey(FlightRecordKind.COUNTDOWN, "shared-id")
         val current = requireNotNull(snapshots.capture(account(), key))
@@ -194,6 +200,7 @@ class RecordCloudSyncCoordinatorTest {
         val result = sync.synchronize()
         assertTrue(result.retryable); assertEquals(1, result.pending); assertNull(db.flightHistoryDao().findById("shared-id"))
         assertEquals(999, inbox.entries(account().scope).single().scene!!.focusIconType); assertTrue(remote.uploads.isEmpty())
+        assertEquals(1, recoveryStatus().unsupportedScenes); assertTrue(recoveryStatus().visible)
     }
 
     @Test fun oldCloudEntryWithoutAnArchiveDoesNotInventAirportsOrTrack() = runBlocking(Dispatchers.IO) {
@@ -201,6 +208,7 @@ class RecordCloudSyncCoordinatorTest {
         val result = sync.synchronize()
         assertEquals(1, result.pending); assertTrue(db.flightHistoryDao().getAll().isEmpty())
         assertTrue(remote.uploads.isEmpty()); assertNull(inbox.entries(account().scope).single().archive)
+        assertEquals(1, recoveryStatus().missingArchives); assertFalse(recoveryStatus().syncing)
     }
 
     @Test fun accountChangeDuringDownloadDoesNotPublishTheOldResponse() = runBlocking(Dispatchers.IO) {
@@ -260,11 +268,103 @@ class RecordCloudSyncCoordinatorTest {
         assertTrue(remote.uploads.isEmpty())
     }
 
+    @Test fun recoveryFeedbackSurvivesRestartAndRetainsMissingArchivesWhenOffline() = runBlocking(Dispatchers.IO) {
+        remote.seed(account().scope, FlightRecordMode.DOWN, "legacy")
+        assertEquals(1, sync.synchronize().pending)
+        val status = recoveryStatus(); assertEquals(1, status.missingArchives); assertTrue(status.visible)
+        recovery.update(TokenStore.snapshot(), null, syncing = true)
+        assertTrue(recoveryStatus().syncing)
+        reopen("first.db")
+        assertFalse(recoveryStatus().syncing); assertEquals(1, recoveryStatus().missingArchives)
+        remote.readFailure = RecordMutationOutcome.NetworkFailure
+        assertTrue(sync.synchronize().retryable)
+        assertEquals(1, recoveryStatus().missingArchives); assertTrue(recoveryStatus().visible)
+        assertTrue(db.flightHistoryDao().getAll().isEmpty())
+    }
+
+    @Test fun recoveryFeedbackIsPrivateToTheAccountAndSurvivesCredentialRenewal() = runBlocking(Dispatchers.IO) {
+        remote.seed(account().scope, FlightRecordMode.DOWN, "legacy")
+        sync.synchronize(); val original = recoveryStatus()
+        TokenStore.clear(); assertFalse(recoveryStatus().visible); assertNull(recoveryStatus().account)
+        login("b"); assertFalse(recoveryStatus().visible); assertEquals(0, recoveryStatus().pendingCount)
+        login("a", "renewed-owner-a")
+        assertEquals(original.account!!.scope, recoveryStatus().account!!.scope)
+        assertEquals(1, recoveryStatus().missingArchives)
+        assertNotEquals(original.account!!.generation, recoveryStatus().account!!.generation)
+        val retained = db.appSettingDao().withPrefix("record.cloud.status.v1.").single()
+        recovery.update(TokenStore.Snapshot("expired-generation", original.account!!.generation), null, syncing = false, failed = true)
+        assertEquals(retained, db.appSettingDao().withPrefix("record.cloud.status.v1.").single())
+    }
+
+    @Test fun aCompleteArchiveInTheSameRetryClearsAnEarlierIncompleteStatus() = runBlocking(Dispatchers.IO) {
+        remote.seed(account().scope, FlightRecordMode.DOWN, "legacy")
+        assertTrue(sync.synchronize().retryable); assertEquals(1, recoveryStatus().missingArchives)
+        val archive = savedDown("legacy")
+        db.flightHistoryDao().deleteById("legacy"); stageRecord(archive)
+        val retried = sync.synchronize()
+        assertEquals(1, retried.restored); assertEquals(0, retried.pending); assertFalse(retried.retryable)
+        assertFalse(recoveryStatus().visible); assertFalse(recoveryStatus().unavailable)
+        assertNotNull(db.flightHistoryDao().findById("legacy"))
+    }
+
+    @Test fun malformedFeedbackCannotBePresentedAsACompletedRecovery() = runBlocking(Dispatchers.IO) {
+        sync.synchronize()
+        val observed = Channel<RecordRecoveryStatus>(Channel.UNLIMITED)
+        val subscription = launch { recovery.observe().collect { observed.send(it) } }
+        suspend fun awaitStatus(predicate: (RecordRecoveryStatus) -> Boolean): RecordRecoveryStatus = withTimeout(5_000) {
+            var value = observed.receive()
+            while (!predicate(value)) value = observed.receive()
+            value
+        }
+        try {
+            assertFalse(awaitStatus { true }.visible)
+            val summary = db.appSettingDao().withPrefix("record.cloud.status.v1.").single()
+            db.appSettingDao().put(summary.copy(value = "{incomplete"))
+            val corrupted = awaitStatus { it.unavailable }
+            assertTrue(corrupted.visible); assertFalse(corrupted.syncing)
+            sync.synchronize()
+            assertFalse(awaitStatus { !it.visible && !it.syncing }.visible)
+        } finally { subscription.cancelAndJoin(); observed.cancel() }
+    }
+
+    @Test fun networkAndAuthenticationFeedbackClearOnlyAfterASuccessfulRetry() = runBlocking(Dispatchers.IO) {
+        remote.readFailure = RecordMutationOutcome.NetworkFailure
+        assertTrue(sync.synchronize().retryable); assertTrue(recoveryStatus().unavailable)
+        remote.readFailure = RecordMutationOutcome.Rejected(401)
+        assertTrue(sync.synchronize().authenticationRequired); assertTrue(recoveryStatus().authenticationRequired)
+        remote.readFailure = null
+        assertFalse(sync.synchronize().retryable); assertFalse(recoveryStatus().visible)
+    }
+
+    @Test fun aQueuedRetryCannotStartWorkForAnAccountThatReplacedItsOwner() = runBlocking(Dispatchers.IO) {
+        val identity = TokenStore.snapshot()
+        val entered = CompletableDeferred<Unit>(); val release = CompletableDeferred<Unit>()
+        remote.beforeRead = { entered.complete(Unit); release.await() }
+        val first = async { sync.synchronize(identity) }; withTimeout(5_000) { entered.await() }
+        val queued = async(start = CoroutineStart.UNDISPATCHED) { sync.synchronize(identity) }
+        login("b"); release.complete(Unit)
+        assertTrue(withTimeout(5_000) { first.await() }.obsolete)
+        assertTrue(withTimeout(5_000) { queued.await() }.obsolete)
+        assertEquals(listOf(identity), remote.reads.map { it.first })
+        assertFalse(recoveryStatus().visible)
+        assertTrue(db.appSettingDao().withPrefix("record.cloud.status.v1.").all { !it.value.orEmpty().contains(account().scope) })
+    }
+
+    @Test fun stalePendingRecoveryCannotMutateTheNewAccountsConfirmedRecords() = runBlocking(Dispatchers.IO) {
+        val stale = TokenStore.snapshot(); login("b")
+        savedDown(); sync.synchronize(); pendingChange(null)
+        assertEquals(1, journal.pending(account().scope).size)
+        mutations.recoverPending(stale)
+        assertTrue(remote.deleted.isEmpty()); assertNotNull(db.flightHistoryDao().findById("shared-id"))
+        assertEquals(1, journal.pending(account().scope).size)
+    }
+
     @Test fun downloadingADeletionCannotRemoveAnActiveCountUp() = runBlocking(Dispatchers.IO) {
         val active = savedUp(ongoing = true); remote.seed(account().scope, FlightRecordMode.UP, "remote-shared-id", deleted = true)
         val result = sync.synchronize()
         assertEquals(1, result.pending); assertEquals(active, decodeHistoryArchive(db.freeFlightArchiveDao().getActive()!!))
         assertTrue(remote.uploads.isEmpty())
+        assertEquals(1, recoveryStatus().protectedRecords)
     }
 
     @Test fun aTerminalRuntimeReservationKeepsItsDeletionPendingUntilReleased() = runBlocking(Dispatchers.IO) {
@@ -375,6 +475,7 @@ class RecordCloudSyncCoordinatorTest {
         var beforeUpload: (suspend () -> Unit)? = null
         var loseNextUploadAcknowledgement = false
         var mutationFailure: RecordMutationOutcome? = null
+        var readFailure: RecordMutationOutcome? = null
         fun seed(owner: String, mode: FlightRecordMode, id: String, deleted: Boolean = false,
                  archive: FlightRecordArchiveSnapshot? = null, scene: FlightRecordScenePatch? = null): CloudFlightRecord {
             val version = (revisions[owner] ?: 0) + 1; revisions[owner] = version
@@ -384,6 +485,7 @@ class RecordCloudSyncCoordinatorTest {
         }
         override suspend fun changes(identity: TokenStore.Snapshot, after: Long, limit: Int): RecordArchiveReadResult {
             reads += identity to after
+            readFailure?.let { return RecordArchiveReadResult.Failure(it) }
             val all = records[TokenStore.storageScope(identity)].orEmpty().values.filter { it.revision > after }.sortedBy { it.revision }
             val page = all.take(minOf(limit, pageSize)); beforeRead?.also { beforeRead = null }?.invoke()
             return RecordArchiveReadResult.Loaded(CloudFlightRecordPage(page, hasMore = all.size > page.size, nextCursor = page.lastOrNull()?.revision ?: after))

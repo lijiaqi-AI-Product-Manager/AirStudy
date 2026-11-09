@@ -45,6 +45,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
     private var adapter: RecordPageAdapter? = null
     private var preview: RecordSharePreview? = null
     private var removal: RecordRemovalPrompt? = null
+    private var recovery: RecordRecoveryFeedback? = null
     private var loginGate: RecordLoginGate? = null
     private var loginJob: Job? = null
     private var rendered: RecordPageState? = null
@@ -73,6 +74,12 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         removal = RecordRemovalPrompt(requireContext(), viewLifecycleOwner.lifecycleScope, removalModel,
             page = { rendered }, canShow = { view === this.view &&
                 viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) })
+        recovery = RecordRecoveryFeedback(requireContext(), view, viewLifecycleOwner.lifecycleScope,
+            canShow = { view === this.view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
+            retry = { account ->
+                (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.retryRecordCloudSync(account)
+            },
+            login = { account -> if (account.isCurrent()) (parentFragment as? RecordLoginHost)?.openRecordLogin() })
         preview = RecordSharePreview(requireContext(), content, viewLifecycleOwner.lifecycleScope,
             canShow = { view === this.view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
             visibilityChanged = { back.isEnabled = it })
@@ -146,12 +153,14 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 launch { viewModel.sceneSave.collect(::showSceneFailure) }
                 launch { removalModel.state.collect { removal?.showNotice(it) } }
+                launch { viewModel.recoveryStatus.collect { recovery?.render(it) } }
             }
         }
     }
 
     override fun onStart() { super.onStart(); viewModel.onVisible() }
     override fun onPause() {
+        recovery?.close()
         closeScene()
         loginJob?.cancel()
         loginGate?.close()
@@ -161,6 +170,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         super.onPause()
     }
     override fun onStop() {
+        recovery?.close()
         ++renderRevision
         closeScene()
         loginJob?.cancel()
@@ -335,6 +345,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
     }
 
     override fun onDestroyView() {
+        recovery?.close(); recovery = null
         ++renderRevision
         closeScene()
         loginJob?.cancel()

@@ -158,7 +158,7 @@ class RecordBrowserFlowTest {
             "view=${page?.view?.let { page.viewLifecycleOwner.lifecycle.currentState }}, loading=${state.loading}, failed=${state.failed}, " +
             "items=${state.items.size}, accountCurrent=${state.account?.isCurrent()}, generation=${state.account?.generation}, " +
             "currentGeneration=${TokenStore.snapshot().generation}, sameModel=${hostModel===pageModel}, pageItems=${pageModel?.state?.value?.items?.size}, " +
-            "sceneSave=${hostModel.sceneSave.value.failure}, savingScene=${hostModel.sceneSave.value.saving}, requests=${cloud.requestCount}, " +
+            "sceneSave=${hostModel.sceneSave.value.failure}, savingScene=${hostModel.sceneSave.value.saving}, requests=${cloud.requestCount}, recovery=${hostModel.recoveryStatus.value}, " +
             "lease=$lease, hint=${page?.view?.findViewById<TextView>(RecordR.id.pf_record_page_empty_records_hint)?.text}"
     }
 
@@ -195,6 +195,46 @@ class RecordBrowserFlowTest {
         await { list().adapter?.itemCount == 1 && model.state.value.items.single().kind == com.projectfocus.service.focus.history.FlightRecordKind.COUNT_UP }
         assertNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("shared-id") })
         assertNotNull(runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().get("shared-id", TokenStore.storageScope()) })
+    }
+
+    @Test fun incompleteCloudRecordsExplainTheirStatusAndRecoverThroughTheVisibleRetry() {
+        val identity = TokenStore.snapshot()
+        val mode = com.projectfocus.core.network.dto.FlightRecordMode.DOWN
+        val original = countdown("older-cloud-record")
+        val saved = runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(original)
+            assertEquals(1, app.recordCloudSync.synchronize().uploaded)
+            val remote = requireNotNull(cloud.record(identity, mode, original.id))
+            cloud.seed(identity, mode, original.id)
+            app.database.withTransaction {
+                app.database.flightHistoryDao().deleteAll()
+                for (row in app.database.appSettingDao().withPrefix("record.cloud.")) app.database.appSettingDao().delete(row.key)
+            }
+            assertEquals(1, app.recordCloudSync.synchronize(identity).pending)
+            remote
+        }
+        showRecords()
+        await { field(RecordR.id.pf_record_recovery_summary).text.toString() == "1 条记录等待恢复" &&
+            page().requireView().findViewById<View>(RecordR.id.pf_record_recovery_notice).visibility == View.VISIBLE }
+        assertEquals(0, list().adapter?.itemCount)
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().isEmpty() })
+        capture("records-recovery-pending")
+        field(RecordR.id.pf_record_recovery_details).performClick()
+        await { ShadowDialog.getLatestDialog().let { it is androidx.appcompat.app.AlertDialog && it.isShowing } }
+        val prompt = ShadowDialog.getLatestDialog() as androidx.appcompat.app.AlertDialog
+        assertTrue(prompt.findViewById<TextView>(android.R.id.message)!!.text.toString().contains("缺少完整资料"))
+        capturePrompt(prompt, "records-recovery-details")
+        cloud.seed(identity, mode, original.id, requireNotNull(saved.archive), saved.scene)
+        val requests = cloud.requestCount
+        prompt.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick()
+        await { list().adapter?.itemCount == 1 &&
+            page().requireView().findViewById<View>(RecordR.id.pf_record_recovery_notice).visibility == View.GONE }
+        assertTrue(cloud.requestCount > requests)
+        val restored = requireNotNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(original.id) })
+        assertEquals(original.actualFocusMinutes, restored.actualFocusMinutes)
+        assertEquals(original.departureLatitude, restored.departureLatitude, 0.0)
+        assertEquals(original.destinationLongitude, restored.destinationLongitude, 0.0)
+        capture("records-recovery-completed")
     }
 
 
@@ -263,7 +303,6 @@ class RecordBrowserFlowTest {
         val total = host.requireView().findViewById<TextView>(RecordR.id.pf_record_page_text_subtitle).text.toString()
         val spinner = page().requireView().findViewById<MaterialAutoCompleteTextView>(RecordR.id.pf_record_page_spinner_status)
         spinner.onItemClickListener!!.onItemClick(null, null, 3, 3)
-        page().requireView().findViewById<View>(RecordR.id.pf_record_page_btn_next_page).performClick()
         await { spinner.text.toString() == "已取消" && list().adapter?.itemCount == 10 &&
             field(RecordR.id.pf_record_page_text_page_indicator).text.toString() == "第 1 页" }
         page().requireView().findViewById<View>(RecordR.id.pf_record_page_btn_next_page).performClick()
@@ -405,10 +444,12 @@ class RecordBrowserFlowTest {
         return ShadowDialog.getLatestDialog() as RecordDeleteDialog
     }
 
-    private fun capturePrompt(prompt: RecordDeleteDialog, name: String) {
+    private fun capturePrompt(prompt: Dialog, name: String) {
         val decor = prompt.window!!.decorView
         val density = activity.resources.displayMetrics.density
-        decor.measure(View.MeasureSpec.makeMeasureSpec(prompt.window!!.attributes.width, View.MeasureSpec.EXACTLY),
+        val width = prompt.window!!.attributes.width.takeIf { it > 0 }
+            ?: ((activity.resources.configuration.screenWidthDp - 48) * density).toInt()
+        decor.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
             View.MeasureSpec.makeMeasureSpec((activity.resources.configuration.screenHeightDp * density).toInt(), View.MeasureSpec.AT_MOST))
         decor.layout(0, 0, decor.measuredWidth, decor.measuredHeight)
         shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300))

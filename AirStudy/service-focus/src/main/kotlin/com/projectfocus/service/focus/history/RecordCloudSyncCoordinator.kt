@@ -8,6 +8,9 @@ import com.projectfocus.core.network.record.*
 import java.time.Clock
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.Json
@@ -33,14 +36,17 @@ class RecordCloudSyncCoordinator @Inject constructor(
     private val inbox: RecordCloudSyncJournal,
     private val importer: RecordCloudArchiveImport,
     private val clock: Clock,
+    private val recovery: RecordRecoveryStatusStore? = null,
 ) {
     private val runner = Mutex()
 
-    suspend fun synchronize(): RecordCloudSyncResult = runner.withLock {
+    suspend fun synchronize(expectedIdentity: TokenStore.Snapshot? = null): RecordCloudSyncResult = runner.withLock {
         val identity = TokenStore.snapshot()
+        if (expectedIdentity != null && identity != expectedIdentity) return@withLock RecordCloudSyncResult(obsolete = true)
         if (identity.token.isNullOrBlank()) return@withLock RecordCloudSyncResult()
         val account = HistoryAccount(TokenStore.storageScope(identity), identity.generation)
         var result = RecordCloudSyncResult()
+        var deferredInbox = false
         val failedUploads = HashSet<FlightRecordKey>()
         fun current() = TokenStore.snapshot() == identity
         fun failure(reason: RecordMutationOutcome, conflictCanRefresh: Boolean = false) {
@@ -58,83 +64,96 @@ class RecordCloudSyncCoordinator @Inject constructor(
                 result = when (applied) {
                     RecordCloudImportResult.RESTORED -> result.copy(restored = result.restored + 1)
                     RecordCloudImportResult.REMOVED -> result.copy(removed = result.removed + 1)
-                    RecordCloudImportResult.DEFERRED -> result.copy(retryable = true)
+                    RecordCloudImportResult.DEFERRED -> { deferredInbox = true; result }
                     RecordCloudImportResult.OBSOLETE -> result.copy(obsolete = true)
                     RecordCloudImportResult.UNCHANGED -> result
                 }
             }
         }
-        val recovered = mutations.recoverPending()
-        if (!current()) return@withLock result.copy(obsolete = true)
-        result = result.copy(authenticationRequired = recovered.authenticationRequired)
-        applyInbox()
-        var caughtUp = false
-        if (!result.authenticationRequired) {
-            for (pageIndex in 0 until 20) {
-                if (!current()) break
-                val after = TokenStore.withSnapshotLease(identity) { inbox.cursor(account.scope) } ?: break
-                when (val reply = gateway.changes(identity, after, 100)) {
-                    is RecordArchiveReadResult.Failure -> { failure(reply.reason); break }
-                    is RecordArchiveReadResult.Loaded -> {
-                        if (TokenStore.withSnapshotLease(identity) {
-                            db.withTransaction { inbox.stage(account.scope, after, reply.page, clock.millis()) }; true
-                        } != true) break
-                        applyInbox()
-                        if (!reply.page.hasMore) { caughtUp = true; break }
-                        if (pageIndex == 19) result = result.copy(retryable = true)
-                    }
-                }
-            }
-        }
-        if (caughtUp && current() && !result.authenticationRequired) {
-            val keys = TokenStore.withSnapshotLease(identity) { terminalKeys(account) }.orEmpty()
-            val incoming = TokenStore.withSnapshotLease(identity) {
-                inbox.entries(account.scope).map { it.mode to it.id }.toSet()
-            }.orEmpty()
-            for (key in keys) {
-                if (!current()) break
-                mutations.serialize {
-                    val capture = TokenStore.withSnapshotLease(identity) {
-                        db.withTransaction {
-                            val binding = journal.binding(account.scope, key)
-                            if (binding?.deleted == true || binding?.archiveStored == true || journal.pending(account.scope, key) != null ||
-                                (mode(key) to (binding?.remoteId ?: remoteId(account, key))) in incoming) return@withTransaction null
-                            snapshots.capture(account, key, binding?.remoteId)
+        var finalResult: RecordCloudSyncResult? = null
+        var failed = true
+        try {
+            recovery?.update(identity, null, syncing = true)
+            val recovered = mutations.recoverPending(identity)
+            if (!current()) return@withLock result.copy(obsolete = true)
+            result = result.copy(authenticationRequired = recovered.authenticationRequired)
+            applyInbox()
+            var caughtUp = false
+            if (!result.authenticationRequired) {
+                for (pageIndex in 0 until 20) {
+                    if (!current()) break
+                    val after = TokenStore.withSnapshotLease(identity) { inbox.cursor(account.scope) } ?: break
+                    when (val reply = gateway.changes(identity, after, 100)) {
+                        is RecordArchiveReadResult.Failure -> { failure(reply.reason); break }
+                        is RecordArchiveReadResult.Loaded -> {
+                            if (TokenStore.withSnapshotLease(identity) {
+                                db.withTransaction { inbox.stage(account.scope, after, reply.page, clock.millis()) }; true
+                            } != true) break
+                            applyInbox()
+                            if (!reply.page.hasMore) { caughtUp = true; break }
+                            if (pageIndex == 19) result = result.copy(retryable = true)
                         }
-                    } ?: return@serialize
-                    val binding = TokenStore.withSnapshotLease(identity) { journal.binding(account.scope, key) } ?: run {
-                        if (!current()) return@serialize
-                        null
-                    }
-                    val payload = Json.encodeToString(FlightRecordArchiveUpload.serializer(), capture.upload)
-                    val operationId = "archive-" + RecordCloudSnapshots.digest(account.scope + "\n" + payload)
-                    val outcome = gateway.upload(identity, capture.upload, FlightRecordMutationOptions(operationId, binding?.revision ?: 0L))
-                    val acceptedRevision = (outcome as? RecordMutationOutcome.Acknowledged)?.revision
-                    if (acceptedRevision != null && acceptedRevision > 0) {
-                        val saved = TokenStore.withSnapshotLease(identity) {
-                            db.withTransaction {
-                                val now = snapshots.capture(account, key, binding?.remoteId)
-                                if (now?.fingerprint != capture.fingerprint || journal.pending(account.scope, key) != null ||
-                                    journal.binding(account.scope, key) != binding) return@withTransaction false
-                                journal.bind(account.scope, key, RecordCloudBinding(capture.upload.archive.id, acceptedRevision, false), clock.millis())
-                                true
-                            }
-                        } == true
-                        if (saved) result = result.copy(uploaded = result.uploaded + 1)
-                        else { failedUploads.add(key); result = result.copy(retryable = true) }
-                    } else {
-                        failedUploads.add(key)
-                        failure(if (outcome is RecordMutationOutcome.Acknowledged) RecordMutationOutcome.InvalidResponse else outcome, true)
                     }
                 }
-                if (result.authenticationRequired || result.obsolete) break
+            }
+            if (caughtUp && current() && !result.authenticationRequired) {
+                val keys = TokenStore.withSnapshotLease(identity) { terminalKeys(account) }.orEmpty()
+                val incoming = TokenStore.withSnapshotLease(identity) {
+                    inbox.entries(account.scope).map { it.mode to it.id }.toSet()
+                }.orEmpty()
+                for (key in keys) {
+                    if (!current()) break
+                    mutations.serialize {
+                        val capture = TokenStore.withSnapshotLease(identity) {
+                            db.withTransaction {
+                                val binding = journal.binding(account.scope, key)
+                                if (binding?.deleted == true || binding?.archiveStored == true || journal.pending(account.scope, key) != null ||
+                                    (mode(key) to (binding?.remoteId ?: remoteId(account, key))) in incoming) return@withTransaction null
+                                snapshots.capture(account, key, binding?.remoteId)
+                            }
+                        } ?: return@serialize
+                        val binding = TokenStore.withSnapshotLease(identity) { journal.binding(account.scope, key) } ?: run {
+                            if (!current()) return@serialize
+                            null
+                        }
+                        val payload = Json.encodeToString(FlightRecordArchiveUpload.serializer(), capture.upload)
+                        val operationId = "archive-" + RecordCloudSnapshots.digest(account.scope + "\n" + payload)
+                        val outcome = gateway.upload(identity, capture.upload, FlightRecordMutationOptions(operationId, binding?.revision ?: 0L))
+                        val acceptedRevision = (outcome as? RecordMutationOutcome.Acknowledged)?.revision
+                        if (acceptedRevision != null && acceptedRevision > 0) {
+                            val saved = TokenStore.withSnapshotLease(identity) {
+                                db.withTransaction {
+                                    val now = snapshots.capture(account, key, binding?.remoteId)
+                                    if (now?.fingerprint != capture.fingerprint || journal.pending(account.scope, key) != null ||
+                                        journal.binding(account.scope, key) != binding) return@withTransaction false
+                                    journal.bind(account.scope, key, RecordCloudBinding(capture.upload.archive.id, acceptedRevision, false), clock.millis())
+                                    true
+                                }
+                            } == true
+                            if (saved) result = result.copy(uploaded = result.uploaded + 1)
+                            else { failedUploads.add(key); result = result.copy(retryable = true) }
+                        } else {
+                            failedUploads.add(key)
+                            failure(if (outcome is RecordMutationOutcome.Acknowledged) RecordMutationOutcome.InvalidResponse else outcome, true)
+                        }
+                    }
+                    if (result.authenticationRequired || result.obsolete) break
+                }
+            }
+            val remaining = TokenStore.withSnapshotLease(identity) {
+                val incoming = inbox.entries(account.scope).size
+                (journal.pending(account.scope).size + incoming + failedUploads.size) to incoming
+            }
+            val pending = remaining?.first ?: result.pending
+            result.copy(pending = pending, retryable = result.retryable || recovered.retryable && pending > 0 ||
+                deferredInbox && (remaining?.second ?: 0) > 0,
+                obsolete = result.obsolete || !current()).also { finalResult = it; failed = false }
+        } finally {
+            withContext(NonCancellable + Dispatchers.IO) {
+                try { recovery?.update(identity, finalResult, syncing = false, failed = failed) }
+                catch (_: Exception) { /* The durable archive and journal remain available for a later attempt. */ }
             }
         }
-        val pending = TokenStore.withSnapshotLease(identity) {
-            journal.pending(account.scope).size + inbox.entries(account.scope).size + failedUploads.size
-        } ?: result.pending
-        result.copy(pending = pending, retryable = result.retryable || recovered.retryable && pending > 0,
-            obsolete = result.obsolete || !current())
     }
 
     private suspend fun terminalKeys(account: HistoryAccount): List<FlightRecordKey> =

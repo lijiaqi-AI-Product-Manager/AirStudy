@@ -135,11 +135,14 @@ class RecordPageViewModel @Inject constructor(
     private val clock: Clock,
     private val zone: ZoneId,
     private val sceneStore: RecordSceneOperations,
+    private val recoveryStore: com.projectfocus.service.focus.history.RecordRecoveryStatusStore? = null,
 ) : ViewModel() {
     private val query = MutableStateFlow(RecordPageQuery())
     private val now = MutableStateFlow(clock.millis())
     private val mutableSceneSave = MutableStateFlow(RecordSceneSaveState())
     val sceneSave: kotlinx.coroutines.flow.StateFlow<RecordSceneSaveState> = mutableSceneSave
+    val recoveryStatus = (recoveryStore?.observe() ?: kotlinx.coroutines.flow.flowOf(com.projectfocus.service.focus.history.RecordRecoveryStatus()))
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), com.projectfocus.service.focus.history.RecordRecoveryStatus())
     val state = combine(reader.records, query, now) { records, filter, wall ->
         try {
             RecordPageProjection.build(records, filter, wall, zone)
