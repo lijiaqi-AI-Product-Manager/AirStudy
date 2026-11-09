@@ -25,12 +25,12 @@ class AirportLocationCatalog private constructor(private val airports: List<Near
         private val bundledCatalogue: AirportLocationCatalog by lazy { loadBundled() }
         fun bundled(): AirportLocationCatalog = bundledCatalogue
         private fun loadBundled(): AirportLocationCatalog {
-            val raw = requireNotNull(AirportLocationCatalog::class.java.getResourceAsStream("/airports/location-catalog.csv")) {
+            val raw = requireNotNull(AirportLocationCatalog::class.java.getResourceAsStream("/airports/location-catalog-release.csv")) {
                 "Complete airport catalogue is missing"
             }.use { it.readBytes() }
             check(raw.isNotEmpty())
             check(MessageDigest.getInstance("SHA-256").digest(raw).joinToString("") { "%02x".format(it) } ==
-                "a29575efd8c744bccc834b15000d87cb015cfccc5d7c11784f3a547db091696f") { "Airport catalogue differs from the reviewed full snapshot" }
+                "d78ba7773b2d07da114415b4dc76366e95c305f97a419ad3b73407e240adb99d") { "Airport catalogue differs from the reviewed full snapshot" }
             return parse(raw.toString(Charsets.UTF_8).reader()).also { check(it.size == 83798) }
         }
 

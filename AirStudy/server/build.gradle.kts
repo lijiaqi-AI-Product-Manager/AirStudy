@@ -120,6 +120,17 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    val packagedServer = tasks.named<Jar>("jar")
+    dependsOn(packagedServer)
+    systemProperty("airstudy.server.jarPath", packagedServer.get().archiveFile.get().asFile.absolutePath)
+}
+
+tasks.named<Copy>("processResources") {
+    exclude("airports/location-catalog.csv")
+}
+
+tasks.named<Jar>("jar") {
+    exclude("airports/location-catalog.csv")
 }
 
 tasks.named<JavaExec>("run") {
