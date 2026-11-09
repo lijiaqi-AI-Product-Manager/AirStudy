@@ -73,6 +73,7 @@ class StatisticsDateFlowTest {
         fun highlights()=activity.findViewById<StatsHighlightsPanel>(StatsR.id.statsHighlightsPanel)
         fun insight(key: String)=insights().rows.findViewWithTag<TextView>("$key-value")?.text?.toString()
         controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         await { count()==expected(2) && insights().rows.childCount==3 && highlights().rows.childCount==2 }
         assertTrue(insight("stats-insight-best-day")!!.contains("7m"))
         val first=highlights().rows.getChildAt(0).tag as com.projectfocus.service.focus.history.FlightRecordKey
@@ -111,6 +112,7 @@ class StatisticsDateFlowTest {
             return ViewModelProvider(host.childFragmentManager.primaryNavigationFragment as StatsFragment)[StatsViewModel::class.java]
         }
         controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         await { count()==expected(2) && model().state.value.hourHabits!=null }
         assertEquals(6.5+1.0/60_000,model().state.value.hourHabits!!.minutes[1],1e-10)
         assertEquals(1,model().state.value.hourHabits!!.activeHours)
@@ -147,6 +149,7 @@ class StatisticsDateFlowTest {
         assertEquals(4,initial.completedFlights)
         assertNull(initial.onTimeRate)
         controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         await { count()==expected(2) && model().state.value.dates!!.period==StatsPeriod.DAY }
         assertEquals(initial,model().state.value.career)
         activity.findViewById<StatsScenePanel>(StatsR.id.statsScenePanel).legend.findViewWithTag<View>("阅读").performClick()
@@ -207,6 +210,7 @@ class StatisticsDateFlowTest {
         await { count()==expected(1) && heatmap().yearLabel.text.contains((year-1).toString()) && controls().sceneFilter.visibility==View.VISIBLE }
         assertEquals(year-1,model().state.value.heatmapYear)
         controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         await { count()==expected(1) && model().state.value.heatmapYear==year && heatmap().scroll.visibility==View.VISIBLE }
         val scroll=generateSequence(heatmap().parent) { it.parent }.filterIsInstance<android.widget.ScrollView>().first()
         layout();scroll.scrollTo(0,heatmap().top);idle()
@@ -325,6 +329,7 @@ class StatisticsDateFlowTest {
     @Test fun actualDateControlsFilterBothModesAndDiscardAnOldAccountConfirmation() {
         launch()
         controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         await { count()==expected(2) && controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         assertEquals("7m",activity.findViewById<TextView>(StatsR.id.statsFocus).text.toString())
         assertEquals("1",activity.findViewById<TextView>(StatsR.id.statsActiveDays).text.toString())
@@ -335,6 +340,7 @@ class StatisticsDateFlowTest {
         controls().next.performClick()
         await { count()==expected(2) && !controls().next.isEnabled }
         controls().periodButtons[StatsPeriod.MONTH.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.MONTH.ordinal].isSelected }
         await { controls().periodButtons[StatsPeriod.MONTH.ordinal].isSelected }
         val original=count()
         val cancelled=custom()
@@ -365,6 +371,7 @@ class StatisticsDateFlowTest {
     @Test fun recreationRetainsTheDateQueryAndBackgroundCancelsAnUnconfirmedDraft() {
         launch()
         controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         await { count()==expected(2) && controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         val oldControls=controls()
         scenario!!.recreate()
@@ -387,6 +394,7 @@ class StatisticsDateFlowTest {
     @Test fun anActualReadFailureShowsRetryAndANewPeriodReloadsAfterRecovery() {
         launch()
         controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         await { count()==expected(2) && controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         val host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
         val page=host.childFragmentManager.primaryNavigationFragment as StatsFragment
@@ -413,6 +421,7 @@ class StatisticsDateFlowTest {
             }
             renamed=false
             controls().periodButtons[StatsPeriod.MONTH.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.MONTH.ordinal].isSelected }
             await { controls().periodButtons[StatsPeriod.MONTH.ordinal].isSelected && model.state.value.readFailed.not() && model.state.value.isLoading.not() }
             assertTrue(activity.findViewById<View>(StatsR.id.statsShare).isEnabled)
             assertNotEquals(activity.getString(StatsR.string.stats_placeholder),count())
@@ -426,6 +435,7 @@ class StatisticsDateFlowTest {
     @Test fun sceneSelectionSurvivesDatesAndRecreationThenClearsForANewAccount() {
         launch()
         controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         await { count()==expected(2) && controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         fun panel()=activity.findViewById<StatsScenePanel>(StatsR.id.statsScenePanel)
         fun reading()=panel().legend.findViewWithTag<View>("阅读")
@@ -475,6 +485,7 @@ class StatisticsDateFlowTest {
         launch()
         fun panel()=activity.findViewById<StatsTrendPanel>(StatsR.id.statsTrendPanel)
         controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected }
         await { count()==expected(2) && !panel().isAnimating && panel().totalText.text.toString()=="2 次" }
         assertEquals("较上期 ↑ 30%",activity.findViewById<StatsHeadlineView>(StatsR.id.statsHeadline).comparisonLabel.text.toString())
         assertEquals(24,panel().activeChart.bucketCount)
