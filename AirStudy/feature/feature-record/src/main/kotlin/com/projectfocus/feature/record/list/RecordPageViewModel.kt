@@ -9,7 +9,9 @@ import com.projectfocus.service.focus.history.HistoryReadState
 import com.projectfocus.service.focus.history.RecordedFlight
 import com.projectfocus.service.focus.history.FlightRecordKey
 import com.projectfocus.service.focus.history.RecordDeletionTarget
-import com.projectfocus.service.focus.history.RecordSceneStore
+import com.projectfocus.service.focus.history.RecordSceneOperations
+import com.projectfocus.service.focus.history.RecordCloudFailure
+import com.projectfocus.core.network.record.RecordMutationOutcome
 import com.projectfocus.service.focus.history.RecordSceneEditTarget
 import com.projectfocus.service.focus.history.RecordSceneSaveResult
 import com.projectfocus.core.model.flight.PlannedScene
@@ -30,7 +32,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
-enum class RecordSceneFailure { WRITE, CHANGED, NOT_EDITABLE }
+enum class RecordSceneFailure { WRITE, CHANGED, NOT_EDITABLE, LOGIN_REQUIRED, CLOUD }
 data class RecordSceneSaveState(
     val attempt: Long = 0L,
     val target: RecordSceneEditTarget? = null,
@@ -132,7 +134,7 @@ class RecordPageViewModel @Inject constructor(
     private val reader: FlightHistoryReader,
     private val clock: Clock,
     private val zone: ZoneId,
-    private val sceneStore: RecordSceneStore,
+    private val sceneStore: RecordSceneOperations,
 ) : ViewModel() {
     private val query = MutableStateFlow(RecordPageQuery())
     private val now = MutableStateFlow(clock.millis())
@@ -177,6 +179,14 @@ class RecordPageViewModel @Inject constructor(
                 mutableSceneSave.value = request.copy(saving = false, failure = failure)
             } catch (error: CancellationException) {
                 throw error
+            } catch (failure: RecordCloudFailure) {
+                val reason = failure.reason
+                val message = when {
+                    reason is RecordMutationOutcome.Rejected && reason.status == 401 -> RecordSceneFailure.LOGIN_REQUIRED
+                    reason is RecordMutationOutcome.Rejected && reason.status in setOf(404, 409, 410) -> RecordSceneFailure.CHANGED
+                    else -> RecordSceneFailure.CLOUD
+                }
+                mutableSceneSave.value = request.copy(saving = false, failure = message)
             } catch (_: Exception) {
                 mutableSceneSave.value = request.copy(saving = false, failure = RecordSceneFailure.WRITE)
             } finally {

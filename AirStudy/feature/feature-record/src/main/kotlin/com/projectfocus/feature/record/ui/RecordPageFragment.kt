@@ -317,6 +317,8 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
                         RecordSceneFailure.WRITE -> R.string.pf_record_page_scene_save_failed
                         RecordSceneFailure.CHANGED -> R.string.pf_record_page_scene_changed
                         RecordSceneFailure.NOT_EDITABLE -> R.string.pf_record_page_scene_not_editable
+                        RecordSceneFailure.LOGIN_REQUIRED -> R.string.pf_record_cloud_login_required
+                        RecordSceneFailure.CLOUD -> R.string.pf_record_cloud_scene_failed
                     }, android.widget.Toast.LENGTH_SHORT).show()
                 }) {
                     is TokenStore.ImmediateSnapshot.Value -> return@launch

@@ -1,0 +1,264 @@
+package com.projectfocus.server
+
+import com.google.common.truth.Truth.assertThat
+import com.projectfocus.core.model.flight.PlannedAirport
+import com.projectfocus.core.model.flight.freeflight.*
+import com.projectfocus.core.network.dto.*
+import com.projectfocus.server.db.CloudFlightRecords
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
+import kotlinx.coroutines.*
+import kotlinx.serialization.encodeToString
+import kotlinx.serialization.json.*
+import org.jetbrains.exposed.sql.*
+import org.jetbrains.exposed.sql.transactions.transaction
+import org.junit.jupiter.api.Test
+import java.net.URLEncoder
+import java.util.UUID
+
+class FlightRecordRoutesTest : ServerTestBase() {
+    private val codec = Json { encodeDefaults = true; ignoreUnknownKeys = true }
+    private val airport = PlannedAirport(1, "PEK", "Airport", "City", "CN", 40.0, 116.0)
+    private val landing = airport.copy(id = 2, code = "LHR", country = "GB", latitude = 51.4, longitude = -0.4)
+    private fun down(id: String, status: String = "COMPLETED") = FlightRecordArchiveSnapshot(
+        FlightRecordMode.DOWN, id, CountdownRecordArchive(id, null, "SOLO", null, airport, landing,
+            1_000_000, 3_700_000, 45, 35, 600.25, status, "02A", 1_000_000, 3_700_000,
+            logJson = "[{\"event\":\"landed\"}]", quote = "Arrived", quoteAuthor = "Traveller"))
+    private fun up(id: String, session: String = id): FlightRecordArchiveSnapshot {
+        val point = FreeFlightPoint(51.4, -0.4)
+        val archive = FreeFlightArchive(sessionId = session, ownerScope = "device-private", revision = 5,
+            departure = airport, seat = "05F", scene = FreeFlightScene(2, "Reading", "book"), flightNumber = "AS123",
+            shieldingCategoryId = 99, startedAtWallMs = 1_000_000, updatedAtWallMs = 2_900_000, endedAtWallMs = 2_900_000,
+            status = FreeFlightStatus.COMPLETED, phase = FreeFlightPhase.NO_MAP_ARRIVAL,
+            clock = FreeFlightClock(1_900_000, 1_900_000, 1_900_000, "device-epoch", FreeFlightPause.TERMINAL),
+            position = point, bearingDegrees = 270.0, cumulativeDistanceKm = 410.5,
+            cruiseAnchor = FreeFlightCruiseAnchor(point, 270.0, 0, 0.0), landingAirport = landing,
+            remoteRecordId = id, sampleSequence = 1)
+        return FlightRecordArchiveSnapshot(FlightRecordMode.UP, id, countUp = archive, positions = listOf(
+            FreeFlightPositionSample(session, 1, 1_900_000, point, 270.0, 410.5, 2_900_000)))
+    }
+    private fun path(mode: FlightRecordMode, id: String) = "/v2/flight-records/${mode.path}/${URLEncoder.encode(id, "UTF-8")}"
+    private suspend fun login(c: TestClient, email: String): String = c.str(c.registerAndLogin(email), "token")!!
+    private suspend fun send(c: TestClient, token: String?, method: HttpMethod, path: String, body: String? = null,
+                             operation: String? = null, revision: Long? = null): HttpResponse = c.http.request(path) {
+        this.method = method
+        token?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+        operation?.let { header("Idempotency-Key", it) }; revision?.let { header("If-Match", "\"$it\"") }
+        if (body != null) { contentType(ContentType.Application.Json); setBody(body) }
+    }
+    private suspend fun upload(c: TestClient, token: String, record: FlightRecordArchiveSnapshot, operation: String? = null) =
+        send(c, token, HttpMethod.Put, path(record.mode, record.id), codec.encodeToString(FlightRecordArchiveUpload(record)), operation)
+    private suspend fun revision(response: HttpResponse): Long = Json.parseToJsonElement(response.bodyAsText())
+        .jsonObject.getValue("data").jsonObject.getValue("revision").jsonPrimitive.long
+    private suspend fun page(c: TestClient, token: String, query: String = ""): CloudFlightRecordPage {
+        val response = send(c, token, HttpMethod.Get, "/v2/flight-records$query")
+        assertThat(response.status.value).isEqualTo(200)
+        return codec.decodeFromString<FlightRecordResponse<CloudFlightRecordPage>>(response.bodyAsText()).data!!
+    }
+
+    @Test fun bothModesKeepTheirCompleteSnapshotsAndPositionSamplesSeparate() = serverTest("cloud-roundtrip") { c ->
+        val token = login(c, "roundtrip@airstudy.test"); val id = "same-record"
+        assertThat(upload(c, token, down(id)).status.value).isEqualTo(200)
+        assertThat(upload(c, token, up(id, "local-session")).status.value).isEqualTo(200)
+        val records = page(c, token).items
+        assertThat(records.map { it.mode }).containsExactly(FlightRecordMode.DOWN, FlightRecordMode.UP).inOrder()
+        assertThat(records[0].archive).isEqualTo(down(id))
+        assertThat(records[1].archive).isEqualTo(up(id, "local-session").withoutDeviceOwnership())
+        assertThat(records[1].archive!!.countUp!!.ownerScope).isEqualTo("cloud")
+        assertThat(records[1].archive!!.countUp!!.shieldingCategoryId).isNull()
+        assertThat(c.withToken(token).str(c.get("/user/me"), "totalFocusedMinutes")).isEqualTo("67")
+    }
+
+    @Test fun theSameIdentifierBelongsToEachAccountIndependently() = serverTest("cloud-account-key") { c ->
+        val first = login(c, "key-first@airstudy.test"); val second = login(c, "key-second@airstudy.test")
+        upload(c, first, down("shared")); upload(c, second, down("shared", "CANCELLED"))
+        val deleted = send(c, second, HttpMethod.Delete, path(FlightRecordMode.DOWN, "shared"))
+        assertThat(deleted.status.value).isEqualTo(200)
+        assertThat(page(c, first).items.single().deleted).isFalse()
+        assertThat(page(c, second).items.single().deleted).isTrue()
+        assertThat(page(c, first).items.single().archive!!.countdown!!.status).isEqualTo("COMPLETED")
+    }
+
+    @Test fun acceptedDeletionIsDurableIdempotentAndCannotBeResurrectedByEitherUploadPath() = serverTest("cloud-delete-marker") { c ->
+        val token = login(c, "delete-marker@airstudy.test"); val id = UUID.randomUUID().toString()
+        upload(c, token, down(id)); val upRevision = revision(upload(c, token, up(id)))
+        val response = send(c, token, HttpMethod.Delete, path(FlightRecordMode.DOWN, id), operation = "delete-once")
+        val deletedRevision = revision(response)
+        assertThat(response.status.value).isEqualTo(200)
+        assertThat(revision(send(c, token, HttpMethod.Delete, path(FlightRecordMode.DOWN, id), operation = "delete-once"))).isEqualTo(deletedRevision)
+        assertThat(revision(send(c, token, HttpMethod.Delete, path(FlightRecordMode.DOWN, id), operation = "delete-again"))).isEqualTo(deletedRevision)
+        assertThat(upload(c, token, down(id)).status.value).isEqualTo(410)
+        val oldBody = """{"sessions":[{"id":"$id","departureAirportCode":"PEK","destinationAirportCode":"LHR","startTimeMillis":1000000,"durationMinutes":45,"actualFocusMinutes":35,"distanceKm":600.0,"status":"COMPLETED","createdAt":1000000,"updatedAt":3700000}]}"""
+        val old = c.withToken(token).post("/session/sync", oldBody)
+        assertThat(c.str(old, "accepted")).isEqualTo("0")
+        assertThat(c.str(old, "rejected")).isEqualTo("1")
+        val records = page(c, token).items
+        assertThat(records.single { it.mode == FlightRecordMode.DOWN }.archive).isNull()
+        assertThat(records.single { it.mode == FlightRecordMode.UP }.revision).isEqualTo(upRevision)
+        assertThat(c.str(c.get("/user/me"), "totalFocusedMinutes")).isEqualTo("32")
+    }
+
+    @Test fun deletingAMissingOwnRecordCreatesAMarkerWithoutTouchingAnotherAccount() = serverTest("cloud-missing-delete") { c ->
+        val first = login(c, "missing-first@airstudy.test"); val other = login(c, "missing-other@airstudy.test")
+        upload(c, first, down("private-record"))
+        assertThat(send(c, other, HttpMethod.Delete, path(FlightRecordMode.DOWN, "private-record")).status.value).isEqualTo(200)
+        assertThat(page(c, other).items.single().deleted).isTrue()
+        assertThat(page(c, first).items.single().deleted).isFalse()
+        assertThat(upload(c, other, down("private-record")).status.value).isEqualTo(410)
+    }
+
+    @Test fun scenePatchUsesTheConfirmedFieldsAndPreservesOriginalArchive() = serverTest("cloud-scene") { c ->
+        val token = login(c, "scene@airstudy.test"); val record = down("scene-record")
+        val initial = revision(upload(c, token, record))
+        val response = send(c, token, HttpMethod.Patch, path(record.mode, record.id) + "/focus-scene",
+            """{"focusIconType":0,"focusScenario":"复习"}""", "scene-once", initial)
+        assertThat(response.status.value).isEqualTo(200)
+        val next = revision(response); assertThat(next).isGreaterThan(initial)
+        val stored = page(c, token).items.single()
+        assertThat(stored.archive).isEqualTo(record)
+        assertThat(stored.scene).isEqualTo(FlightRecordScenePatch(1, "复习"))
+        assertThat(upload(c, token, record).status.value).isEqualTo(200)
+        assertThat(page(c, token).items.single().scene).isEqualTo(stored.scene)
+        assertThat(revision(send(c, token, HttpMethod.Patch, path(record.mode, record.id) + "/focus-scene",
+            """{"focusIconType":0,"focusScenario":"复习"}""", "scene-once", initial))).isEqualTo(next)
+    }
+
+    @Test fun staleRevisionsAndReusedOperationKeysAreRejectedWithoutChangingAnything() = serverTest("cloud-conflict") { c ->
+        val token = login(c, "conflict@airstudy.test"); val record = down("conflict-record")
+        val initial = revision(upload(c, token, record))
+        val endpoint = path(record.mode, record.id) + "/focus-scene"
+        val body = """{"focusIconType":2,"focusScenario":"Reading"}"""
+        assertThat(send(c, token, HttpMethod.Patch, endpoint, body, "scene-key", initial).status.value).isEqualTo(200)
+        val before = page(c, token)
+        assertThat(send(c, token, HttpMethod.Delete, path(record.mode, record.id), operation = "scene-key").status.value).isEqualTo(409)
+        assertThat(send(c, token, HttpMethod.Delete, path(record.mode, record.id), revision = initial).status.value).isEqualTo(409)
+        assertThat(send(c, token, HttpMethod.Patch, endpoint, body, "different-key", initial).status.value).isEqualTo(409)
+        assertThat(page(c, token)).isEqualTo(before)
+    }
+
+    @Test fun sceneChangesRejectMissingCancelledAndDeletedRecords() = serverTest("cloud-scene-protection") { c ->
+        val token = login(c, "protection@airstudy.test"); val id = "uneditable"
+        val endpoint = path(FlightRecordMode.UP, id) + "/focus-scene"
+        val body = """{"focusIconType":1,"focusScenario":"Study"}"""
+        assertThat(send(c, token, HttpMethod.Patch, endpoint, body).status.value).isEqualTo(404)
+        upload(c, token, down(id, "CANCELLED"))
+        assertThat(send(c, token, HttpMethod.Patch, path(FlightRecordMode.DOWN, id) + "/focus-scene", body).status.value).isEqualTo(409)
+        send(c, token, HttpMethod.Delete, path(FlightRecordMode.DOWN, id))
+        assertThat(send(c, token, HttpMethod.Patch, path(FlightRecordMode.DOWN, id) + "/focus-scene", body).status.value).isEqualTo(404)
+    }
+
+    @Test fun formEncodedIdentifiersAreDecodedExactlyOnce() = serverTest("cloud-encoded-key") { c ->
+        val token = login(c, "encoded@airstudy.test"); val id = "航班 + %2F / F"
+        assertThat(upload(c, token, down(id)).status.value).isEqualTo(200)
+        assertThat(page(c, token).items.single().id).isEqualTo(id)
+        assertThat(send(c, token, HttpMethod.Delete, path(FlightRecordMode.DOWN, id)).status.value).isEqualTo(200)
+        assertThat(page(c, token).items.single().deleted).isTrue()
+    }
+
+    @Test fun cursorsIncludeDeletionMarkersWithoutRepeatingUnchangedRecords() = serverTest("cloud-cursor") { c ->
+        val token = login(c, "cursor@airstudy.test")
+        for (id in listOf("first", "second", "third")) upload(c, token, down(id))
+        val first = page(c, token, "?after=0&limit=2")
+        assertThat(first.items.map { it.id }).containsExactly("first", "second").inOrder(); assertThat(first.hasMore).isTrue()
+        send(c, token, HttpMethod.Delete, path(FlightRecordMode.DOWN, "first"))
+        val next = page(c, token, "?after=${first.nextCursor}&limit=2")
+        assertThat(next.items.map { it.id }).containsExactly("third", "first").inOrder()
+        assertThat(next.items.last().deleted).isTrue(); assertThat(next.hasMore).isFalse()
+        assertThat(page(c, token, "?after=${next.nextCursor}").items).isEmpty()
+    }
+
+    @Test fun simultaneousCopiesOfAnOperationProduceOneReceiptAndOneRevision() = serverTest("cloud-concurrent") { c ->
+        val token = login(c, "concurrent@airstudy.test"); val record = down("concurrent")
+        upload(c, token, record)
+        val responses = coroutineScope {
+            val gate = CompletableDeferred<Unit>()
+            val work = (1..4).map { async { gate.await(); send(c, token, HttpMethod.Delete, path(record.mode, record.id), operation = "same-delete") } }
+            gate.complete(Unit); work.awaitAll()
+        }
+        assertThat(responses.map { it.status.value }).containsExactly(200, 200, 200, 200)
+        assertThat(responses.map { revision(it) }.distinct()).hasSize(1)
+        assertThat(page(c, token).items.single().revision).isEqualTo(2L)
+    }
+
+    @Test fun legacyAndFullArchivesDoNotDoubleCountAndBothDeletionPathsUpdateTotals() = serverTest("cloud-legacy-totals") { c ->
+        val token = login(c, "legacy-totals@airstudy.test"); val id = UUID.randomUUID().toString()
+        val body = """{"sessions":[{"id":"$id","departureAirportCode":"PEK","destinationAirportCode":"LHR","startTimeMillis":1000000,"durationMinutes":45,"actualFocusMinutes":35,"distanceKm":600.0,"status":"COMPLETED","createdAt":1000000,"updatedAt":3700000}]}"""
+        c.withToken(token).post("/session/sync", body); upload(c, token, down(id)); upload(c, token, up("free"))
+        assertThat(c.str(c.get("/user/me"), "totalFocusedMinutes")).isEqualTo("67")
+        assertThat(c.delete("/session/$id").status.value).isEqualTo(200)
+        assertThat(page(c, token).items.single { it.id == id }.deleted).isTrue()
+        assertThat(c.str(c.get("/user/me"), "totalFocusedMinutes")).isEqualTo("32")
+        assertThat(c.str(c.post("/session/sync", body), "accepted")).isEqualTo("0")
+    }
+
+    @Test fun legacySceneAnnotationsKeepTheirExistingTotalsUntilAFullSnapshotArrives() = serverTest("cloud-legacy-scene") { c ->
+        val token = login(c, "legacy-scene@airstudy.test"); val id = UUID.randomUUID().toString()
+        val body = """{"sessions":[{"id":"$id","departureAirportCode":"PEK","destinationAirportCode":"LHR","startTimeMillis":1000000,"durationMinutes":45,"actualFocusMinutes":35,"distanceKm":600.0,"status":"COMPLETED","createdAt":1000000,"updatedAt":3700000}]}"""
+        c.withToken(token).post("/session/sync", body)
+        assertThat(send(c, token, HttpMethod.Patch, path(FlightRecordMode.DOWN, id) + "/focus-scene",
+            """{"focusIconType":2,"focusScenario":"Read"}""").status.value).isEqualTo(200)
+        c.post("/session/sync", body)
+        assertThat(c.str(c.get("/user/me"), "totalFocusedMinutes")).isEqualTo("35")
+        assertThat(page(c, token).items.single().archive).isNull()
+        upload(c, token, down(id))
+        assertThat(page(c, token).items.single().scene).isEqualTo(FlightRecordScenePatch(2, "Read"))
+        assertThat(c.str(c.get("/user/me"), "totalFocusedMinutes")).isEqualTo("35")
+    }
+
+    @Test fun failedAggregateWriteRollsBackDeletionMarkerArchiveAndRetryReceiptTogether() = serverTest("cloud-rollback") { c ->
+        val token = login(c, "rollback@airstudy.test"); val record = down("rollback-record")
+        upload(c, token, record)
+        val me = c.withToken(token).get("/user/me"); val user = c.str(me, "id")!!
+        transaction { exec("ALTER TABLE users ADD CONSTRAINT cloud_minutes_nonzero CHECK (id <> '$user' OR total_focused_minutes > 0)") }
+        val failed = send(c, token, HttpMethod.Delete, path(record.mode, record.id), operation = "recoverable-delete")
+        assertThat(failed.status.value).isEqualTo(503)
+        assertThat(page(c, token).items.single().archive).isEqualTo(record)
+        transaction { exec("ALTER TABLE users DROP CONSTRAINT cloud_minutes_nonzero") }
+        assertThat(send(c, token, HttpMethod.Delete, path(record.mode, record.id), operation = "recoverable-delete").status.value).isEqualTo(200)
+        assertThat(page(c, token).items.single().deleted).isTrue()
+        assertThat(page(c, token).items.single().revision).isEqualTo(2L)
+    }
+
+    @Test fun missingAuthenticationInvalidModeAndInvalidCursorNeverChangeData() = serverTest("cloud-invalid-request") { c ->
+        val token = login(c, "invalid@airstudy.test")
+        assertThat(send(c, null, HttpMethod.Get, "/v2/flight-records").status.value).isEqualTo(401)
+        assertThat(send(c, "invalid", HttpMethod.Delete, path(FlightRecordMode.DOWN, "unknown")).status.value).isEqualTo(401)
+        assertThat(send(c, token, HttpMethod.Delete, "/v2/flight-records/other/unknown").status.value).isEqualTo(400)
+        for (query in listOf("?after=-1", "?after=oops", "?limit=0", "?limit=101"))
+            assertThat(send(c, token, HttpMethod.Get, "/v2/flight-records$query").status.value).isEqualTo(400)
+        assertThat(send(c, token, HttpMethod.Put, path(FlightRecordMode.UP, "mismatch"),
+            codec.encodeToString(FlightRecordArchiveUpload(down("mismatch")))).status.value).isEqualTo(400)
+        assertThat(page(c, token).items).isEmpty()
+    }
+
+    @Test fun deletionMarkersAndRetryReceiptsSurviveAnApplicationRestart() {
+        var token = ""
+        var acceptedRevision = 0L
+        val record = down("restart-record")
+        serverTest("cloud-restart") { c ->
+            token = login(c, "restart@airstudy.test")
+            upload(c, token, record)
+            acceptedRevision = revision(send(c, token, HttpMethod.Delete, path(record.mode, record.id), operation = "before-restart"))
+        }
+        serverTest("cloud-restart") { c ->
+            val retried = send(c, token, HttpMethod.Delete, path(record.mode, record.id), operation = "before-restart")
+            assertThat(retried.status.value).isEqualTo(200)
+            assertThat(revision(retried)).isEqualTo(acceptedRevision)
+            assertThat(page(c, token).items.single().deleted).isTrue()
+            assertThat(upload(c, token, record).status.value).isEqualTo(410)
+        }
+    }
+
+    @Test fun ongoingArchivesAndInvalidPositionSequencesCannotEnterCloudHistory() = serverTest("cloud-invalid-archive") { c ->
+        val token = login(c, "invalid-archive@airstudy.test")
+        val record = up("invalid-positions")
+        val duplicates = record.copy(positions = record.positions + record.positions)
+        assertThat(upload(c, token, duplicates).status.value).isEqualTo(400)
+        val ongoing = record.copy(countUp = record.countUp!!.copy(status = FreeFlightStatus.ONGOING,
+            phase = FreeFlightPhase.CRUISING, endedAtWallMs = null, landingAirport = null))
+        assertThat(upload(c, token, ongoing).status.value).isEqualTo(400)
+        assertThat(upload(c, token, down("ongoing").copy(countdown = down("ongoing").countdown!!.copy(status = "ONGOING"))).status.value).isEqualTo(400)
+        assertThat(page(c, token).items).isEmpty()
+    }
+}

@@ -33,6 +33,9 @@ abstract class AppSettingDao {
     @Query("DELETE FROM `app_setting` WHERE `key` = :key")
     abstract suspend fun delete(key: String)
 
+    @Query("SELECT * FROM app_setting WHERE substr(`key`, 1, length(:prefix)) = :prefix ORDER BY updatedAt, `key`")
+    abstract suspend fun withPrefix(prefix: String): List<AppSettingEntity>
+
     /** 全量快照，供导出/诊断用 */
     @Query("SELECT * FROM `app_setting` ORDER BY `key`")
     abstract fun observeAll(): Flow<List<AppSettingEntity>>

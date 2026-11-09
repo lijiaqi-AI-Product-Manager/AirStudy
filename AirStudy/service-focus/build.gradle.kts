@@ -23,6 +23,7 @@ dependencies {
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.kotlinx.serialization.json)
     implementation(libs.timber)
 
     //   core-datastore 在 implementation 配置下**不会**把 Preferences / DataStore
@@ -36,4 +37,6 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.room.runtime)
     testImplementation(libs.androidx.test.core)
+    testImplementation(libs.okhttp)
+    testImplementation(libs.okhttp.mockwebserver)
 }

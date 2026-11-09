@@ -99,6 +99,8 @@ object DatabaseFactory {
         Tables.UserStats,
         Tables.Airports,
         Tables.Flights,
+        CloudFlightRecords,
+        FlightRecordOperations,
         Tables.Rooms,
         Tables.RoomParticipants,
         Tables.RoomMessages,

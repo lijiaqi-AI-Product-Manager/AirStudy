@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.projectfocus.service.focus.history.RecordDeletionOperations
 import com.projectfocus.service.focus.history.RecordDeletionResult
 import com.projectfocus.service.focus.history.RecordDeletionTarget
+import com.projectfocus.service.focus.history.RecordCloudFailure
+import com.projectfocus.core.network.record.RecordMutationOutcome
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
@@ -13,7 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-enum class RecordRemovalNotice { DELETED, CHANGED, PROTECTED, FAILED }
+enum class RecordRemovalNotice { DELETED, CHANGED, PROTECTED, FAILED, LOGIN_REQUIRED, CLOUD }
 
 data class RecordRemovalState(
     val attempt: Long = 0L,
@@ -46,6 +48,15 @@ class RecordRemovalViewModel @Inject constructor(
                     notice = notice.takeIf { current })
             } catch (cancelled: CancellationException) {
                 throw cancelled
+            } catch (failure: RecordCloudFailure) {
+                val reason = failure.reason
+                val notice = when {
+                    reason is RecordMutationOutcome.Rejected && reason.status == 401 -> RecordRemovalNotice.LOGIN_REQUIRED
+                    reason is RecordMutationOutcome.Rejected && reason.status in setOf(409, 410) -> RecordRemovalNotice.CHANGED
+                    else -> RecordRemovalNotice.CLOUD
+                }
+                mutableState.value = request.copy(target = target.takeIf { target.account.isCurrent() }, saving = false,
+                    notice = notice.takeIf { target.account.isCurrent() })
             } catch (_: Exception) {
                 mutableState.value = request.copy(target = target.takeIf { target.account.isCurrent() }, saving = false,
                     notice = RecordRemovalNotice.FAILED.takeIf { target.account.isCurrent() })

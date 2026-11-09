@@ -42,14 +42,22 @@ class RecordDeletionStore @Inject constructor(
         }
     }
 
-    override suspend fun delete(target: RecordDeletionTarget): RecordDeletionResult = withContext(Dispatchers.IO) {
+    override suspend fun delete(target: RecordDeletionTarget): RecordDeletionResult = deleteAtomically(target, { true }, {})
+
+    internal suspend fun deleteAtomically(target: RecordDeletionTarget, before: suspend () -> Boolean,
+        after: suspend () -> Unit): RecordDeletionResult = withContext(Dispatchers.IO) {
         require(target.record.key.id.isNotBlank())
         val identity = TokenStore.snapshot()
         if (!target.account.isCurrent()) return@withContext RecordDeletionResult.OBSOLETE
         val result = TokenStore.withSnapshotLease(identity) {
             if (!target.account.isCurrent()) return@withSnapshotLease RecordDeletionResult.OBSOLETE
             sessions.withHistoryDeletionLease(target.record.key) {
-                db.withTransaction { removeConfirmed(target) }
+                db.withTransaction {
+                    if (!before()) return@withTransaction RecordDeletionResult.CHANGED
+                    removeConfirmed(target).also { result ->
+                        if (result in setOf(RecordDeletionResult.DELETED, RecordDeletionResult.MISSING)) after()
+                    }
+                }
             } ?: RecordDeletionResult.PROTECTED
         } ?: RecordDeletionResult.OBSOLETE
         if (result == RecordDeletionResult.DELETED) notifier.notifyChanged()
@@ -95,5 +103,6 @@ class RecordDeletionStore @Inject constructor(
 @dagger.Module
 @dagger.hilt.InstallIn(dagger.hilt.components.SingletonComponent::class)
 abstract class RecordDeletionModule {
-    @dagger.Binds abstract fun operations(store: RecordDeletionStore): RecordDeletionOperations
+    @dagger.Binds abstract fun operations(store: CloudRecordOperations): RecordDeletionOperations
+    @dagger.Binds abstract fun sceneOperations(store: CloudRecordOperations): RecordSceneOperations
 }

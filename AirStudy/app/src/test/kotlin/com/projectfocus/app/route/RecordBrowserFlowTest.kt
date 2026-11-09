@@ -71,15 +71,18 @@ class RecordBrowserFlowTest {
     private lateinit var host: RecordListHostFragment
     private val wall = System.currentTimeMillis()
     private var payload: FreeFlightArchive? = null
+    private lateinit var cloud: RecordCloudHttpFixture
 
     @Before fun open() = runBlocking(Dispatchers.IO) {
         app = ApplicationProvider.getApplicationContext()
         withTimeout(15_000) { app.awaitInitialAccountRestore(); app.awaitInitialAirportSeed() }
         TokenStore.setCancellable("record-browser-account-one")
+        cloud = RecordCloudHttpFixture(app.recordCloudMutations)
     }
     @After fun close() {
         scenario?.close()
         TokenStore.clear()
+        if (::cloud.isInitialized) cloud.close()
     }
     private fun countdown(id: String, status: String = "COMPLETED", at: Long = wall, owner: String = TokenStore.storageScope()) = FlightHistoryEntity(
         id,null,"SOLO",null,"PEK","Beijing Airport","北京","CN",40.0,116.0,
@@ -154,6 +157,7 @@ class RecordBrowserFlowTest {
             "view=${page?.view?.let { page.viewLifecycleOwner.lifecycle.currentState }}, loading=${state.loading}, failed=${state.failed}, " +
             "items=${state.items.size}, accountCurrent=${state.account?.isCurrent()}, generation=${state.account?.generation}, " +
             "currentGeneration=${TokenStore.snapshot().generation}, sameModel=${hostModel===pageModel}, pageItems=${pageModel?.state?.value?.items?.size}, " +
+            "sceneSave=${hostModel.sceneSave.value.failure}, savingScene=${hostModel.sceneSave.value.saving}, requests=${cloud.requestCount}, " +
             "lease=$lease, hint=${page?.view?.findViewById<TextView>(RecordR.id.pf_record_page_empty_records_hint)?.text}"
     }
 
@@ -308,6 +312,30 @@ class RecordBrowserFlowTest {
         }
         await { list().adapter?.itemCount == 0 }
         assertEquals(row, runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(row.id) })
+    }
+
+    @Test fun aRemoteRejectionKeepsTheConfirmedRecordAndTheActualPageAllowsRetry() {
+        cloud.rejectionStatus = 503
+        val row = countdown("cloud-retry-record", status = "CANCELLED")
+        runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().insert(row) }
+        showRecords()
+        await { list().adapter?.itemCount == 1 }
+        card(0).performClick()
+        val prompt = deletionPrompt()
+        val model = androidx.lifecycle.ViewModelProvider(host)[com.projectfocus.feature.record.list.RecordRemovalViewModel::class.java]
+        val attempt = model.state.value.attempt
+        prompt.findViewById<View>(RecordR.id.pf_record_delete_confirm).performClick()
+        await { model.state.value.attempt > attempt && !model.state.value.saving &&
+            ShadowToast.getTextOfLatestToast()?.toString() == activity.getString(RecordR.string.pf_record_cloud_delete_failed) }
+        assertTrue(prompt.isShowing)
+        assertEquals(row, runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(row.id) })
+        assertTrue(cloud.requestCount > 0)
+        assertEquals(1, runBlocking(Dispatchers.IO) { app.database.appSettingDao().withPrefix("record.cloud.pending.").size })
+        cloud.rejectionStatus = null
+        prompt.findViewById<View>(RecordR.id.pf_record_delete_confirm).performClick()
+        await { list().adapter?.itemCount == 0 && !prompt.isShowing }
+        assertNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(row.id) })
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.appSettingDao().withPrefix("record.cloud.pending.").isEmpty() })
     }
 
     @Test fun aGuestRecordOffersTheLoginEntryAndNeverDeletesBeforeAuthentication() {

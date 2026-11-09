@@ -25,10 +25,18 @@ sealed interface RecordSceneSaveResult {
     data object NotEditable : RecordSceneSaveResult
 }
 
+interface RecordSceneOperations {
+    suspend fun save(target: RecordSceneEditTarget, scene: PlannedScene): RecordSceneSaveResult
+}
+
 /** Writes a history annotation without rewriting flight checkpoints, receipts or position samples. */
 @Singleton
-class RecordSceneStore @Inject constructor(private val db: AppDatabase, private val clock: Clock) {
-    suspend fun save(target: RecordSceneEditTarget, scene: PlannedScene): RecordSceneSaveResult {
+class RecordSceneStore @Inject constructor(private val db: AppDatabase, private val clock: Clock) : RecordSceneOperations {
+    override suspend fun save(target: RecordSceneEditTarget, scene: PlannedScene): RecordSceneSaveResult =
+        saveAtomically(target, scene, { true }, {})
+
+    internal suspend fun saveAtomically(target: RecordSceneEditTarget, scene: PlannedScene,
+        before: suspend () -> Boolean, after: suspend () -> Unit): RecordSceneSaveResult {
         require(target.expectedRevision >= 0L && target.key.id.isNotBlank())
         require(scene.iconKey.isNotBlank() && (scene.displayName?.isNotBlank() == true || scene.name.isNotBlank()))
         val identity = TokenStore.snapshot()
@@ -37,6 +45,7 @@ class RecordSceneStore @Inject constructor(private val db: AppDatabase, private 
         return TokenStore.withSnapshotLease(identity) {
             if (!target.account.isCurrent()) return@withSnapshotLease RecordSceneSaveResult.Obsolete
             db.withTransaction {
+                if (!before()) return@withTransaction RecordSceneSaveResult.Changed
                 val start = when (target.key.kind) {
                     FlightRecordKind.COUNTDOWN -> {
                         val record = db.flightHistoryDao().findById(target.key.id)
@@ -60,7 +69,10 @@ class RecordSceneStore @Inject constructor(private val db: AppDatabase, private 
                 if (current != null && (current.ownerScope != target.account.scope || current.startedAtWallMs != start))
                     return@withTransaction RecordSceneSaveResult.Changed
                 if ((current?.revision ?: 0L) != target.expectedRevision) return@withTransaction RecordSceneSaveResult.Changed
-                if (current?.sceneJson == json) return@withTransaction RecordSceneSaveResult.Saved(current.revision)
+                if (current?.sceneJson == json) {
+                    after()
+                    return@withTransaction RecordSceneSaveResult.Saved(current.revision)
+                }
                 val revision = Math.addExact(target.expectedRevision, 1L)
                 val wall = maxOf(clock.millis(), current?.updatedAtWallMs ?: Long.MIN_VALUE)
                 if (current == null) {
@@ -72,6 +84,7 @@ class RecordSceneStore @Inject constructor(private val db: AppDatabase, private 
                     check(dao.update(target.key.kind.name, target.key.id, target.account.scope, start,
                         target.expectedRevision, revision, json, wall) == 1)
                 }
+                after()
                 RecordSceneSaveResult.Saved(revision)
             }
         } ?: RecordSceneSaveResult.Obsolete

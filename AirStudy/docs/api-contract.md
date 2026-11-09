@@ -84,6 +84,10 @@
 | POST | `/session/sync` | 是 | `BulkSyncRequest` | `SyncResultDto` |
 | GET | `/session/history` | 是 | — | `SessionHistoryDto` |
 | DELETE | `/session/{id}` | 是 | — | `null` |
+| GET | `/v2/flight-records` | 是 | `after`, `limit` | `CloudFlightRecordPage` |
+| PUT | `/v2/flight-records/{mode}/{id}` | 是 | `FlightRecordArchiveUpload` | `FlightRecordMutationReceipt` |
+| PATCH | `/v2/flight-records/{mode}/{id}/focus-scene` | 是 | `FlightRecordScenePatch` | `FlightRecordMutationReceipt` |
+| DELETE | `/v2/flight-records/{mode}/{id}` | 是 | — | `FlightRecordMutationReceipt` |
 | POST | `/start` | 是 | `StartSessionRequest` | `SessionDetails` |
 | POST | `/room/create` | 是 | `CreateRoomRequestDto` | `RoomResponseDto` |
 | GET | `/code/{code}` | 否 | — | `RoomResponseDto` |
@@ -101,6 +105,12 @@
 | POST | `/freeflight/admission/local-start-failed` | 原操作主体；设备操作另需原凭据（本品适配） | `FreeFlightLocalFailureRequest` | `FreeFlightLocalFailureReply` |
 | POST | `/v2/airports/search/location` | 否（本品完整机场目录适配） | `AirportLocationRequest` | `NearbyAirportDto[]` |
 <!-- ENDPOINTS:END -->
+
+云端记录使用 `down` / `up` 区分两种计时方式，记录标识使用 UTF-8 表单编码写入单个路径段。所有请求须登录；成功返回 `{success:true,message:"",data:...}`。完整归档只接受已完成或已取消的飞行，保存机场快照和已有位置样本，不传递本机类别外键或账号归属。归档首次保存后保持不变，场景通过独立接口修改。
+
+修改请求可携带 `Idempotency-Key`，重发相同操作返回原确认；同一操作编号用于其他内容返回 HTTP409。`If-Match` 接受带双引号的非负修订号，版本冲突返回 HTTP409。删除保留账号内的删除标记，重复删除成功；旧设备再次上传已删除记录返回 HTTP410。删除、重试确认和账号累计统计在同一事务内保存。两种计时方式和不同账号可以使用相同记录标识。
+
+增量读取的 `after` 默认为0，`limit` 为1至100，默认为50。按账号内递增修订号返回修改和删除标记，客户端以 `nextCursor` 继续读取，直到 `hasMore` 为false。旧版缺少完整快照的记录不会补造机场坐标或位置样本。旧版倒计时记录与完整归档按账号和标识去重后参与累计统计。
 
 附近机场查询使用本项目配置的服务，POST `{latitude, longitude, radius}`，其中坐标为当前真实飞行位置，`radius` 为向上取整的公里范围；自由飞行固定 `limit=50&offset=0`。服务支持 `limit=1..50`、非负 `offset`、有效经纬度和 `radius=1..3200`，非法值及未实现的 `region` 请求返回 HTTP400。成功返回统一包络，使用 `Cache-Control: private, no-store`。匿名查询不授予起飞资格、会员或设备次数。
 

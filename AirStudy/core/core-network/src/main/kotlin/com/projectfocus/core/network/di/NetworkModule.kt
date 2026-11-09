@@ -4,6 +4,8 @@ import com.projectfocus.core.network.api.FocusApi
 import com.projectfocus.core.network.api.SceneContentApi
 import com.projectfocus.core.network.plan.FlightPlanGateway
 import com.projectfocus.core.network.plan.SocketFlightPlanGateway
+import com.projectfocus.core.network.record.RecordMutationGateway
+import com.projectfocus.core.network.record.HttpRecordMutationGateway
 import com.projectfocus.core.network.subscription.HttpSubscriptionStatusGateway
 import com.projectfocus.core.network.subscription.SubscriptionStatusGateway
 import com.projectfocus.core.network.sse.SseClient
@@ -23,9 +25,17 @@ import javax.inject.Qualifier
 import javax.inject.Singleton
 
 
+
+
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideRecordArchiveGateway(core: NetworkCore): com.projectfocus.core.network.record.RecordArchiveGateway =
+        com.projectfocus.core.network.record.HttpRecordArchiveGateway(core.baseClient, core.baseUrl)
+
 
     /** REST 用这个 client（短连接、并发多） */
     @Qualifier
@@ -118,6 +128,11 @@ object NetworkModule {
     @Singleton
     fun provideSubscriptionStatusGateway(core: NetworkCore, @FlightPlanOkHttpClient client: OkHttpClient): SubscriptionStatusGateway =
         HttpSubscriptionStatusGateway(client, core.baseUrl)
+
+    @Provides
+    @Singleton
+    fun provideRecordMutationGateway(core: NetworkCore): RecordMutationGateway =
+        HttpRecordMutationGateway(core.baseClient, core.baseUrl)
 
     // ═══════════════════════════════════════════════════════
     // Retrofit

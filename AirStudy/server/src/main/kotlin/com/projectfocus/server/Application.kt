@@ -16,6 +16,7 @@ import com.projectfocus.server.route.registerAuthPromoImageRoutes
 import com.projectfocus.server.route.registerPasswordResetRoutes
 import com.projectfocus.server.route.registerFreeFlightAdmissionRoutes
 import com.projectfocus.server.route.registerAirportLocationRoutes
+import com.projectfocus.server.route.registerFlightRecordRoutes
 import com.projectfocus.server.domain.FreeFlightDevicePolicy
 import com.projectfocus.server.sse.SseHub
 import io.ktor.server.application.Application
@@ -103,6 +104,7 @@ fun Application.module(
     registerPasswordResetRoutes(database.database, registrationEmailDelivery, config.jwt.secret, registrationClock)
     registerFreeFlightAdmissionRoutes(database.database, config.jwt, freeFlightDevicePolicy, freeFlightAdmissionClock)
     registerAirportLocationRoutes()
+    registerFlightRecordRoutes(database.database)
 
     log.info("路由注册完成")
 }

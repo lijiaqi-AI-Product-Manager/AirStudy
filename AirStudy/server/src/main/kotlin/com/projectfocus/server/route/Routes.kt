@@ -83,7 +83,7 @@ fun Application.registerRoutes(
     val auth = AuthService(jwt, database.database)
     val registration = EmailRegistrationService(database.database, auth, registrationEmailDelivery, config.jwt.secret, registrationClock)
     val rooms = RoomService(sseHub)
-    val flights = FlightService()
+    val flights = FlightService(database.database)
 
     sseHub.startHeartbeat()
 

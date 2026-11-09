@@ -11,12 +11,22 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
 import timber.log.Timber
 import javax.inject.Inject
 
 
 @HiltAndroidApp
-class ProjectFocusApp : Application(), com.projectfocus.app.freeflight.FreeFlightPreparationActionsProvider {
+class ProjectFocusApp : Application(), com.projectfocus.app.freeflight.FreeFlightPreparationActionsProvider,
+    com.projectfocus.service.focus.history.RecordCloudWorkerOwner {
+
+    @Inject override lateinit var recordCloudMutations: com.projectfocus.service.focus.history.RecordCloudMutationCoordinator
+    @Inject lateinit var recordMutationRetries: com.projectfocus.service.focus.history.RecordMutationRetryScheduler
+
+    override suspend fun awaitRecordCloudReady() {
+        awaitInitialAccountRestore()
+        awaitInitialAirportSeed()
+    }
 
     @Inject lateinit var freeFlightPreparationFactory: com.projectfocus.app.freeflight.AndroidFreeFlightPreparationActionsFactory
 
@@ -96,6 +106,17 @@ class ProjectFocusApp : Application(), com.projectfocus.app.freeflight.FreeFligh
         //   如果桥在数据库预热之后才接上，那一次启动期间的信号可能落空。
         //   `start()` 自身只建两个 collector + 入队一次刷新，耗时 < 1ms。
         todayWidgetBridge.start()
+
+        appScope.launch {
+            awaitRecordCloudReady()
+            com.projectfocus.core.network.di.TokenStore.identities.collect { identity ->
+                if (!identity.token.isNullOrBlank() && identity == com.projectfocus.core.network.di.TokenStore.snapshot()) {
+                    try { recordMutationRetries.enqueueIfPending(com.projectfocus.core.network.di.TokenStore.storageScope(identity)) }
+                    catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                    catch (_: Exception) { Timber.w("记录同步重试暂不可用") }
+                }
+            }
+        }
 
         appScope.launch {
             try { initialAccountRestore.restore(emailAccounts) }

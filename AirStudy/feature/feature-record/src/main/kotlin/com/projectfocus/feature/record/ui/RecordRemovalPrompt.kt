@@ -109,6 +109,8 @@ internal class RecordRemovalPrompt(
                         RecordRemovalNotice.CHANGED -> R.string.pf_record_delete_changed
                         RecordRemovalNotice.PROTECTED -> R.string.pf_record_delete_blocked
                         RecordRemovalNotice.FAILED -> R.string.pf_record_delete_failed
+                        RecordRemovalNotice.LOGIN_REQUIRED -> R.string.pf_record_cloud_login_required
+                        RecordRemovalNotice.CLOUD -> R.string.pf_record_cloud_delete_failed
                     }
                     Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
                 }) {

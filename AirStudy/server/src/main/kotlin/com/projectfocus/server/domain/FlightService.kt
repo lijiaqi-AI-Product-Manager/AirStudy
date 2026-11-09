@@ -9,6 +9,10 @@ import com.projectfocus.core.network.dto.SyncResultDto
 import com.projectfocus.server.db.Tables.Airports
 import com.projectfocus.server.db.Tables.Flights
 import com.projectfocus.server.db.Tables.Users
+import com.projectfocus.server.db.CloudFlightRecords
+import com.projectfocus.core.network.dto.FlightRecordMode
+import com.projectfocus.core.network.dto.FlightRecordMutationOptions
+import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.SortOrder
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -44,7 +48,7 @@ import java.util.UUID
 
 
 
-class FlightService {
+class FlightService(private val database: Database) {
 
 
 
@@ -64,7 +68,7 @@ class FlightService {
             throw DomainException(3010, "单次最多同步 $MAX_BATCH 条记录", io.ktor.http.HttpStatusCode.BadRequest)
         }
 
-        return transaction {
+        return transaction(database) {
             lockUserTotals(userId)
             var accepted = 0
             var rejected = 0
@@ -72,6 +76,11 @@ class FlightService {
 
             for (dto in req.sessions) {
                 val sanitized = sanitize(dto) ?: run { rejected++; null } ?: continue
+                val deleted = CloudFlightRecords.selectAll().where {
+                    (CloudFlightRecords.userId eq userId) and (CloudFlightRecords.mode eq "down") and
+                        (CloudFlightRecords.recordId eq sanitized.id) and (CloudFlightRecords.deleted eq true)
+                }.any()
+                if (deleted) { rejected++; continue }
                 insertFlight(userId, sanitized)
                 val storedOwner = Flights.selectAll().where { Flights.id eq sanitized.id }.singleOrNull()?.get(Flights.userId)
                 if (storedOwner != userId) {
@@ -97,7 +106,7 @@ class FlightService {
         val distance = FlightMath.distanceKm(req.durationMinutes)
         val id = UUID.randomUUID().toString()
 
-        transaction {
+        transaction(database) {
             check(insertFlight(
                 userId,
                 SanitizedFlight(
@@ -122,7 +131,7 @@ class FlightService {
     }
 
 
-    fun history(userId: String, page: Int, size: Int = 20): SessionHistoryDto = transaction {
+    fun history(userId: String, page: Int, size: Int = 20): SessionHistoryDto = transaction(database) {
         val p = page.coerceAtLeast(0)
         val s = size.coerceIn(1, 100)
         val total = Flights.selectAll().where { Flights.userId eq userId }.count().toInt()
@@ -149,8 +158,16 @@ class FlightService {
 
 
     fun delete(userId: String, flightId: String) {
-        transaction {
+        transaction(database) {
             lockUserTotals(userId)
+            val cloud = CloudFlightRecords.selectAll().where {
+                (CloudFlightRecords.userId eq userId) and (CloudFlightRecords.mode eq "down") and (CloudFlightRecords.recordId eq flightId)
+            }.singleOrNull()
+            if (cloud != null) {
+                if (cloud[CloudFlightRecords.deleted]) throw FlightNotFoundException()
+                FlightRecordService(database).delete(userId, FlightRecordMode.DOWN, flightId, FlightRecordMutationOptions())
+                return@transaction
+            }
             val deleted = Flights.deleteWhere { (Flights.id eq flightId) and (Flights.userId eq userId) }
             if (deleted == 0) throw FlightNotFoundException()
             recomputeUserTotals(userId)
@@ -245,23 +262,7 @@ class FlightService {
     }
 
     private fun recomputeUserTotals(userId: String) {
-        val rows = Flights.selectAll().where { Flights.userId eq userId }.toList()
-        val completed = rows.filter { it[Flights.status] == "COMPLETED" }
-        val totalMinutes = completed.sumOf { it[Flights.actualFocusMinutes] }
-        val groupFlights = completed.count { it[Flights.focusType] == "GROUP" }
-        val codes = completed.map { it[Flights.destinationCode] }.distinct()
-        val countries = Airports.selectAll()
-            .where { Airports.code inList codes }
-            .map { it[Airports.country] }
-            .distinct()
-            .size
-
-        Users.update({ Users.id eq userId }) {
-            it[totalFocusedMinutes] = totalMinutes
-            it[totalGroupFlight] = groupFlights
-            it[countriesVisited] = countries
-            it[updatedAt] = Instant.now()
-        }
+        FlightRecordTotals.recompute(userId)
     }
 
     private fun isUuid(s: String): Boolean =

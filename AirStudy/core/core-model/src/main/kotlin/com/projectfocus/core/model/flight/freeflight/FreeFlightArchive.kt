@@ -121,11 +121,11 @@ data class FreeFlightArchive(
     val departure: PlannedAirport,
     val seat: String,
     val scene: FreeFlightScene,
-    val flightNumber: String?,
-    val shieldingCategoryId: Long?,
+    val flightNumber: String? = null,
+    val shieldingCategoryId: Long? = null,
     val startedAtWallMs: Long,
     val updatedAtWallMs: Long,
-    val endedAtWallMs: Long?,
+    val endedAtWallMs: Long? = null,
     val status: FreeFlightStatus,
     val phase: FreeFlightPhase,
     val clock: FreeFlightClock,
@@ -179,6 +179,7 @@ data class FreeFlightArchive(
     }
 }
 
+@Serializable
 data class FreeFlightPositionSample(
     val sessionId: String,
     val sequence: Long,
