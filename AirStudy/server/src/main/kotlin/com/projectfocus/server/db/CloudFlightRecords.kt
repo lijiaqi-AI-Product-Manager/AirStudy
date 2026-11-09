@@ -10,6 +10,7 @@ object CloudFlightRecords : Table("cloud_flight_records") {
     val revision = long("revision")
     val deleted = bool("deleted")
     val archiveJson = text("archive_json").nullable()
+    val summaryJson = text("summary_json").nullable()
     val sceneJson = text("scene_json").nullable()
     override val primaryKey = PrimaryKey(userId, mode, recordId)
     init { index(true, userId, revision) }

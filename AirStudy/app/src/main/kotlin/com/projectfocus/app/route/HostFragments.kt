@@ -203,7 +203,7 @@ class RecordListHostFragment : Fragment(com.projectfocus.feature.record.R.layout
                 when (TokenStore.tryWithSnapshotLease(expected) {
                     root.findViewById<android.widget.TextView>(RecordR.id.pf_record_page_text_subtitle).text = distance?.let {
                         getString(RecordR.string.pf_record_page_total_flown_format, com.projectfocus.feature.record.list.RecordListBuilder.km(it))
-                    } ?: getString(RecordR.string.pf_record_page_total_loading)
+                    } ?: getString(if (state.ready) RecordR.string.pf_record_summary_total_pending else RecordR.string.pf_record_page_total_loading)
                 }) {
                     is TokenStore.ImmediateSnapshot.Value -> return@launch
                     TokenStore.ImmediateSnapshot.Obsolete -> return@launch

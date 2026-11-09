@@ -20,7 +20,7 @@ internal class RecordPageAdapter(
         holder.card.bind(item, onSceneEdit, canEdit())
         holder.card.setOnClickListener {
             val index = holder.bindingAdapterPosition
-            if (index != RecyclerView.NO_POSITION && items.getOrNull(index)?.key == item.key) onOpen(holder.card, item)
+            if (index != RecyclerView.NO_POSITION && items.getOrNull(index)?.displayKey == item.displayKey) onOpen(holder.card, item)
         }
     }
     override fun onViewRecycled(holder: Holder) {

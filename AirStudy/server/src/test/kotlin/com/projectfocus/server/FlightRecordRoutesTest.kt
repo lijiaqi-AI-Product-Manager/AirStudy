@@ -57,6 +57,92 @@ class FlightRecordRoutesTest : ServerTestBase() {
         return codec.decodeFromString<FlightRecordResponse<CloudFlightRecordPage>>(response.bodyAsText()).data!!
     }
 
+    private suspend fun summaries(c: TestClient, token: String, query: String = "page=1&limit=100&timerType=all&status=all"): FlightRecordSummaryPage {
+        val response = send(c, token, HttpMethod.Get, "/v2/flight-records?$query")
+        assertThat(response.status.value).isEqualTo(200)
+        return codec.decodeFromString<FlightRecordResponse<FlightRecordSummaryPage>>(response.bodyAsText()).data!!
+    }
+
+    @Test fun summaryPagesKeepModeIdentityRealDurationAndStableFiltering() = serverTest("summary-pagination") { c ->
+        val token = login(c, "summary-pages@airstudy.test")
+        upload(c, token, down("shared")); upload(c, token, up("shared")); upload(c, token, down("cancelled", "CANCELLED"))
+        val first = summaries(c, token, "page=1&limit=2&timerType=all&status=all")
+        val second = summaries(c, token, "page=2&limit=2&timerType=all&status=all")
+        assertThat(first.pagination.totalCount).isEqualTo(3); assertThat(first.pagination.totalPages).isEqualTo(2)
+        val all = (first.records + second.records).map(FlightRecordSummary::parse)
+        assertThat(all.map { it.mode to it.id }.toSet()).hasSize(3)
+        val down = all.single { it.mode == FlightRecordMode.DOWN && it.id == "shared" }
+        assertThat(down.durationSeconds).isEqualTo(2100.0); assertThat(down.distanceKm).isEqualTo(600.25)
+        assertThat(down.departure?.latitude).isEqualTo(40.0); assertThat(down.flightNumber).isNull()
+        val up = summaries(c, token, "page=1&limit=100&timerType=up&status=arrived").records.single().let(FlightRecordSummary::parse)
+        assertThat(up.flightNumber).isEqualTo("AS123"); assertThat(up.durationSeconds).isEqualTo(1900.0)
+        assertThat(summaries(c, token, "page=1&limit=100&timerType=down&status=cancelled").records.single().getValue("flightRecordId").jsonPrimitive.content).isEqualTo("cancelled")
+        assertThat(summaries(c, token, "page=3&limit=2&timerType=all&status=all").records).isEmpty()
+    }
+
+    @Test fun legacySummariesKeepKnownFactsWithoutCreatingAnArchiveOrCoordinates() = serverTest("summary-legacy") { c ->
+        val token = login(c, "summary-legacy@airstudy.test"); val id = UUID.randomUUID().toString()
+        val body = """{"sessions":[{"id":"$id","departureAirportCode":"PEK","destinationAirportCode":"LHR","startTimeMillis":1000000,"durationMinutes":45,"actualFocusMinutes":35,"distanceKm":600.0,"status":"COMPLETED","createdAt":1000000,"updatedAt":3700000}]}"""
+        assertThat(c.withToken(token).post("/session/sync", body).status.value).isEqualTo(200)
+        val old = summaries(c, token).records.single().let(FlightRecordSummary::parse)
+        assertThat(old.id).isEqualTo(id); assertThat(old.departure?.code).isEqualTo("PEK")
+        assertThat(old.departure?.latitude).isNull(); assertThat(old.departure?.name).isNull()
+        assertThat(old.durationSeconds).isEqualTo(2100.0); assertThat(old.flightNumber).isNull()
+        assertThat(page(c, token).items).isEmpty()
+        upload(c, token, down(id))
+        assertThat(summaries(c, token).pagination.totalCount).isEqualTo(1)
+        send(c, token, HttpMethod.Delete, path(FlightRecordMode.DOWN, id))
+        assertThat(summaries(c, token).records).isEmpty()
+        c.post("/session/sync", body)
+        assertThat(summaries(c, token).records).isEmpty()
+    }
+
+    @Test fun summaryBackfillKeepsCursorRevisionsAndSceneChangesOutOfTheArchive() = serverTest("summary-backfill") { c ->
+        val token = login(c, "summary-backfill@airstudy.test"); val record = up("backfill")
+        upload(c, token, record)
+        val before = page(c, token).items.single()
+        transaction { CloudFlightRecords.update({ CloudFlightRecords.recordId eq record.id }) { it[summaryJson] = null } }
+        val first = summaries(c, token).records.single()
+        assertThat(first.toString()).doesNotContain("positions"); assertThat(first.toString()).doesNotContain("ownerScope")
+        assertThat(first.toString()).doesNotContain("device-epoch")
+        assertThat(page(c, token).items.single().revision).isEqualTo(before.revision)
+        val stored = transaction { CloudFlightRecords.selectAll().where { CloudFlightRecords.recordId eq record.id }.single()[CloudFlightRecords.summaryJson] }
+        assertThat(stored).isNotNull()
+        send(c, token, HttpMethod.Patch, path(record.mode, record.id) + "/focus-scene", """{"focusIconType":3,"focusScenario":"Study"}""")
+        val changed = summaries(c, token).records.single().let(FlightRecordSummary::parse)
+        assertThat(changed.sceneLabel).isEqualTo("Study"); assertThat(changed.sceneType).isEqualTo(3)
+        assertThat(page(c, token).items.single().archive).isEqualTo(before.archive)
+        assertThat(changed.revision).isEqualTo(before.revision + 1)
+    }
+
+    @Test fun summaryListsNeverExposeAnotherAccountsDataAndRejectMixedPagination() = serverTest("summary-accounts") { c ->
+        val first = login(c, "summary-first@airstudy.test"); upload(c, first, down("private-record"))
+        val second = login(c, "summary-second@airstudy.test")
+        assertThat(summaries(c, second).pagination.totalCount).isEqualTo(0)
+        assertThat(summaries(c, first).records).hasSize(1)
+        assertThat(send(c, null, HttpMethod.Get, "/v2/flight-records?page=1").status.value).isEqualTo(401)
+        for (query in listOf("page=0", "page=1&limit=101", "page=1&after=0", "page=1&timerType=bad", "page=1&status=bad", "page=abc"))
+            assertThat(send(c, first, HttpMethod.Get, "/v2/flight-records?$query").status.value).isEqualTo(400)
+        assertThat(summaries(c, first).records).hasSize(1)
+    }
+
+    @Test fun theSummaryColumnIsAddedToAnExistingDatabaseWithoutLosingArchivesOrRevisions() {
+        lateinit var token: String
+        val original = down("before-summary-column")
+        serverTest("summary-column-upgrade") { c ->
+            token = login(c, "summary-upgrade@airstudy.test")
+            upload(c, token, original)
+            transaction { exec("ALTER TABLE cloud_flight_records DROP COLUMN summary_json") }
+        }
+        serverTest("summary-column-upgrade") { c ->
+            val record = summaries(c, token).records.single().let(FlightRecordSummary::parse)
+            assertThat(record.id).isEqualTo(original.id); assertThat(record.revision).isEqualTo(1L)
+            assertThat(record.durationSeconds).isEqualTo(2100.0)
+            assertThat(page(c, token).items.single().archive).isEqualTo(original)
+            assertThat(page(c, token).items.single().revision).isEqualTo(1L)
+        }
+    }
+
     @Test fun bothModesKeepTheirCompleteSnapshotsAndPositionSamplesSeparate() = serverTest("cloud-roundtrip") { c ->
         val token = login(c, "roundtrip@airstudy.test"); val id = "same-record"
         assertThat(upload(c, token, down(id)).status.value).isEqualTo(200)

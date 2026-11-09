@@ -31,15 +31,10 @@ class ProjectFocusApp : Application(), com.projectfocus.app.freeflight.FreeFligh
     }
 
     override fun requestRecordCloudSync() {
-        appScope.launch {
-            awaitRecordCloudReady()
-            val identity = com.projectfocus.core.network.di.TokenStore.snapshot()
-            if (!identity.token.isNullOrBlank()) {
-                try { recordMutationRetries.enqueue(com.projectfocus.core.network.di.TokenStore.storageScope(identity)) }
-                catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
-                catch (_: Exception) { Timber.w("记录同步暂不可用") }
-            }
-        }
+        val identity = com.projectfocus.core.network.di.TokenStore.snapshot()
+        if (identity.token.isNullOrBlank()) return
+        retryRecordCloudSync(com.projectfocus.service.focus.history.HistoryAccount(
+            com.projectfocus.core.network.di.TokenStore.storageScope(identity), identity.generation))
     }
 
     override fun retryRecordCloudSync(account: com.projectfocus.service.focus.history.HistoryAccount) {

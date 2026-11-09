@@ -36,6 +36,11 @@ object NetworkModule {
     fun provideRecordArchiveGateway(core: NetworkCore): com.projectfocus.core.network.record.RecordArchiveGateway =
         com.projectfocus.core.network.record.HttpRecordArchiveGateway(core.baseClient, core.baseUrl)
 
+    @Provides
+    @Singleton
+    fun provideRecordSummaryGateway(core: NetworkCore): com.projectfocus.core.network.record.RecordSummaryGateway =
+        com.projectfocus.core.network.record.HttpRecordSummaryGateway(core.baseClient, core.baseUrl)
+
 
     /** REST 用这个 client（短连接、并发多） */
     @Qualifier

@@ -20,6 +20,7 @@ import java.time.Instant
 import java.time.ZoneOffset
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.json.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.collect
 import org.junit.*
@@ -461,6 +462,144 @@ class RecordCloudSyncCoordinatorTest {
         assertEquals(0, sync.synchronize().uploaded); assertEquals(1, remote.uploads.size)
         login("b"); assertEquals(0, sync.synchronize().restored); assertEquals(0, sync.synchronize().uploaded)
         assertEquals(owner, db.flightHistoryDao().findById("shared-id")!!.ownerScope)
+    }
+
+
+    private fun summary(id: String = "remote-only", mode: String = "down", status: String = "arrived") =
+        FlightRecordSummary.parse(Json.parseToJsonElement("""{"flightRecordId":"$id","recordType":"$mode","flightStatus":"$status","flightNumber":"AS321","durationSeconds":90.25,"flightDistanceKm":12.75}""").jsonObject)
+    private fun enableSummaryRead(block: suspend (TokenStore.Snapshot, FlightRecordSummaryQuery) -> RecordSummaryReadResult): RecordSummaryStore {
+        val store = RecordSummaryStore(db, journal)
+        val gateway = object : RecordSummaryGateway {
+            override suspend fun page(identity: TokenStore.Snapshot, query: FlightRecordSummaryQuery) = block(identity, query)
+        }
+        val importer = RecordCloudArchiveImport(db, snapshots, journal, inbox, RecordDeletionStore(db, sessions, notifier), projection, notifier, clock)
+        sync = RecordCloudSyncCoordinator(db, remote, mutations, snapshots, journal, inbox, importer, clock, recovery, gateway, store)
+        return store
+    }
+    private fun summaryPage(query: FlightRecordSummaryQuery, records: List<FlightRecordSummary>, pages: Int = 1, total: Int = records.size) =
+        RecordSummaryReadResult.Loaded(RecordSummaryPage(records, query.page, pages, total))
+    private suspend fun Channel<RecordSummaryState>.untilState(match: (RecordSummaryState) -> Boolean): RecordSummaryState = withTimeout(5_000) {
+        var value = receive()
+        while (!match(value)) value = receive()
+        value
+    }
+
+    @Test fun summaryCacheSurvivesRestartAndCredentialRenewalWithoutCreatingFlightArchives() = runBlocking(Dispatchers.IO) {
+        var store = RecordSummaryStore(db, journal)
+        val record = FlightRecordSummary.parse(JsonObject(summary().raw + ("seatNumber" to JsonPrimitive("03F"))))
+        assertTrue(store.replace(TokenStore.snapshot(), listOf(record), true, 1, wall))
+        assertTrue(db.flightHistoryDao().getAll().isEmpty())
+        assertTrue(db.freeFlightArchiveDao().owned(account().scope).isEmpty())
+        val scope = account().scope
+        reopen("first.db"); store = RecordSummaryStore(db, journal)
+        assertEquals(listOf(record), store.observe().first { it.account != null }.records)
+        TokenStore.clear(); login("a", "replacement-token")
+        assertEquals(scope, account().scope)
+        assertEquals(listOf(record), store.observe().first { it.account == account() }.records)
+        val limited = FlightRecordSummary.parse(JsonObject(record.raw - setOf("flightNumber", "seatNumber")))
+        assertTrue(store.replace(TokenStore.snapshot(), listOf(limited), true, 1, wall + 1))
+        val retained = store.observe().first { it.account == account() }.records.single()
+        assertEquals("AS321", retained.flightNumber); assertEquals("03F", retained.seat)
+        assertNull(retained.departure); assertNull(retained.arrival)
+        assertTrue(db.flightHistoryDao().getAll().isEmpty())
+    }
+
+    @Test fun summariesArePrivateToTheAcceptedAccountAndLateWritesCannotCrossTheBoundary() = runBlocking(Dispatchers.IO) {
+        val store = RecordSummaryStore(db, journal); val first = TokenStore.snapshot()
+        assertTrue(store.replace(first, listOf(summary()), true, 1, wall))
+        login("b")
+        assertTrue(store.observe().first { it.account == account() }.records.isEmpty())
+        assertFalse(store.replace(first, listOf(summary("stale")), true, 1, wall + 1))
+        assertTrue(store.replace(TokenStore.snapshot(), listOf(summary("second", "up")), true, 1, wall + 2))
+        TokenStore.clear()
+        assertTrue(store.observe().first().records.isEmpty())
+        login("a")
+        assertEquals(listOf("remote-only"), store.observe().first { it.account == account() }.records.map { it.id })
+    }
+
+    @Test fun aMalformedSummaryCacheCanBeRepairedOnTheSameLiveSubscription() = runBlocking(Dispatchers.IO) {
+        val store = RecordSummaryStore(db, journal)
+        assertTrue(store.replace(TokenStore.snapshot(), listOf(summary()), true, 1, wall))
+        val original = db.appSettingDao().withPrefix("record.cloud.summaries.v1.").single()
+        val states = Channel<RecordSummaryState>(Channel.UNLIMITED)
+        val collector = launch { store.observe().collect { states.send(it) } }
+        try {
+            states.untilState { it.records.size == 1 }
+            db.appSettingDao().put(original.copy(value = "broken", updatedAt = wall + 1))
+            assertTrue(states.untilState { it.failed }.records.isEmpty())
+            db.appSettingDao().put(original.copy(updatedAt = wall + 2))
+            assertEquals("remote-only", states.untilState { !it.failed && it.records.isNotEmpty() }.records.single().id)
+        } finally { collector.cancelAndJoin(); states.close() }
+    }
+
+    @Test fun newBindingsAndDeletionMarkersRefreshTheExistingSummarySubscription() = runBlocking(Dispatchers.IO) {
+        val store = RecordSummaryStore(db, journal); val key = FlightRecordKey(FlightRecordKind.COUNTDOWN, "local-alias")
+        assertTrue(store.replace(TokenStore.snapshot(), listOf(summary()), true, 1, wall))
+        val states = Channel<RecordSummaryState>(Channel.UNLIMITED)
+        val collector = launch { store.observe().collect { states.send(it) } }
+        try {
+            states.untilState { it.records.size == 1 }
+            journal.bind(account().scope, key, RecordCloudBinding("remote-only", 1, false, false), wall + 1)
+            assertEquals(FlightRecordMode.DOWN to "remote-only", states.untilState { it.aliases.containsKey(key) }.aliases[key])
+            journal.bind(account().scope, key, RecordCloudBinding("remote-only", 2, true, false), wall + 2)
+            assertTrue(states.untilState { it.aliases.containsKey(key) && it.records.isEmpty() }.records.isEmpty())
+        } finally { collector.cancelAndJoin(); states.close() }
+        assertTrue(db.flightHistoryDao().getAll().isEmpty())
+    }
+
+    @Test fun multipleSummaryPagesPublishTogetherAndRetainBothTimerModes() = runBlocking(Dispatchers.IO) {
+        val requested = mutableListOf<Int>()
+        val store = enableSummaryRead { _, query ->
+            requested += query.page
+            summaryPage(query, listOf(summary("same", if (query.page == 1) "down" else "up")), 2, 2)
+        }
+        assertFalse(store.observe().first { it.account != null }.complete)
+        val result = sync.synchronize()
+        assertFalse(result.retryable); assertEquals(listOf(1, 2), requested)
+        val state = store.observe().first { it.records.size == 2 }
+        assertTrue(state.complete); assertEquals(2, state.totalCount)
+        assertEquals(setOf(FlightRecordMode.DOWN, FlightRecordMode.UP), state.records.map { it.mode }.toSet())
+        assertTrue(db.flightHistoryDao().getAll().isEmpty()); assertTrue(remote.uploads.isEmpty())
+    }
+
+    @Test fun aFailedLaterPageRetainsThePreviousCompleteCacheAndAllowsRetry() = runBlocking(Dispatchers.IO) {
+        var fail = true
+        val store = enableSummaryRead { _, query ->
+            if (query.page == 2 && fail) RecordSummaryReadResult.Failure(RecordMutationOutcome.NetworkFailure)
+            else summaryPage(query, listOf(summary("page-${query.page}")), 2, 2)
+        }
+        assertTrue(store.replace(TokenStore.snapshot(), listOf(summary("cached")), true, 1, wall))
+        assertTrue(sync.synchronize().retryable)
+        assertEquals(listOf("cached"), store.observe().first { it.account != null }.records.map { it.id })
+        fail = false
+        assertFalse(sync.synchronize().retryable)
+        assertEquals(listOf("page-1", "page-2"), store.observe().first { it.records.size == 2 }.records.map { it.id })
+    }
+
+    @Test fun repeatedRecordsAndChangingTotalsNeverPublishAMixedPageSnapshot() = runBlocking(Dispatchers.IO) {
+        for (duplicate in listOf(true, false)) {
+            val store = enableSummaryRead { _, query -> summaryPage(query,
+                listOf(summary(if (duplicate) "repeated" else "page-${query.page}")), 2, if (query.page == 2 && !duplicate) 3 else 2) }
+            assertTrue(store.replace(TokenStore.snapshot(), listOf(summary("cached")), true, 1, wall))
+            assertTrue(sync.synchronize().retryable)
+            assertEquals(listOf("cached"), store.observe().first { it.account != null }.records.map { it.id })
+        }
+    }
+
+    @Test fun boundedSummaryLoadingMarksPartialResultsAndSuppressesLateAccountResponses() = runBlocking(Dispatchers.IO) {
+        var switchAccount = false
+        val store = enableSummaryRead { _, query ->
+            if (switchAccount) login("b")
+            summaryPage(query, listOf(summary("page-${query.page}")), 21, 21)
+        }
+        sync.synchronize()
+        val partial = store.observe().first { it.records.isNotEmpty() }
+        assertEquals(20, partial.records.size); assertFalse(partial.complete); assertEquals(21, partial.totalCount)
+        switchAccount = true
+        assertTrue(sync.synchronize().obsolete)
+        assertTrue(store.observe().first { it.account == account() }.records.isEmpty())
+        login("a")
+        assertEquals(20, store.observe().first { it.account == account() }.records.size)
     }
 
     private class Remote : RecordArchiveGateway, RecordMutationGateway {

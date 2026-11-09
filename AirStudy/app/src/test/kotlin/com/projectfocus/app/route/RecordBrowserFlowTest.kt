@@ -23,6 +23,8 @@ import com.projectfocus.core.database.entity.FlightHistoryEntity
 import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.core.network.dto.*
+import kotlinx.serialization.json.*
 import com.projectfocus.feature.record.ui.RecordCardView
 import com.projectfocus.feature.record.ui.RecordPageFragment
 import com.projectfocus.feature.record.ui.RecordDeleteDialog
@@ -154,7 +156,12 @@ class RecordBrowserFlowTest {
             org.robolectric.util.ReflectionHelpers.getField<Lazy<com.projectfocus.feature.record.list.RecordPageViewModel>>(it,"viewModel\$delegate").value
         }
         val lease=TokenStore.tryWithSnapshotLease(TokenStore.snapshot()) { true }.javaClass.simpleName
-        return "Record screen state: host=${host.lifecycle.currentState}, page=${page?.lifecycle?.currentState}, " +
+        val removal=androidx.lifecycle.ViewModelProvider(host)[com.projectfocus.feature.record.list.RecordRemovalViewModel::class.java].state.value
+        val currentTarget=state.items.firstOrNull()?.let(state::deletionTarget)
+        return "Record screen state: removalAttempt=${removal.attempt}, removalSaving=${removal.saving}, removalNotice=${removal.notice}, " +
+            "sameTarget=${removal.target==currentTarget}, targetScene=${removal.target?.record?.editedScene}, currentScene=${currentTarget?.record?.editedScene}, " +
+            "dialogShowing=${ShadowDialog.getLatestDialog()?.isShowing}, latestToast=${ShadowToast.getTextOfLatestToast()}, " +
+            "host=${host.lifecycle.currentState}, page=${page?.lifecycle?.currentState}, " +
             "view=${page?.view?.let { page.viewLifecycleOwner.lifecycle.currentState }}, loading=${state.loading}, failed=${state.failed}, " +
             "items=${state.items.size}, accountCurrent=${state.account?.isCurrent()}, generation=${state.account?.generation}, " +
             "currentGeneration=${TokenStore.snapshot().generation}, sameModel=${hostModel===pageModel}, pageItems=${pageModel?.state?.value?.items?.size}, " +
@@ -197,6 +204,85 @@ class RecordBrowserFlowTest {
         assertNotNull(runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().get("shared-id", TokenStore.storageScope()) })
     }
 
+
+    private fun historical(id: String, mode: String = "down", status: String = "arrived", at: Long = wall) = buildJsonObject {
+        put("flightRecordId", id); put("recordType", mode); put("flightStatus", status)
+        put("flightNumber", "AS321"); put("seatNumber", "03F")
+        put("departureAirport", buildJsonObject { put("code", "PEK"); put("city", "北京") })
+        put("arrivalAirport", buildJsonObject { put("code", "LHR"); put("city", "伦敦") })
+        put("flightStartTime", java.time.Instant.ofEpochMilli(at).toString())
+        put("durationSeconds", 125); put("flightDistanceKm", 42.5)
+        put("focusIconType", 3); put("focusScenario", "阅读")
+    }
+    private fun recordModel() = androidx.lifecycle.ViewModelProvider(host)[com.projectfocus.feature.record.list.RecordPageViewModel::class.java]
+
+    @Test fun historicalListMetadataUsesTheNormalScreenWithoutCreatingLocalFlightArchives() {
+        val identity = TokenStore.snapshot()
+        cloud.seedSummary(identity, historical("same-id"))
+        cloud.seedSummary(identity, historical("same-id", "up", "cancelled", wall - 1000))
+        cloud.seedSummary(identity, buildJsonObject { put("flightRecordId", "unknown"); put("status", "new_status") })
+        showRecords()
+        await { recordModel().state.value.items.size == 3 && list().adapter?.itemCount == 3 }
+        assertTrue(cloud.requestCount > 0)
+        assertEquals(setOf(com.projectfocus.service.focus.history.FlightRecordKind.COUNTDOWN,
+            com.projectfocus.service.focus.history.FlightRecordKind.COUNT_UP), recordModel().state.value.items.filter { it.id == "same-id" }.map { it.kind }.toSet())
+        val first = card(0)
+        assertEquals("AS321", first.findViewById<TextView>(RecordR.id.pf_record_card_text_flight_number).text.toString())
+        assertEquals("03F", first.findViewById<TextView>(RecordR.id.pf_record_card_text_seat).text.toString())
+        assertEquals(View.GONE, first.findViewById<View>(RecordR.id.pf_record_card_img_focus_scene_edit).visibility)
+        assertNull(recordModel().state.value.completedDistanceKm)
+        assertEquals(com.projectfocus.feature.record.list.FlightStatus.UNKNOWN, recordModel().state.value.items.last().status)
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().isEmpty() })
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().owned(TokenStore.storageScope()).isEmpty() })
+        capture("records-historical-metadata")
+    }
+
+    @Test fun aHistoricalCardRetriesThroughTheVisiblePromptAndBecomesOneCompleteRecord() {
+        val identity = TokenStore.snapshot(); val id = "historical-to-complete"
+        cloud.seedSummary(identity, historical(id))
+        runBlocking(Dispatchers.IO) { app.recordCloudSync.synchronize(identity) }
+        showRecords()
+        await { recordModel().state.value.items.singleOrNull()?.cloudSummary != null && list().adapter?.itemCount == 1 }
+        card(0).performClick()
+        await { ShadowDialog.getLatestDialog().let { it is androidx.appcompat.app.AlertDialog && it.isShowing } }
+        val prompt = ShadowDialog.getLatestDialog() as androidx.appcompat.app.AlertDialog
+        assertTrue(prompt.findViewById<TextView>(android.R.id.message)!!.text.toString().contains("历史信息"))
+        capturePrompt(prompt, "records-historical-details")
+        val archive = FlightRecordArchiveSnapshot(FlightRecordMode.DOWN, id, countdown = CountdownRecordArchive(
+            id = id, focusType = "SOLO", departure = PlannedAirport(1,"PEK","Beijing Airport","北京","CN",40.0,116.0),
+            destination = PlannedAirport(2,"LHR","London Airport","伦敦","GB",51.4,-0.4),
+            startTimeMillis = wall, endTimeMillis = wall + 300_000, durationMinutes = 25, actualFocusMinutes = 5,
+            distanceKm = 42.5, status = "COMPLETED", seat = "03F", createdAt = wall, updatedAt = wall + 300_000))
+        cloud.seed(identity, FlightRecordMode.DOWN, id, archive, FlightRecordScenePatch(3,"阅读"))
+        prompt.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).performClick()
+        await { recordModel().state.value.items.singleOrNull()?.let { it.id == id && it.cloudSummary == null } == true }
+        assertFalse(prompt.isShowing)
+        assertEquals(5, runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(id) }!!.actualFocusMinutes)
+        assertEquals(1, list().adapter?.itemCount)
+        assertNotNull(recordModel().state.value.deletionTarget(recordModel().state.value.items.single()))
+        assertEquals("AS321", card(0).findViewById<TextView>(RecordR.id.pf_record_card_text_flight_number).text.toString())
+        capture("records-historical-restored")
+        card(0).performClick()
+        await { activity.findViewById<View>(RecordR.id.pf_record_page_share_preview) != null }
+    }
+
+    @Test fun changingAccountsClosesHistoricalDetailsAndInvalidatesItsOldRetryButton() {
+        val identity = TokenStore.snapshot()
+        cloud.seedSummary(identity, historical("first-account-only"))
+        runBlocking(Dispatchers.IO) { app.recordCloudSync.synchronize(identity) }
+        showRecords()
+        await { recordModel().state.value.items.size == 1 && list().adapter?.itemCount == 1 }
+        card(0).performClick()
+        await { ShadowDialog.getLatestDialog().let { it is androidx.appcompat.app.AlertDialog && it.isShowing } }
+        val prompt = ShadowDialog.getLatestDialog() as androidx.appcompat.app.AlertDialog
+        val oldRetry = prompt.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE)
+        runBlocking(Dispatchers.IO) { TokenStore.setCancellable("historical-second-account") }
+        await { !prompt.isShowing && recordModel().state.value.ready && list().adapter?.itemCount == 0 }
+        oldRetry.performClick(); idle()
+        assertFalse(prompt.isShowing); assertTrue(recordModel().state.value.items.isEmpty())
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().isEmpty() })
+    }
+
     @Test fun incompleteCloudRecordsExplainTheirStatusAndRecoverThroughTheVisibleRetry() {
         val identity = TokenStore.snapshot()
         val mode = com.projectfocus.core.network.dto.FlightRecordMode.DOWN
@@ -216,7 +302,8 @@ class RecordBrowserFlowTest {
         showRecords()
         await { field(RecordR.id.pf_record_recovery_summary).text.toString() == "1 条记录等待恢复" &&
             page().requireView().findViewById<View>(RecordR.id.pf_record_recovery_notice).visibility == View.VISIBLE }
-        assertEquals(0, list().adapter?.itemCount)
+        await { list().adapter?.itemCount == 1 }
+        assertEquals("资料待恢复", card(0).findViewById<TextView>(RecordR.id.pf_record_card_text_status_desc).text.toString().trim())
         assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().isEmpty() })
         capture("records-recovery-pending")
         field(RecordR.id.pf_record_recovery_details).performClick()
@@ -354,7 +441,12 @@ class RecordBrowserFlowTest {
         assertEquals(1, list().adapter?.itemCount)
         assertNotNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("retry-delete") })
         runBlocking(Dispatchers.IO) { app.database.openHelper.writableDatabase.execSQL("DROP TRIGGER reject_record_removal") }
+        val removalModel=androidx.lifecycle.ViewModelProvider(host)[com.projectfocus.feature.record.list.RecordRemovalViewModel::class.java]
+        val previousAttempt=removalModel.state.value.attempt
+        assertTrue(diagnostics(),prompt.isShowing)
+        assertTrue(diagnostics(),confirm.isEnabled)
         confirm.performClick()
+        await { removalModel.state.value.attempt > previousAttempt }
         await { list().adapter?.itemCount == 0 && !prompt.isShowing }
         await { ShadowToast.getTextOfLatestToast()?.toString() == activity.getString(RecordR.string.pf_record_delete_success) }
         assertNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("retry-delete") })
@@ -642,6 +734,7 @@ class RecordBrowserFlowTest {
         await { list().adapter?.itemCount == 10 }
         val originalUp = runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().get("shared-id", TokenStore.storageScope()) }
         val model = androidx.lifecycle.ViewModelProvider(host)[com.projectfocus.feature.record.list.RecordPageViewModel::class.java]
+        await { model.state.value.completedDistanceKm != null }
         val distance = requireNotNull(model.state.value.completedDistanceKm)
         page().requireView().findViewById<View>(RecordR.id.pf_record_page_btn_next_page).performClick()
         await { list().adapter?.itemCount == 1 && field(RecordR.id.pf_record_page_text_page_indicator).text.toString() == "第 2 页" }

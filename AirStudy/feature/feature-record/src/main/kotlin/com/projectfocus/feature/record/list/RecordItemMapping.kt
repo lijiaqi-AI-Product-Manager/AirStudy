@@ -17,7 +17,7 @@ object RecordItemMapping {
         val archive = (record as? RecordedFlight.CountUp)?.archive
         val start = Instant.ofEpochMilli(legacy?.startTimeMillis ?: requireNotNull(archive).startedAtWallMs).atZone(zone)
         val state = legacy?.status ?: requireNotNull(archive).status.name
-        val status = FlightStatus.entries.firstOrNull { it.dbValue == state }
+        val status = FlightStatus.entries.firstOrNull { it.dbValue == state && it != FlightStatus.UNKNOWN }
             ?: error("Unsupported stored flight status")
         val scene = record.editedScene?.snapshot
             ?: legacy?.let { PlannedFlightMetadataCodec.decodeSceneOrNull(it.sceneSnapshotJson) }

@@ -86,8 +86,8 @@ class RecordSharePreview(
 
     fun keepFor(account: HistoryAccount?, items: List<RecordItem>) {
         val active = entry ?: return
-        val current = items.firstOrNull { it.key == active.item.key }
-        if (active.account != account || current == null || current.sceneRevision != active.item.sceneRevision ||
+        val current = items.firstOrNull { it.displayKey == active.item.displayKey }
+        if (active.account != account || current != active.item ||
             !active.account.isCurrent()) close()
     }
 

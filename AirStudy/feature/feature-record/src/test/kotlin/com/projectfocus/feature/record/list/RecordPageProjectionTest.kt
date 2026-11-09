@@ -4,6 +4,8 @@ import com.projectfocus.core.database.entity.FlightHistoryEntity
 import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.core.network.dto.*
+import kotlinx.serialization.json.*
 import com.projectfocus.service.focus.history.*
 import java.time.Instant
 import java.time.ZoneId
@@ -33,6 +35,74 @@ class RecordPageProjectionTest {
     private fun read(rows: List<RecordedFlight>) = HistoryReadState.Loaded(account,rows,emptyMap(),emptyMap())
     private fun query(status: RecordStatusFilter = RecordStatusFilter.ALL, period: RecordPeriod = RecordPeriod.ALL, page: Int = 1) =
         RecordPageQuery(status,period,page,account.generation)
+
+
+    private fun summary(id: String, mode: String = "down", status: String = "arrived", extra: String = "") =
+        FlightRecordSummary.parse(Json.parseToJsonElement("""{"id":"$id","recordType":"$mode","status":"$status"$extra}""").jsonObject)
+    private fun remote(vararg records: FlightRecordSummary) = RecordSummaryState(account, records.toList(), totalCount = records.size)
+
+    @Test fun historicalSummariesDisplayAvailableFactsWithoutBecomingDeletableArchives() {
+        val record = summary("historical", extra = """, "flightNumber":"AS321","departureAirportCode":"PEK","arrivalAirportCode":"LHR","durationSeconds":125.0,"flightDistanceKm":42.5,"seatNumber":"03F","focusIconType":3,"focusScenario":"阅读","flightStartTime":"2026-03-29T12:00:00Z"""")
+        val page = RecordPageProjection.build(read(emptyList()), query(), wall, zone, remote(record))
+        val item = page.items.single()
+        assertEquals("AS321", item.flightNumber); assertEquals("PEK", item.fromCode); assertEquals("LHR", item.toCode)
+        assertEquals(2, item.focusMinutes); assertEquals(42.5, item.distanceKm!!, 0.0)
+        assertEquals("03F", item.seat); assertEquals("阅读", item.sceneTitle); assertEquals(record, item.cloudSummary)
+        assertNull(page.deletionTarget(item)); assertEquals(42.5, page.completedDistanceKm!!, 0.0)
+    }
+
+    @Test fun unknownSummaryFactsDoNotBecomeCancelledZeroLengthFlightsOrEpochDates() {
+        val page = RecordPageProjection.build(read(emptyList()), query(), wall, zone, remote(summary("unknown", status = "future")))
+        val item = page.items.single()
+        assertEquals(FlightStatus.UNKNOWN, item.status); assertNull(item.recordedAtWallMs)
+        assertEquals("—", item.focusText); assertEquals("—", item.distanceText)
+        assertNull(item.dateText); assertNull(item.distanceKm); assertNull(page.completedDistanceKm)
+        assertEquals(0, RecordPageProjection.build(read(emptyList()), query(RecordStatusFilter.CANCELLED), wall, zone,
+            remote(summary("unknown", status = "future"))).matchedCount)
+        assertEquals(0, RecordPageProjection.build(read(emptyList()), query(period = RecordPeriod.DAY), wall, zone,
+            remote(summary("unknown"))).matchedCount)
+    }
+
+    @Test fun matchingFullArchivesReplaceSummaryCardsButEqualIdsAcrossModesStayDistinct() {
+        val local = row("local-id").let { it.copy(record = it.record.copy(seat = null)) }
+        val summaries = remote(summary("remote-id", extra = """, "flightNumber":"AS321", "seatNumber":"03F""""), summary("remote-id", "up")).copy(
+            aliases = mapOf(local.key to (FlightRecordMode.DOWN to "remote-id")))
+        val page = RecordPageProjection.build(read(listOf(local)), query(), wall, zone, summaries)
+        assertEquals(2, page.items.size); assertEquals(1, page.items.count { it.cloudSummary == null })
+        assertEquals(FlightRecordKind.COUNT_UP, page.items.single { it.cloudSummary != null }.kind)
+        assertNotNull(page.deletionTarget(page.items.single { it.cloudSummary == null }))
+        val complete = page.items.single { it.cloudSummary == null }
+        assertEquals("AS321", complete.flightNumber); assertEquals("03F", complete.seat)
+        assertEquals(5, complete.focusMinutes); assertEquals(99.25, complete.distanceKm!!, 0.0)
+    }
+
+    @Test fun unrelatedSummaryIdsNeverBorrowAnotherCardsLocalActions() {
+        val local = row("local-id")
+        val summaries = remote(summary("remote-id"), summary("local-id")).copy(
+            aliases = mapOf(local.key to (FlightRecordMode.DOWN to "remote-id")))
+        val page = RecordPageProjection.build(read(listOf(local)), query(), wall, zone, summaries)
+        assertEquals(2, page.items.size); assertEquals(2, page.items.map { it.displayKey }.toSet().size)
+        assertNull(page.deletionTarget(page.items.single { it.cloudSummary != null }))
+    }
+
+    @Test fun summariesUseTheNormalPagerAndNeverSurviveAnAccountGenerationChange() {
+        val records = (1..12).map { summary("old-$it", status = if (it % 2 == 0) "cancelled" else "arrived",
+            extra = """, "flightStartTime":"2026-03-29T12:00:00Z"""") }
+        val summaries = RecordSummaryState(account, records)
+        val page = RecordPageProjection.build(read(emptyList()), query(page = 2), wall, zone, summaries)
+        assertEquals(12, page.matchedCount); assertEquals(2, page.pageCount); assertEquals(2, page.items.size)
+        assertEquals(6, RecordPageProjection.build(read(emptyList()), query(RecordStatusFilter.ARRIVED), wall, zone, summaries).matchedCount)
+        TokenStore.set("second-account")
+        assertTrue(RecordPageProjection.build(read(emptyList()), query(), wall, zone, summaries).items.isEmpty())
+    }
+
+    @Test fun partialOrUnreadableHistoryNeverShowsTheVisibleSubsetAsACompleteDistanceTotal() {
+        val old = summary("known", extra = """, "flightDistanceKm":40.0""")
+        for (summaries in listOf(remote(old).copy(complete = false, totalCount = 20), remote(old).copy(failed = true))) {
+            val page = RecordPageProjection.build(read(listOf(row("local"))), query(), wall, zone, summaries)
+            assertTrue(page.ready); assertEquals(2, page.items.size); assertNull(page.completedDistanceKm)
+        }
+    }
 
     @Test fun pagesStayBoundedAfterRowsDisappearAndEqualIdentifiersKeepBothModes() {
         val engine = FreeFlightEngine()
@@ -107,8 +177,8 @@ class RecordPageProjectionTest {
     }
 
     @Test fun anUnknownStoredStatusIsRejectedInsteadOfLabelledCancelled() {
-        assertThrows(IllegalArgumentException::class.java) {
-            RecordPageProjection.build(read(listOf(row("corrupt",status="FUTURE_STATUS"))),query(),wall,zone)
+        for (status in listOf("FUTURE_STATUS", "UNKNOWN")) assertThrows(IllegalArgumentException::class.java) {
+            RecordPageProjection.build(read(listOf(row("corrupt",status=status))),query(),wall,zone)
         }
     }
 }

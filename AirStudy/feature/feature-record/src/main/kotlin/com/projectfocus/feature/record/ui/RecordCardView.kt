@@ -94,7 +94,7 @@ class RecordCardView @JvmOverloads constructor(
         val statusColor = color(when (item.status) {
             FlightStatus.COMPLETED -> R.color.pf_record_card_completed
             FlightStatus.ONGOING -> R.color.pf_record_card_ongoing
-            FlightStatus.CANCELLED -> R.color.pf_record_card_cancelled
+            FlightStatus.CANCELLED, FlightStatus.UNKNOWN -> R.color.pf_record_card_cancelled
         })
         statusDot.setColorFilter(statusColor)
         status.setTextColor(statusColor)
@@ -102,6 +102,7 @@ class RecordCardView @JvmOverloads constructor(
             FlightStatus.COMPLETED -> R.string.pf_record_card_flight_status_arrived
             FlightStatus.ONGOING -> R.string.pf_record_card_record_status_in_progress
             FlightStatus.CANCELLED -> R.string.pf_record_card_record_status_cancelled
+            FlightStatus.UNKNOWN -> R.string.pf_record_summary_pending
         })
         focus.text = item.focusMinutes?.let { "$it ${context.getString(R.string.pf_record_card_common_min)}" } ?: item.focusText
         focusContainer.visibility = if (item.status == FlightStatus.COMPLETED) View.VISIBLE else View.GONE
@@ -115,7 +116,7 @@ class RecordCardView @JvmOverloads constructor(
         val sceneColor = builtin?.color ?: color(R.color.pf_record_card_primary)
         sceneIcon.setColorFilter(sceneColor)
         scene.setTextColor(sceneColor)
-        if (item.status == FlightStatus.COMPLETED && item.recordedAtWallMs != null && onSceneEdit != null) {
+        if (item.cloudSummary == null && item.status == FlightStatus.COMPLETED && item.recordedAtWallMs != null && onSceneEdit != null) {
             sceneEdit.visibility = View.VISIBLE
             (sceneEdit as ImageView).setColorFilter(0xFF8E8E93.toInt())
             sceneEdit.isEnabled = sceneEditingEnabled

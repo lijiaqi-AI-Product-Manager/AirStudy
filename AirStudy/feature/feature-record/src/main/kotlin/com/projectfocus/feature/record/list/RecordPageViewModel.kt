@@ -7,6 +7,10 @@ import com.projectfocus.service.focus.history.FlightHistoryReader
 import com.projectfocus.service.focus.history.HistoryAccount
 import com.projectfocus.service.focus.history.HistoryReadState
 import com.projectfocus.service.focus.history.RecordedFlight
+import com.projectfocus.service.focus.history.RecordSummaryStore
+import com.projectfocus.service.focus.history.RecordSummaryState
+import com.projectfocus.core.network.dto.FlightRecordMode
+import com.projectfocus.service.focus.history.FlightRecordKind
 import com.projectfocus.service.focus.history.FlightRecordKey
 import com.projectfocus.service.focus.history.RecordDeletionTarget
 import com.projectfocus.service.focus.history.RecordSceneOperations
@@ -65,7 +69,7 @@ data class RecordPageState(
     val ready get() = !loading && !failed && account?.isCurrent() == true
 
     fun deletionTarget(item: RecordItem): RecordDeletionTarget? {
-        if (!ready || items.none { it == item }) return null
+        if (!ready || item.cloudSummary != null || items.none { it == item }) return null
         return deletionTargets[item.key]?.takeIf { it.account == account }
     }
 }
@@ -73,12 +77,20 @@ data class RecordPageState(
 object RecordPageProjection {
     const val PAGE_SIZE = 10
 
-    fun build(read: HistoryReadState, query: RecordPageQuery, now: Long, zone: ZoneId): RecordPageState {
+    fun build(read: HistoryReadState, query: RecordPageQuery, now: Long, zone: ZoneId,
+        summaries: RecordSummaryState = RecordSummaryState()): RecordPageState {
         val empty = RecordPageState(account = read.account, query = query)
         if (!read.account.isCurrent()) return empty.copy(account = null)
         if (read is HistoryReadState.Loading) return empty
         if (read is HistoryReadState.Failure) return empty.copy(loading = false, failed = true)
         read as HistoryReadState.Loaded
+        require(read.records.all { record ->
+            val status = when (record) {
+                is RecordedFlight.Countdown -> record.record.status
+                is RecordedFlight.CountUp -> record.archive.status.name
+            }
+            status in setOf("ONGOING", "COMPLETED", "CANCELLED")
+        }) { "Unsupported stored flight status" }
         val today = Instant.ofEpochMilli(now).atZone(zone).toLocalDate()
         val first = when (query.period) {
             RecordPeriod.DAY -> today
@@ -94,37 +106,46 @@ object RecordPageProjection {
         }
         val from = first?.atStartOfDay(zone)?.toInstant()?.toEpochMilli()
         val until = end?.atStartOfDay(zone)?.toInstant()?.toEpochMilli()
-        val matching = read.records.filter { record ->
-            val status = when (record) {
-                is RecordedFlight.Countdown -> record.record.status
-                is RecordedFlight.CountUp -> record.archive.status.name
-            }
-            require(status in setOf("COMPLETED", "ONGOING", "CANCELLED"))
+        val known = summaries.takeIf { it.account == read.account && !TokenStore.snapshot().token.isNullOrBlank() }
+        fun remoteKey(record: RecordedFlight) =
+            known?.aliases?.get(record.key) ?: (if (record.key.kind == FlightRecordKind.COUNTDOWN) FlightRecordMode.DOWN to record.key.id
+                else FlightRecordMode.UP to ((record as RecordedFlight.CountUp).archive.remoteRecordId?.trim()?.takeIf(String::isNotEmpty) ?: record.key.id))
+        val remoteKeys = read.records.map { remoteKey(it) }.toSet()
+        val metadata = known?.records.orEmpty().associateBy { it.mode to it.id }
+        val partial = metadata.values.filter { (it.mode to it.id) !in remoteKeys }.map { RecordSummaryItemMapping.item(it, zone) }
+        val all = read.records.map { record ->
+            val item = RecordItemMapping.item(record, zone)
+            val details = metadata[remoteKey(record)]
+            item.copy(flightNumber = item.flightNumber ?: details?.flightNumber, seat = item.seat ?: details?.seat)
+        } + partial
+        val matching = all.filter { record ->
             val accepted = when (query.status) {
                 RecordStatusFilter.ALL -> true
-                RecordStatusFilter.ARRIVED -> status == "COMPLETED"
-                RecordStatusFilter.IN_PROGRESS -> status == "ONGOING"
-                RecordStatusFilter.CANCELLED -> status == "CANCELLED"
+                RecordStatusFilter.ARRIVED -> record.status == FlightStatus.COMPLETED
+                RecordStatusFilter.IN_PROGRESS -> record.status == FlightStatus.ONGOING
+                RecordStatusFilter.CANCELLED -> record.status == FlightStatus.CANCELLED
             }
-            accepted && (from == null || (record.recordedAtWallMs >= from && record.recordedAtWallMs < requireNotNull(until)))
-        }.sortedWith(compareByDescending<RecordedFlight> { it.recordedAtWallMs }
-            .thenBy { it.key.kind.ordinal }.thenBy { it.key.id })
+            accepted && (from == null || record.recordedAtWallMs?.let { it >= from && it < requireNotNull(until) } == true)
+        }.sortedWith(compareByDescending<RecordItem> { it.recordedAtWallMs ?: Long.MIN_VALUE }
+            .thenBy { it.kind.ordinal }.thenBy { it.id })
         val pages = ((matching.size.toLong() + PAGE_SIZE - 1) / PAGE_SIZE).toInt().coerceAtLeast(1)
         val requested = if (query.generation == read.account.generation) query.page else 1
         val page = requested.coerceIn(1, pages)
-        val distance = read.records.filter { it.completed }.sumOf { it.distanceKm }
+        val distance = all.filter { it.status == FlightStatus.COMPLETED }.sumOf { it.distanceKm ?: 0.0 }
         require(distance.isFinite() && distance >= 0.0)
         val visible = matching.drop((page - 1) * PAGE_SIZE).take(PAGE_SIZE)
         return empty.copy(
             loading = false,
-            items = visible.map { RecordItemMapping.item(it, zone) },
+            items = visible,
             page = page,
             pageCount = pages,
             matchedCount = matching.size,
-            completedDistanceKm = distance,
-            deletionTargets = java.util.Collections.unmodifiableMap(visible.associate {
-                it.key to RecordDeletionTarget(read.account, it)
-            }),
+            completedDistanceKm = distance.takeUnless { summaries.account == read.account && (!summaries.complete || summaries.failed) ||
+                partial.any { it.status == FlightStatus.UNKNOWN ||
+                it.status == FlightStatus.COMPLETED && it.distanceKm == null } },
+            deletionTargets = java.util.Collections.unmodifiableMap(read.records.filter { record ->
+                visible.any { it.cloudSummary == null && it.key == record.key }
+            }.associate { it.key to RecordDeletionTarget(read.account, it) }),
         )
     }
 }
@@ -136,6 +157,7 @@ class RecordPageViewModel @Inject constructor(
     private val zone: ZoneId,
     private val sceneStore: RecordSceneOperations,
     private val recoveryStore: com.projectfocus.service.focus.history.RecordRecoveryStatusStore? = null,
+    private val summaries: RecordSummaryStore? = null,
 ) : ViewModel() {
     private val query = MutableStateFlow(RecordPageQuery())
     private val now = MutableStateFlow(clock.millis())
@@ -143,9 +165,9 @@ class RecordPageViewModel @Inject constructor(
     val sceneSave: kotlinx.coroutines.flow.StateFlow<RecordSceneSaveState> = mutableSceneSave
     val recoveryStatus = (recoveryStore?.observe() ?: kotlinx.coroutines.flow.flowOf(com.projectfocus.service.focus.history.RecordRecoveryStatus()))
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(0), com.projectfocus.service.focus.history.RecordRecoveryStatus())
-    val state = combine(reader.records, query, now) { records, filter, wall ->
+    val state = combine(reader.records, query, now, summaries?.observe() ?: kotlinx.coroutines.flow.flowOf(RecordSummaryState())) { records, filter, wall, remote ->
         try {
-            RecordPageProjection.build(records, filter, wall, zone)
+            RecordPageProjection.build(records, filter, wall, zone, remote)
         } catch (error: Exception) {
             if (error is CancellationException) throw error
             RecordPageState(records.account, loading = false, failed = true, query = filter)
@@ -166,6 +188,7 @@ class RecordPageViewModel @Inject constructor(
     fun previous() = changePage(-1)
     fun next() = changePage(1)
     fun changeScene(item: RecordItem, scene: PlannedScene) {
+        if (item.cloudSummary != null) return
         val current = state.value.takeIf { it.ready } ?: return
         if (mutableSceneSave.value.saving || item.status != FlightStatus.COMPLETED || item.recordedAtWallMs == null ||
             current.items.none { it == item }) return

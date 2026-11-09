@@ -46,11 +46,14 @@ data class RecordItem(
     val recordedAtWallMs: Long? = null,
     val sceneRevision: Long = 0L,
     val sceneOptionId: String? = null,
+    val cloudSummary: com.projectfocus.core.network.dto.FlightRecordSummary? = null,
 ) {
     val key: FlightRecordKey get() = FlightRecordKey(kind, id)
+    val displayKey get() = Triple(kind, id, cloudSummary != null)
     /** 供无障碍整条朗读 */
     val spokenSummary: String
-        get() = "$fromCity 到 $toCity，$startTime 起飞，${status.label}，" +
+        get() = if (cloudSummary != null) "$fromCity 到 $toCity，${status.label}，历史资料已保留，完整飞行资料待恢复" else
+            "$fromCity 到 $toCity，$startTime 起飞，${status.label}，" +
             (if (kind == FlightRecordKind.COUNT_UP) "正计时，实际专注 $focusText"
             else "倒计时，计划 $durationText，实际专注 $focusText") +
                 sceneTitle?.takeIf { it.isNotBlank() }?.let { "，场景 $it" }.orEmpty()
@@ -61,6 +64,7 @@ enum class FlightStatus(val dbValue: String, val label: String) {
     ONGOING("ONGOING", "进行中"),
     COMPLETED("COMPLETED", "已完成"),
     CANCELLED("CANCELLED", "已取消"),
+    UNKNOWN("UNKNOWN", "资料待恢复"),
     ;
 
     companion object {

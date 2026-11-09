@@ -179,6 +179,7 @@ object RecordDetailBuilder {
             FlightStatus.ONGOING -> "进行中"
             FlightStatus.COMPLETED -> "已完成"
             FlightStatus.CANCELLED -> "已取消"
+            FlightStatus.UNKNOWN -> "资料待恢复"
         }
         return if (known) base else "$base（状态异常）"
     }

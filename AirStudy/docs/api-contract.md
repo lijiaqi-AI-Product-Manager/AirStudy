@@ -84,7 +84,7 @@
 | POST | `/session/sync` | 是 | `BulkSyncRequest` | `SyncResultDto` |
 | GET | `/session/history` | 是 | — | `SessionHistoryDto` |
 | DELETE | `/session/{id}` | 是 | — | `null` |
-| GET | `/v2/flight-records` | 是 | `after`, `limit` | `CloudFlightRecordPage` |
+| GET | `/v2/flight-records` | 是 | `after`, `limit`；或 `page`, `limit`, `timerType`, `status` | `CloudFlightRecordPage` 或 `FlightRecordSummaryPage` |
 | PUT | `/v2/flight-records/{mode}/{id}` | 是 | `FlightRecordArchiveUpload` | `FlightRecordMutationReceipt` |
 | PATCH | `/v2/flight-records/{mode}/{id}/focus-scene` | 是 | `FlightRecordScenePatch` | `FlightRecordMutationReceipt` |
 | DELETE | `/v2/flight-records/{mode}/{id}` | 是 | — | `FlightRecordMutationReceipt` |
@@ -105,6 +105,12 @@
 | POST | `/freeflight/admission/local-start-failed` | 原操作主体；设备操作另需原凭据（本品适配） | `FreeFlightLocalFailureRequest` | `FreeFlightLocalFailureReply` |
 | POST | `/v2/airports/search/location` | 否（本品完整机场目录适配） | `AirportLocationRequest` | `NearbyAirportDto[]` |
 <!-- ENDPOINTS:END -->
+
+分页历史读取显式传入 `page`（从1开始）、`limit`（1至100，默认100）、`timerType`（all/down/up）及 `status`（all/arrived/in_progress/cancelled），与 `after` 增量读取互斥。返回 `data.records` 和 `pagination.totalPages/totalCount/page/limit`，按起飞时间倒序排列，同一时间按模式及标识稳定排序。删除标记不进入历史列表，旧版记录与完整归档按账号、模式和标识去重。
+
+历史列表保存已有机场、航班号、座位、时间、实际时长、里程和场景信息；缺少的信息保持未知，不创建虚假的可续飞存档。列表按账号缓存，换账号后清理当前显示，同账号重新登录后保留历史。多页读取完整成功后一起更新缓存，失败保留已有结果；达到读取上限时标记资料尚未完整。资料不足的记录可从当前页面重试恢复，完整归档恢复后由正常记录替代，避免重复显示或让旧按钮操作其他账号。
+
+进入记录页后即请求当前账号的记录，失败时保留后台重试。补齐归档不会清空已知的航班号和座位；完整记录已有的机场、实际时长和里程优先使用实际归档。用于展示的历史信息按账号、模式与记录标识匹配，显示信息发生变化时关闭旧分享预览。
 
 记录页按当前账号显示待恢复数量，并分别说明旧资料缺失、暂不支持的场景、正在使用或有差异的记录、待同步修改及网络或登录问题。用户可查看详情并重试，登录失效时进入正常登录流程。资料补齐后恢复真实归档并清除提示；退出页面和切换账号使旧按钮失效。恢复进度不跨进程保留为忙碌状态。
 

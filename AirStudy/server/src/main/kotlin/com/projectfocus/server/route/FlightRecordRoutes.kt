@@ -19,6 +19,7 @@ import java.net.URLDecoder
 
 fun Application.registerFlightRecordRoutes(database: Database) {
     val service = FlightRecordService(database)
+    val summaries = com.projectfocus.server.domain.FlightRecordSummaryService(database)
     suspend fun ApplicationCall.reply(block: suspend () -> Unit) {
         response.headers.append("Cache-Control", "private, no-store")
         try {
@@ -52,6 +53,16 @@ fun Application.registerFlightRecordRoutes(database: Database) {
                 get {
                     call.reply {
                         val user = call.principalOf().userId
+                        if (call.request.queryParameters["page"] != null) {
+                            require(call.request.queryParameters["after"] == null)
+                            val query = FlightRecordSummaryQuery(
+                                page = requireNotNull(call.request.queryParameters["page"]?.toIntOrNull()),
+                                limit = call.request.queryParameters["limit"]?.let { requireNotNull(it.toIntOrNull()) } ?: 100,
+                                timerType = call.request.queryParameters["timerType"] ?: "all",
+                                status = call.request.queryParameters["status"] ?: "all")
+                            call.respond(FlightRecordResponse(true, data = withContext(Dispatchers.IO) { summaries.page(user, query) }))
+                            return@reply
+                        }
                         val after = call.request.queryParameters["after"]?.let { requireNotNull(it.toLongOrNull()) } ?: 0L
                         val limit = call.request.queryParameters["limit"]?.let { requireNotNull(it.toIntOrNull()) } ?: 50
                         call.respond(FlightRecordResponse(true, data = withContext(Dispatchers.IO) { service.changes(user, after, limit) }))

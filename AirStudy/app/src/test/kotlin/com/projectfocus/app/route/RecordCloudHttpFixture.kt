@@ -7,6 +7,7 @@ import com.projectfocus.service.focus.history.RecordCloudSyncCoordinator
 import java.net.URLDecoder
 import java.util.concurrent.TimeUnit
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.*
 import mockwebserver3.*
 import okhttp3.OkHttpClient
 import org.json.JSONObject
@@ -18,11 +19,13 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
     private val previousMutations = ReflectionHelpers.getField<RecordMutationGateway>(coordinator, "mutations")
     private val previousArchives = ReflectionHelpers.getField<RecordArchiveGateway>(coordinator, "archives")
     private val previousSync = sync?.let { ReflectionHelpers.getField<RecordArchiveGateway>(it, "gateway") }
+    private val previousSummary = sync?.let { ReflectionHelpers.getField<RecordSummaryGateway?>(it, "summaryGateway") }
     private val http = OkHttpClient.Builder().callTimeout(5, TimeUnit.SECONDS).build()
     private val server = MockWebServer()
     private val records = mutableMapOf<String, CloudFlightRecord>()
     private val counters = mutableMapOf<String, Long>()
     private val receipts = mutableMapOf<String, Pair<String, Long>>()
+    private val historical = mutableMapOf<String, JsonObject>()
     val mutationGateway: RecordMutationGateway
     @Volatile var rejectionStatus: Int? = null
     val requestCount: Int get() = server.requestCount
@@ -36,6 +39,11 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
         val version = (counters[authorization] ?: 0L) + 1
         counters[authorization] = version
         CloudFlightRecord(mode, id, version, false, archive, scene).also { records[recordKey(identity, mode, id)] = it }
+    }
+
+    fun seedSummary(identity: com.projectfocus.core.network.di.TokenStore.Snapshot, value: JsonObject) = synchronized(records) {
+        val parsed = FlightRecordSummary.parse(value)
+        historical[recordKey(identity, parsed.mode, parsed.id)] = value
     }
 
     private fun recordKey(identity: com.projectfocus.core.network.di.TokenStore.Snapshot, mode: FlightRecordMode, id: String) =
@@ -52,6 +60,7 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
         ReflectionHelpers.setField(coordinator, "mutations", mutationGateway)
         ReflectionHelpers.setField(coordinator, "archives", archives)
         sync?.let { ReflectionHelpers.setField(it, "gateway", archives) }
+        sync?.let { ReflectionHelpers.setField(it, "summaryGateway", HttpRecordSummaryGateway(http, server.url("/").toString())) }
     }
 
     private fun reply(request: RecordedRequest): MockResponse {
@@ -59,6 +68,23 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
         val authorization = request.headers["Authorization"] ?: return failure(401)
         val path = request.url.encodedPath
         if (path == "/v2/flight-records" && request.method == "GET") {
+            request.url.queryParameter("page")?.let { value ->
+                val page = value.toInt(); val limit = request.url.queryParameter("limit")!!.toInt()
+                val owned = historical.filterKeys { it.startsWith(authorization + "\n") }.toMutableMap()
+                for ((key, record) in records.filterKeys { it.startsWith(authorization + "\n") }) {
+                    if (record.deleted) owned.remove(key)
+                    else owned[key] = (record.archive?.summaryJson(record.scene) ?: buildJsonObject {
+                        put("flightRecordId", record.id); put("recordType", record.mode.path)
+                        record.scene?.let { put("focusIconType", it.focusIconType); put("focusScenario", it.focusScenario) }
+                    }).withSummaryScene(record.scene, record.revision)
+                }
+                val summaries = owned.values.toList()
+                val selected = summaries.drop((page - 1) * limit).take(limit)
+                return MockResponse.Builder().code(200).body(Json.encodeToString(
+                    FlightRecordResponse.serializer(FlightRecordSummaryPage.serializer()),
+                    FlightRecordResponse(success = true, data = FlightRecordSummaryPage(selected,
+                        FlightRecordSummaryPagination((summaries.size + limit - 1) / limit, summaries.size, page, limit))))).build()
+            }
             val after = request.url.queryParameter("after")?.toLongOrNull() ?: return failure(400)
             val limit = request.url.queryParameter("limit")?.toIntOrNull() ?: return failure(400)
             if (after < 0 || limit !in 1..100) return failure(400)
@@ -122,6 +148,7 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
         ReflectionHelpers.setField(coordinator, "mutations", previousMutations)
         ReflectionHelpers.setField(coordinator, "archives", previousArchives)
         if (sync != null && previousSync != null) ReflectionHelpers.setField(sync, "gateway", previousSync)
+        if (sync != null) ReflectionHelpers.setField(sync, "summaryGateway", previousSummary)
         server.close(); http.dispatcher.executorService.shutdown(); http.connectionPool.evictAll()
     }
 }

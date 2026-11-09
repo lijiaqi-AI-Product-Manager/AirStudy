@@ -35,7 +35,8 @@ class FlightRecordService(private val database: Database) {
             checkRevision(current, options)
             if (stored == payload) return@mutate current!![Records.revision]
             val revision = nextRevision(user)
-            write(user, mode, id, current, revision, false, payload, current?.get(Records.sceneJson) ?: scene)
+            write(user, mode, id, current, revision, false, payload, current?.get(Records.sceneJson) ?: scene,
+                archive.summaryJson().toString())
             FlightRecordTotals.recompute(user)
             revision
         }
@@ -153,12 +154,14 @@ class FlightRecordService(private val database: Database) {
         .orderBy(Records.revision to SortOrder.DESC).limit(1).singleOrNull()?.get(Records.revision) ?: 0L, 1L)
 
     private fun write(user: String, mode: FlightRecordMode, id: String, previous: ResultRow?, revision: Long,
-                      deleted: Boolean, archive: String?, scene: String?) {
+                      deleted: Boolean, archive: String?, scene: String?, summary: String? = previous?.get(Records.summaryJson)) {
         if (previous == null) Records.insert {
             it[userId] = user; it[Records.mode] = mode.path; it[recordId] = id; it[Records.revision] = revision
             it[Records.deleted] = deleted; it[archiveJson] = archive; it[sceneJson] = scene
+            it[summaryJson] = if (deleted) null else summary
         } else Records.update({ (Records.userId eq user) and (Records.mode eq mode.path) and (Records.recordId eq id) }) {
             it[Records.revision] = revision; it[Records.deleted] = deleted; it[archiveJson] = archive; it[sceneJson] = scene
+            it[summaryJson] = if (deleted) null else summary
         }
     }
 

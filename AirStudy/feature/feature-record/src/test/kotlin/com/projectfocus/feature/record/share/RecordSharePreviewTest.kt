@@ -14,6 +14,8 @@ import androidx.test.core.app.ActivityScenario
 import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.core.network.dto.FlightRecordSummary
+import kotlinx.serialization.json.*
 import com.projectfocus.feature.record.R
 import com.projectfocus.feature.record.list.RecordItem
 import com.projectfocus.feature.record.list.RecordItemMapping
@@ -134,6 +136,22 @@ class RecordSharePreviewTest {
         assertThrows(SecurityException::class.java) { activity.contentResolver.openInputStream(escaped) }
         val artifact = File("build/reports/record-card/record-card-share.png")
         artifact.parentFile!!.mkdirs(); artifact.writeBytes(bytes)
+    }
+
+    @Test fun aSummaryWithTheSameLocalKeyCannotKeepAnOldFullRecordPreviewAlive() {
+        preview.open(card,item,owner)
+        pump { visible }
+        preview.keepFor(owner, listOf(item.copy(flightNumber = "AS321")))
+        assertFalse(visible)
+        preview.open(card,item,owner)
+        pump { visible }
+        val summary = FlightRecordSummary.parse(buildJsonObject {
+            put("flightRecordId", item.id); put("recordType", "up"); put("flightStatus", "arrived")
+        })
+        preview.keepFor(owner, listOf(item.copy(cloudSummary = summary)))
+        assertFalse(visible)
+        assertNull(content.findViewById<View>(R.id.pf_record_page_share_preview))
+        assertNull(shadowOf(activity).nextStartedActivity)
     }
 
     @Test fun identityChangeAfterEncodingDiscardsTheImageBeforeAnyShareIsLaunched() {

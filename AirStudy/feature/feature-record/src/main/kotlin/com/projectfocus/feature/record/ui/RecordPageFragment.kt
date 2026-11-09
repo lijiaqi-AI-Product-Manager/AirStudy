@@ -46,6 +46,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
     private var preview: RecordSharePreview? = null
     private var removal: RecordRemovalPrompt? = null
     private var recovery: RecordRecoveryFeedback? = null
+    private var summaryFeedback: RecordSummaryFeedback? = null
     private var loginGate: RecordLoginGate? = null
     private var loginJob: Job? = null
     private var rendered: RecordPageState? = null
@@ -80,6 +81,9 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
                 (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.retryRecordCloudSync(account)
             },
             login = { account -> if (account.isCurrent()) (parentFragment as? RecordLoginHost)?.openRecordLogin() })
+        summaryFeedback = RecordSummaryFeedback(requireContext(), viewLifecycleOwner.lifecycleScope, { rendered },
+            { view === this.view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
+            { account -> (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.retryRecordCloudSync(account) })
         preview = RecordSharePreview(requireContext(), content, viewLifecycleOwner.lifecycleScope,
             canShow = { view === this.view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
             visibilityChanged = { back.isEnabled = it })
@@ -90,13 +94,16 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
                 openLogin(item)
             } else {
                 loginGate?.close()
-                when (item.status) {
+                if (item.cloudSummary != null) {
+                    preview?.close(); removal?.close(); summaryFeedback?.open(item)
+                } else when (item.status) {
                     FlightStatus.CANCELLED -> { preview?.close(); removal?.open(item) }
                     FlightStatus.ONGOING -> { preview?.close(); removal?.showProtected(item) }
                     FlightStatus.COMPLETED -> {
                         removal?.close()
                         preview?.open(card, item, requireNotNull(state.account))
                     }
+                    FlightStatus.UNKNOWN -> Unit
                 }
             }
         }, onSceneEdit = if (parentFragment is RecordScenePickerHost) ::openScene else null,
@@ -160,6 +167,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
 
     override fun onStart() { super.onStart(); viewModel.onVisible() }
     override fun onPause() {
+        summaryFeedback?.close()
         recovery?.close()
         closeScene()
         loginJob?.cancel()
@@ -170,6 +178,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         super.onPause()
     }
     override fun onStop() {
+        summaryFeedback?.close()
         recovery?.close()
         ++renderRevision
         closeScene()
@@ -202,11 +211,12 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
 
     private fun renderCurrent(root: View, state: RecordPageState) {
         rendered = state
+        summaryFeedback?.keepFor(state)
         removal?.keepFor(state)
         if (!state.ready) loginGate?.close()
         sceneTarget?.let { (account, item) ->
             if (!state.ready || state.account != account || state.items.none { row ->
-                row.key == item.key && row.sceneRevision == item.sceneRevision &&
+                row.cloudSummary == null && row.key == item.key && row.sceneRevision == item.sceneRevision &&
                     row.recordedAtWallMs == item.recordedAtWallMs && row.status == FlightStatus.COMPLETED
             }) closeScene()
         }
@@ -258,7 +268,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
             viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
             sceneOpenRevision == revision && rendered?.let { displayed ->
                 displayed.ready && displayed.account == account && displayed.items.any { row ->
-                    row.key == item.key && row.sceneRevision == item.sceneRevision &&
+                    row.cloudSummary == null && row.key == item.key && row.sceneRevision == item.sceneRevision &&
                         row.recordedAtWallMs == item.recordedAtWallMs && row.status == FlightStatus.COMPLETED
                 }
             } == true
@@ -345,6 +355,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
     }
 
     override fun onDestroyView() {
+        summaryFeedback?.close(); summaryFeedback = null
         recovery?.close(); recovery = null
         ++renderRevision
         closeScene()

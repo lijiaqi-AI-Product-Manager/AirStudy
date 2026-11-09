@@ -37,6 +37,8 @@ class RecordCloudSyncCoordinator @Inject constructor(
     private val importer: RecordCloudArchiveImport,
     private val clock: Clock,
     private val recovery: RecordRecoveryStatusStore? = null,
+    private val summaryGateway: RecordSummaryGateway? = null,
+    private val summaries: RecordSummaryStore? = null,
 ) {
     private val runner = Mutex()
 
@@ -93,6 +95,41 @@ class RecordCloudSyncCoordinator @Inject constructor(
                             if (!reply.page.hasMore) { caughtUp = true; break }
                             if (pageIndex == 19) result = result.copy(retryable = true)
                         }
+                    }
+                }
+            }
+            if (caughtUp && current() && !result.authenticationRequired) {
+                if (summaryGateway != null && summaries != null) {
+                    val records = LinkedHashMap<Pair<FlightRecordMode, String>, FlightRecordSummary>()
+                    var complete = false
+                    var failedPage = false
+                    var total: Int? = null
+                    var pages: Int? = null
+                    for (page in 1..20) {
+                        if (!current()) break
+                        when (val reply = summaryGateway.page(identity, FlightRecordSummaryQuery(page))) {
+                            is RecordSummaryReadResult.Failure -> { failure(reply.reason); failedPage = true; break }
+                            is RecordSummaryReadResult.Loaded -> {
+                                if (pages != null && pages != reply.page.totalPages ||
+                                    total != null && reply.page.totalCount != null && total != reply.page.totalCount) {
+                                    result = result.copy(retryable = true); failedPage = true; break
+                                }
+                                total = reply.page.totalCount ?: total
+                                pages = reply.page.totalPages
+                                for (record in reply.page.records) {
+                                    if (records.put(record.mode to record.id, record) != null) { failedPage = true; break }
+                                }
+                                if (failedPage) { result = result.copy(retryable = true); break }
+                                if (reply.page.totalPages <= page) { complete = true; break }
+                            }
+                        }
+                    }
+                    if (complete && total != null && total != records.size) {
+                        result = result.copy(retryable = true); failedPage = true
+                    }
+                    if (current() && !failedPage) {
+                        if (!summaries.replace(identity, records.values.toList(), complete, total, clock.millis()))
+                            result = result.copy(obsolete = true)
                     }
                 }
             }
