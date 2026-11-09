@@ -5,4 +5,6 @@ import com.projectfocus.core.network.dto.FlightRecordScenePatch
 
 fun interface RecordSceneWireProjection {
     fun project(scene: PlannedScene): FlightRecordScenePatch
+
+    fun restore(patch: FlightRecordScenePatch): PlannedScene? = null
 }

@@ -17,6 +17,12 @@ abstract class FreeFlightArchiveDao {
     @Query("SELECT * FROM free_flight_archive WHERE sessionId = :id AND ownerScope = :owner LIMIT 1")
     abstract suspend fun get(id: String, owner: String): FreeFlightArchiveEntity?
 
+    @Query("SELECT * FROM free_flight_archive WHERE sessionId = :id LIMIT 1")
+    abstract suspend fun getById(id: String): FreeFlightArchiveEntity?
+
+    @Query("SELECT * FROM free_flight_archive WHERE ownerScope = :owner ORDER BY updatedAtWallMs DESC")
+    abstract suspend fun owned(owner: String): List<FreeFlightArchiveEntity>
+
     @Query("SELECT * FROM free_flight_archive WHERE ownerScope = :owner AND status != 'ONGOING' ORDER BY updatedAtWallMs DESC")
     abstract fun observeTerminal(owner: String): Flow<List<FreeFlightArchiveEntity>>
 

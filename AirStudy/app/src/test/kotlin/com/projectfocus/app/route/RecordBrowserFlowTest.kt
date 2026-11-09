@@ -8,6 +8,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.app.Dialog
+import androidx.room.withTransaction
 import androidx.navigation.fragment.NavHostFragment
 import androidx.recyclerview.widget.RecyclerView
 import androidx.test.core.app.ActivityScenario
@@ -77,7 +78,7 @@ class RecordBrowserFlowTest {
         app = ApplicationProvider.getApplicationContext()
         withTimeout(15_000) { app.awaitInitialAccountRestore(); app.awaitInitialAirportSeed() }
         TokenStore.setCancellable("record-browser-account-one")
-        cloud = RecordCloudHttpFixture(app.recordCloudMutations)
+        cloud = RecordCloudHttpFixture(app.recordCloudMutations, app.recordCloudSync)
     }
     @After fun close() {
         scenario?.close()
@@ -160,6 +161,42 @@ class RecordBrowserFlowTest {
             "sceneSave=${hostModel.sceneSave.value.failure}, savingScene=${hostModel.sceneSave.value.saving}, requests=${cloud.requestCount}, " +
             "lease=$lease, hint=${page?.view?.findViewById<TextView>(RecordR.id.pf_record_page_empty_records_hint)?.text}"
     }
+
+    @Test fun cloudRecordsRestoreAndReceiveRemoteChangesThroughTheNormalPage() {
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(countdown("shared-id"))
+            saveIndependentRecord()
+            assertEquals(2, app.recordCloudSync.synchronize().uploaded)
+            app.database.withTransaction {
+                app.database.flightHistoryDao().deleteAll()
+                app.database.openHelper.writableDatabase.execSQL("DELETE FROM free_flight_archive")
+                for (row in app.database.appSettingDao().withPrefix("record.cloud.")) app.database.appSettingDao().delete(row.key)
+            }
+        }
+        showRecords()
+        runBlocking(Dispatchers.IO) { app.recordCloudSync.synchronize() }
+        val model = androidx.lifecycle.ViewModelProvider(host)[com.projectfocus.feature.record.list.RecordPageViewModel::class.java]
+        await { list().adapter?.itemCount == 2 && model.state.value.items.map { it.kind }.toSet() ==
+            setOf(com.projectfocus.service.focus.history.FlightRecordKind.COUNTDOWN, com.projectfocus.service.focus.history.FlightRecordKind.COUNT_UP) }
+        assertEquals(setOf("shared-id"), model.state.value.items.map { it.id }.toSet())
+        capture("records-cloud-restored")
+        runBlocking(Dispatchers.IO) {
+            assertTrue(cloud.mutationGateway.changeScene(TokenStore.snapshot(), com.projectfocus.core.network.dto.FlightRecordMode.DOWN,
+                "shared-id", com.projectfocus.core.network.dto.FlightRecordScenePatch(2, "工作"),
+                com.projectfocus.core.network.dto.FlightRecordMutationOptions("another-device-scene")) is com.projectfocus.core.network.record.RecordMutationOutcome.Acknowledged)
+            app.recordCloudSync.synchronize()
+        }
+        await { model.state.value.items.single { it.kind == com.projectfocus.service.focus.history.FlightRecordKind.COUNTDOWN }.sceneTitle == "工作" }
+        runBlocking(Dispatchers.IO) {
+            assertTrue(cloud.mutationGateway.delete(TokenStore.snapshot(), com.projectfocus.core.network.dto.FlightRecordMode.DOWN,
+                "shared-id", com.projectfocus.core.network.dto.FlightRecordMutationOptions("another-device-removal")) is com.projectfocus.core.network.record.RecordMutationOutcome.Acknowledged)
+            app.recordCloudSync.synchronize()
+        }
+        await { list().adapter?.itemCount == 1 && model.state.value.items.single().kind == com.projectfocus.service.focus.history.FlightRecordKind.COUNT_UP }
+        assertNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("shared-id") })
+        assertNotNull(runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().get("shared-id", TokenStore.storageScope()) })
+    }
+
 
     @Test fun bothStoredModesUseTheRealPagePreviewAndAccountBoundary() {
         runBlocking(Dispatchers.IO) {

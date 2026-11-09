@@ -56,6 +56,11 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
     private var sceneOpenJob: Job? = null
     private var sceneNoticeJob: Job? = null
 
+    override fun onResume() {
+        super.onResume()
+        (requireContext().applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.requestRecordCloudSync()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         val back = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {

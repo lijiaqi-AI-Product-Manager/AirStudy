@@ -11,7 +11,9 @@ import kotlinx.coroutines.CancellationException
 
 interface RecordCloudWorkerOwner {
     val recordCloudMutations: RecordCloudMutationCoordinator
+    val recordCloudSync: RecordCloudSyncCoordinator
     suspend fun awaitRecordCloudReady()
+    fun requestRecordCloudSync() = Unit
 }
 
 @Singleton
@@ -21,6 +23,10 @@ class RecordMutationRetryScheduler @Inject constructor(
 ) {
     suspend fun enqueueIfPending(scope: String) {
         if (journal.pending(scope).isEmpty()) return
+        enqueue(scope)
+    }
+
+    fun enqueue(scope: String) {
         val request = OneTimeWorkRequestBuilder<RecordMutationRetryWorker>()
             .setInputData(workDataOf("scope" to scope))
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
@@ -38,8 +44,9 @@ class RecordMutationRetryWorker(context: Context, parameters: WorkerParameters) 
             owner.awaitRecordCloudReady()
             val identity = TokenStore.snapshot()
             if (identity.token.isNullOrBlank() || inputData.getString("scope") != TokenStore.storageScope(identity)) return Result.success()
-            val result = owner.recordCloudMutations.recoverPending()
+            val result = owner.recordCloudSync.synchronize()
             when {
+                result.obsolete -> Result.success()
                 result.authenticationRequired -> Result.failure()
                 result.retryable -> Result.retry()
                 else -> Result.success()

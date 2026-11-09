@@ -34,6 +34,8 @@ class RecordCloudMutationCoordinator @Inject constructor(
 ) {
     private val writer = Mutex()
 
+    internal suspend fun <T> serialize(block: suspend () -> T): T = writer.withLock { block() }
+
     suspend fun delete(target: RecordDeletionTarget): RecordDeletionResult = writer.withLock {
         val identity = identity(target.account) ?: return@withLock RecordDeletionResult.OBSOLETE
         if (!terminal(target.record)) return@withLock RecordDeletionResult.PROTECTED
@@ -131,7 +133,8 @@ class RecordCloudMutationCoordinator @Inject constructor(
             // A newly confirmed choice can supersede an accepted scene whose local write failed.
             // Preserve the accepted remote revision, and replace both intent and binding atomically.
             expectedRemoteRevision = previous.acceptedRevision
-            journal.bind(account.scope, key, RecordCloudBinding(previous.remoteId, expectedRemoteRevision, false), clock.millis())
+            journal.bind(account.scope, key, RecordCloudBinding(previous.remoteId, expectedRemoteRevision, false,
+                binding?.archiveStored ?: true), clock.millis())
         }
         return PendingRecordMutation(account.scope, key, actual.upload.archive.id, actual.fingerprint,
             UUID.randomUUID().toString(), expectedRemoteRevision, sceneJson, patch, sceneRevision, actual.record.recordedAtWallMs)
@@ -217,7 +220,9 @@ class RecordCloudMutationCoordinator @Inject constructor(
     private suspend fun finish(entry: PendingRecordMutation, deleted: Boolean) {
         val stored = requireNotNull(journal.pending(entry.scope, entry.key))
         check(stored.operationId == entry.operationId && stored.acknowledged)
-        journal.bind(entry.scope, entry.key, RecordCloudBinding(entry.remoteId, stored.acceptedRevision, deleted), clock.millis())
+        val previous = journal.binding(entry.scope, entry.key)
+        journal.bind(entry.scope, entry.key, RecordCloudBinding(entry.remoteId, stored.acceptedRevision, deleted,
+            previous?.archiveStored ?: true), clock.millis())
         journal.remove(entry)
     }
 

@@ -11,7 +11,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.collectLatest
 import timber.log.Timber
 import javax.inject.Inject
 
@@ -21,11 +21,25 @@ class ProjectFocusApp : Application(), com.projectfocus.app.freeflight.FreeFligh
     com.projectfocus.service.focus.history.RecordCloudWorkerOwner {
 
     @Inject override lateinit var recordCloudMutations: com.projectfocus.service.focus.history.RecordCloudMutationCoordinator
+    @Inject override lateinit var recordCloudSync: com.projectfocus.service.focus.history.RecordCloudSyncCoordinator
     @Inject lateinit var recordMutationRetries: com.projectfocus.service.focus.history.RecordMutationRetryScheduler
+    @Inject lateinit var recordCloudTriggers: com.projectfocus.service.focus.history.RecordCloudSyncTriggers
 
     override suspend fun awaitRecordCloudReady() {
         awaitInitialAccountRestore()
         awaitInitialAirportSeed()
+    }
+
+    override fun requestRecordCloudSync() {
+        appScope.launch {
+            awaitRecordCloudReady()
+            val identity = com.projectfocus.core.network.di.TokenStore.snapshot()
+            if (!identity.token.isNullOrBlank()) {
+                try { recordMutationRetries.enqueue(com.projectfocus.core.network.di.TokenStore.storageScope(identity)) }
+                catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
+                catch (_: Exception) { Timber.w("记录同步暂不可用") }
+            }
+        }
     }
 
     @Inject lateinit var freeFlightPreparationFactory: com.projectfocus.app.freeflight.AndroidFreeFlightPreparationActionsFactory
@@ -109,9 +123,9 @@ class ProjectFocusApp : Application(), com.projectfocus.app.freeflight.FreeFligh
 
         appScope.launch {
             awaitRecordCloudReady()
-            com.projectfocus.core.network.di.TokenStore.identities.collect { identity ->
+            com.projectfocus.core.network.di.TokenStore.identities.collectLatest { identity ->
                 if (!identity.token.isNullOrBlank() && identity == com.projectfocus.core.network.di.TokenStore.snapshot()) {
-                    try { recordMutationRetries.enqueueIfPending(com.projectfocus.core.network.di.TokenStore.storageScope(identity)) }
+                    try { recordCloudTriggers.observe(identity) }
                     catch (cancelled: kotlinx.coroutines.CancellationException) { throw cancelled }
                     catch (_: Exception) { Timber.w("记录同步重试暂不可用") }
                 }
