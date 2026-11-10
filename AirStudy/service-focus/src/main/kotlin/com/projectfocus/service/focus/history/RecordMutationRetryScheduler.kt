@@ -21,9 +21,10 @@ interface RecordCloudWorkerOwner {
 class RecordMutationRetryScheduler @Inject constructor(
     @ApplicationContext private val context: Context,
     private val journal: RecordMutationJournal,
+    private val summaries: RecordSummaryMutationJournal? = null,
 ) {
     suspend fun enqueueIfPending(scope: String) {
-        if (journal.pending(scope).isEmpty()) return
+        if (journal.pending(scope).isEmpty() && summaries?.pending(scope).isNullOrEmpty()) return
         enqueue(scope)
     }
 

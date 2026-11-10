@@ -83,7 +83,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
             login = { account -> if (account.isCurrent()) (parentFragment as? RecordLoginHost)?.openRecordLogin() })
         summaryFeedback = RecordSummaryFeedback(requireContext(), viewLifecycleOwner.lifecycleScope, { rendered },
             { view === this.view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
-            { account -> (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.retryRecordCloudSync(account) })
+            { account -> (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.retryRecordCloudSync(account) }, removalModel)
         preview = RecordSharePreview(requireContext(), content, viewLifecycleOwner.lifecycleScope,
             canShow = { view === this.view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
             visibilityChanged = { back.isEnabled = it })
@@ -159,7 +159,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
                 launch { viewModel.sceneSave.collect(::showSceneFailure) }
-                launch { removalModel.state.collect { removal?.showNotice(it) } }
+                launch { removalModel.state.collect { removal?.showNotice(it); summaryFeedback?.showNotice(it) } }
                 launch { viewModel.recoveryStatus.collect { recovery?.render(it) } }
             }
         }
@@ -216,7 +216,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         if (!state.ready) loginGate?.close()
         sceneTarget?.let { (account, item) ->
             if (!state.ready || state.account != account || state.items.none { row ->
-                row.cloudSummary == null && row.key == item.key && row.sceneRevision == item.sceneRevision &&
+                row.cloudSummary == item.cloudSummary && row.key == item.key && row.sceneRevision == item.sceneRevision &&
                     row.recordedAtWallMs == item.recordedAtWallMs && row.status == FlightStatus.COMPLETED
             }) closeScene()
         }
@@ -254,7 +254,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         val root = view ?: return
         val host = parentFragment as? RecordScenePickerHost ?: return
         val state = rendered?.takeIf { it.ready && it.items.any { row -> row == item } } ?: return
-        if (item.status != FlightStatus.COMPLETED || item.recordedAtWallMs == null || viewModel.sceneSave.value.saving ||
+        if (item.status != FlightStatus.COMPLETED || item.cloudSummary == null && item.recordedAtWallMs == null || viewModel.sceneSave.value.saving ||
             removalModel.state.value.saving) return
         val account = requireNotNull(state.account)
         closeScene()
@@ -268,7 +268,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
             viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
             sceneOpenRevision == revision && rendered?.let { displayed ->
                 displayed.ready && displayed.account == account && displayed.items.any { row ->
-                    row.cloudSummary == null && row.key == item.key && row.sceneRevision == item.sceneRevision &&
+                    row.cloudSummary == item.cloudSummary && row.key == item.key && row.sceneRevision == item.sceneRevision &&
                         row.recordedAtWallMs == item.recordedAtWallMs && row.status == FlightStatus.COMPLETED
                 }
             } == true
@@ -329,7 +329,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
     private fun showSceneFailure(save: RecordSceneSaveState) {
         sceneNoticeJob?.cancel()
         val failure = save.failure ?: return
-        val account = save.target?.account ?: return
+        val account = save.target?.account ?: save.summaryTarget?.account ?: return
         val root = view ?: return
         val identity = TokenStore.snapshot()
         sceneNoticeJob = viewLifecycleOwner.lifecycleScope.launch {

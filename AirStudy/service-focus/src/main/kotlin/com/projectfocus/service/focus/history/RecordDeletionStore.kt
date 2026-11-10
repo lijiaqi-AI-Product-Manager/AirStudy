@@ -105,4 +105,5 @@ class RecordDeletionStore @Inject constructor(
 abstract class RecordDeletionModule {
     @dagger.Binds abstract fun operations(store: CloudRecordOperations): RecordDeletionOperations
     @dagger.Binds abstract fun sceneOperations(store: CloudRecordOperations): RecordSceneOperations
+    @dagger.Binds abstract fun summaryOperations(store: CloudRecordOperations): RecordSummaryOperations
 }

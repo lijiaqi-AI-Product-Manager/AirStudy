@@ -28,6 +28,7 @@ class FlightRecordSummaryService(private val database: Database) {
                 val mode = FlightRecordMode.entries.single { it.path == row[Records.mode] }
                 val id = row[Records.recordId]
                 val base = when {
+                    row[Records.summaryJson] != null -> recordJson.parseToJsonElement(requireNotNull(row[Records.summaryJson])).jsonObject
                     row[archived] -> row[Records.summaryJson]?.let { recordJson.parseToJsonElement(it) as JsonObject }
                         ?: run {
                             val payload = Records.select(Records.archiveJson).where {

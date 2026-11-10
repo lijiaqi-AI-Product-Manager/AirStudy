@@ -28,6 +28,7 @@ internal object RecordSummaryItemMapping {
             dateText = start?.format(DateTimeFormatter.ofPattern("ddMMM", Locale.ENGLISH))?.uppercase(Locale.ENGLISH),
             flightNumber = record.flightNumber, seat = record.seat, sceneTitle = record.sceneLabel,
             sceneType = record.sceneType, distanceKm = record.distanceKm, focusMinutes = minutes,
-            arrivalSelected = arrival != null, recordedAtWallMs = record.startedAtWallMs, cloudSummary = record)
+            arrivalSelected = arrival != null, recordedAtWallMs = record.startedAtWallMs, cloudSummary = record,
+            sceneRevision = record.revision ?: 0L)
     }
 }

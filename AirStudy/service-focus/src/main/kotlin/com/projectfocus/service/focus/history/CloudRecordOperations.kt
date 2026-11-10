@@ -13,7 +13,7 @@ class CloudRecordOperations @Inject constructor(
     private val coordinator: RecordCloudMutationCoordinator,
     private val local: RecordDeletionStore,
     private val retries: RecordMutationRetryScheduler,
-) : RecordDeletionOperations, RecordSceneOperations {
+) : RecordDeletionOperations, RecordSceneOperations, RecordSummaryOperations {
     override suspend fun captureCountdown(id: String): RecordDeletionTarget? = local.captureCountdown(id)
 
     override suspend fun delete(target: RecordDeletionTarget): RecordDeletionResult = try {
@@ -22,6 +22,14 @@ class CloudRecordOperations @Inject constructor(
 
     override suspend fun save(target: RecordSceneEditTarget, scene: PlannedScene): RecordSceneSaveResult = try {
         coordinator.saveScene(target, scene)
+    } finally { schedule(target.account.scope) }
+
+    override suspend fun deleteSummary(target: RecordSummaryActionTarget): RecordSummaryActionResult = try {
+        coordinator.deleteSummary(target)
+    } finally { schedule(target.account.scope) }
+
+    override suspend fun saveSummaryScene(target: RecordSummaryActionTarget, scene: PlannedScene): RecordSummaryActionResult = try {
+        coordinator.saveSummaryScene(target, scene)
     } finally { schedule(target.account.scope) }
 
     private suspend fun schedule(scope: String) = withContext(NonCancellable + Dispatchers.IO) {

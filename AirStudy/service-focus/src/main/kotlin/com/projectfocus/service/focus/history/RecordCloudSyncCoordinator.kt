@@ -100,6 +100,7 @@ class RecordCloudSyncCoordinator @Inject constructor(
             }
             if (caughtUp && current() && !result.authenticationRequired) {
                 if (summaryGateway != null && summaries != null) {
+                    val sceneBaseline = mutations.serialize { summaries.sceneBaseline(identity) }.orEmpty()
                     val records = LinkedHashMap<Pair<FlightRecordMode, String>, FlightRecordSummary>()
                     var complete = false
                     var failedPage = false
@@ -128,7 +129,7 @@ class RecordCloudSyncCoordinator @Inject constructor(
                         result = result.copy(retryable = true); failedPage = true
                     }
                     if (current() && !failedPage) {
-                        if (!summaries.replace(identity, records.values.toList(), complete, total, clock.millis()))
+                        if (!mutations.serialize { summaries.replace(identity, records.values.toList(), complete, total, clock.millis(), sceneBaseline) })
                             result = result.copy(obsolete = true)
                     }
                 }
@@ -179,7 +180,7 @@ class RecordCloudSyncCoordinator @Inject constructor(
             }
             val remaining = TokenStore.withSnapshotLease(identity) {
                 val incoming = inbox.entries(account.scope).size
-                (journal.pending(account.scope).size + incoming + failedUploads.size) to incoming
+                (journal.pending(account.scope).size + mutations.summaryPending(account.scope) + incoming + failedUploads.size) to incoming
             }
             val pending = remaining?.first ?: result.pending
             result.copy(pending = pending, retryable = result.retryable || recovered.retryable && pending > 0 ||

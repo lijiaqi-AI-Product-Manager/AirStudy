@@ -153,6 +153,20 @@ class RecordCloudSyncCoordinatorTest {
         assertEquals(0, sync.synchronize().restored); assertEquals(2, remote.uploads.size)
     }
 
+    @Test fun aSummaryAcknowledgementDoesNotHideAFullArchiveAtTheSameAcceptedVersion() = runBlocking(Dispatchers.IO) {
+        val archive = savedDown("summary-to-full")
+        val remoteRecord = stageRecord(archive)
+        assertEquals(1, db.historyDeletionDao().countdown(archive.id, account().scope))
+        val key = FlightRecordKey(FlightRecordKind.COUNTDOWN, "summary-local-alias")
+        journal.bind(account().scope, key, RecordCloudBinding(archive.id, remoteRecord.revision, false, false), clock.millis())
+        val result = sync.synchronize()
+        assertEquals(1, result.restored); assertEquals(0, result.pending)
+        val row = requireNotNull(db.flightHistoryDao().findById(key.id))
+        assertEquals(archive.countdown!!.actualFocusMinutes, row.actualFocusMinutes)
+        assertTrue(requireNotNull(journal.binding(account().scope, key)).archiveStored)
+        assertEquals(0, sync.synchronize().restored)
+    }
+
     @Test fun pagedRestoreDoesNotSkipOrRepeatRecords() = runBlocking(Dispatchers.IO) {
         val snapshot = savedDown()
         for (index in 1..5) stageRecord(snapshot.copy(id = "remote-$index", countdown = snapshot.countdown!!.copy(id = "remote-$index")))

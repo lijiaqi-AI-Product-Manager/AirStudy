@@ -38,7 +38,8 @@ class RecordCloudArchiveImport @Inject constructor(
             db.withTransaction {
                 val currentBinding = journal.binding(account.scope, key)
                 if (currentBinding != null && currentBinding.remoteId != remote.id) return@withTransaction RecordCloudImportResult.DEFERRED
-                if ((currentBinding?.revision ?: -1L) >= remote.revision) {
+                if ((currentBinding?.revision ?: -1L) > remote.revision || currentBinding?.revision == remote.revision &&
+                    (remote.archive == null || currentBinding.archiveStored)) {
                     inbox.remove(account.scope, remote)
                     return@withTransaction RecordCloudImportResult.UNCHANGED
                 }

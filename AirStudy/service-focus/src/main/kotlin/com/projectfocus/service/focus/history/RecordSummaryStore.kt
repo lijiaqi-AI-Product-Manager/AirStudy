@@ -19,7 +19,8 @@ data class RecordSummaryState(val account: HistoryAccount? = null,
     val complete: Boolean = true, val totalCount: Int? = null, val failed: Boolean = false)
 
 @Singleton
-class RecordSummaryStore @Inject constructor(private val db: AppDatabase, private val journal: RecordMutationJournal) {
+class RecordSummaryStore @Inject constructor(private val db: AppDatabase, private val journal: RecordMutationJournal,
+    private val changes: RecordSummaryMutationJournal? = null) {
     private fun key(scope: String) = "record.cloud.summaries.v1." + RecordCloudSnapshots.digest(scope)
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -42,11 +43,12 @@ class RecordSummaryStore @Inject constructor(private val db: AppDatabase, privat
     }.distinctUntilChanged().flowOn(Dispatchers.IO)
 
     internal suspend fun replace(identity: TokenStore.Snapshot, records: List<FlightRecordSummary>, complete: Boolean,
-        totalCount: Int?, wall: Long): Boolean = TokenStore.withSnapshotLease(identity) {
+        totalCount: Int?, wall: Long, sceneBaseline: List<SummarySceneReceipt> = emptyList()): Boolean = TokenStore.withSnapshotLease(identity) {
         db.withTransaction {
             require(records.size <= 2_000 && records.map { it.mode to it.id }.toSet().size == records.size)
             require(totalCount == null || totalCount >= records.size)
             val scope = TokenStore.storageScope(identity)
+            changes?.clearUnversionedScenes(scope, sceneBaseline, records.map { it.mode to it.id }.toSet())
             val previous = try { current(scope).associateBy { it.mode to it.id } }
                 catch (failure: Exception) {
                     if (failure is CancellationException) throw failure
@@ -74,6 +76,9 @@ class RecordSummaryStore @Inject constructor(private val db: AppDatabase, privat
     internal suspend fun current(scope: String): List<FlightRecordSummary> =
         decode(HistoryAccount(scope, TokenStore.snapshot().generation), db.appSettingDao().get(key(scope))).records
 
+    internal suspend fun sceneBaseline(identity: TokenStore.Snapshot): List<SummarySceneReceipt>? =
+        TokenStore.withSnapshotLease(identity) { changes?.scenes(TokenStore.storageScope(identity)).orEmpty() }
+
     private suspend fun decode(account: HistoryAccount, text: String?): RecordSummaryState {
         val bindings = journal.bindings(account.scope)
         val removed = bindings.filter { it.binding.deleted }.map { mode(it.key.kind) to it.binding.remoteId }.toSet()
@@ -86,7 +91,18 @@ class RecordSummaryStore @Inject constructor(private val db: AppDatabase, privat
         require(values.map { it.mode to it.id }.toSet().size == values.size)
         val total = (body["totalCount"] as? JsonPrimitive)?.intOrNull
         require(total == null || total >= values.size)
-        return RecordSummaryState(account, values.filter { (it.mode to it.id) !in removed }, aliases,
+        val scenes = changes?.scenes(account.scope).orEmpty().associateBy { it.mode to it.id }
+        val visible = values.filter { (it.mode to it.id) !in removed }.map { record ->
+            val receipt = scenes[record.mode to record.id]
+            val revision = record.revision
+            if (receipt == null || receipt.revision != null && revision != null && revision > receipt.revision) record
+            else FlightRecordSummary.parse(buildJsonObject {
+                record.raw.forEach { (name, value) -> put(name, value) }
+                put("focusIconType", receipt.scene.focusIconType); put("focusScenario", receipt.scene.focusScenario)
+                receipt.revision?.let { put("revision", it) }
+            })
+        }
+        return RecordSummaryState(account, visible, aliases,
             body.getValue("complete").jsonPrimitive.boolean, total)
     }
 

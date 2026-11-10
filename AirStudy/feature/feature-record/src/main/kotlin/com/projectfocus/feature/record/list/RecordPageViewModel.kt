@@ -18,6 +18,9 @@ import com.projectfocus.service.focus.history.RecordCloudFailure
 import com.projectfocus.core.network.record.RecordMutationOutcome
 import com.projectfocus.service.focus.history.RecordSceneEditTarget
 import com.projectfocus.service.focus.history.RecordSceneSaveResult
+import com.projectfocus.service.focus.history.RecordSummaryActionTarget
+import com.projectfocus.service.focus.history.RecordSummaryActionResult
+import com.projectfocus.service.focus.history.RecordSummaryOperations
 import com.projectfocus.core.model.flight.PlannedScene
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
@@ -42,6 +45,7 @@ data class RecordSceneSaveState(
     val target: RecordSceneEditTarget? = null,
     val saving: Boolean = false,
     val failure: RecordSceneFailure? = null,
+    val summaryTarget: RecordSummaryActionTarget? = null,
 )
 
 enum class RecordStatusFilter { ALL, ARRIVED, IN_PROGRESS, CANCELLED }
@@ -71,6 +75,11 @@ data class RecordPageState(
     fun deletionTarget(item: RecordItem): RecordDeletionTarget? {
         if (!ready || item.cloudSummary != null || items.none { it == item }) return null
         return deletionTargets[item.key]?.takeIf { it.account == account }
+    }
+
+    fun summaryTarget(item: RecordItem): RecordSummaryActionTarget? {
+        if (!ready || items.none { it == item }) return null
+        return item.cloudSummary?.let { RecordSummaryActionTarget(requireNotNull(account), it) }
     }
 }
 
@@ -158,6 +167,7 @@ class RecordPageViewModel @Inject constructor(
     private val sceneStore: RecordSceneOperations,
     private val recoveryStore: com.projectfocus.service.focus.history.RecordRecoveryStatusStore? = null,
     private val summaries: RecordSummaryStore? = null,
+    private val summaryOperations: RecordSummaryOperations? = null,
 ) : ViewModel() {
     private val query = MutableStateFlow(RecordPageQuery())
     private val now = MutableStateFlow(clock.millis())
@@ -188,16 +198,20 @@ class RecordPageViewModel @Inject constructor(
     fun previous() = changePage(-1)
     fun next() = changePage(1)
     fun changeScene(item: RecordItem, scene: PlannedScene) {
-        if (item.cloudSummary != null) return
         val current = state.value.takeIf { it.ready } ?: return
-        if (mutableSceneSave.value.saving || item.status != FlightStatus.COMPLETED || item.recordedAtWallMs == null ||
+        if (mutableSceneSave.value.saving || item.status != FlightStatus.COMPLETED || item.cloudSummary == null && item.recordedAtWallMs == null ||
             current.items.none { it == item }) return
-        val target = RecordSceneEditTarget(requireNotNull(current.account), item.key, item.recordedAtWallMs, item.sceneRevision)
-        val request = RecordSceneSaveState(Math.addExact(mutableSceneSave.value.attempt, 1), target, saving = true)
+        val partial = current.summaryTarget(item)
+        val target = if (partial == null) RecordSceneEditTarget(requireNotNull(current.account), item.key, requireNotNull(item.recordedAtWallMs), item.sceneRevision) else null
+        val request = RecordSceneSaveState(Math.addExact(mutableSceneSave.value.attempt, 1), target, saving = true, summaryTarget = partial)
         mutableSceneSave.value = request
         viewModelScope.launch {
             try {
-                val failure = when (sceneStore.save(target, scene)) {
+                val failure = if (partial != null) when (requireNotNull(summaryOperations).saveSummaryScene(partial, scene)) {
+                    RecordSummaryActionResult.APPLIED, RecordSummaryActionResult.OBSOLETE -> null
+                    RecordSummaryActionResult.CHANGED -> RecordSceneFailure.CHANGED
+                    RecordSummaryActionResult.PROTECTED, RecordSummaryActionResult.MISSING -> RecordSceneFailure.NOT_EDITABLE
+                } else when (sceneStore.save(requireNotNull(target), scene)) {
                     is RecordSceneSaveResult.Saved, RecordSceneSaveResult.Obsolete -> null
                     RecordSceneSaveResult.Changed -> RecordSceneFailure.CHANGED
                     RecordSceneSaveResult.NotEditable -> RecordSceneFailure.NOT_EDITABLE

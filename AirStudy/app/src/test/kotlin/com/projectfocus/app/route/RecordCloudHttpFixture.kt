@@ -20,6 +20,8 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
     private val previousArchives = ReflectionHelpers.getField<RecordArchiveGateway>(coordinator, "archives")
     private val previousSync = sync?.let { ReflectionHelpers.getField<RecordArchiveGateway>(it, "gateway") }
     private val previousSummary = sync?.let { ReflectionHelpers.getField<RecordSummaryGateway?>(it, "summaryGateway") }
+    private val summaryMutations = ReflectionHelpers.getField<com.projectfocus.service.focus.history.RecordSummaryMutations?>(coordinator, "summaryMutations")
+    private val previousSummaryMutations = summaryMutations?.let { ReflectionHelpers.getField<RecordMutationGateway>(it, "gateway") }
     private val http = OkHttpClient.Builder().callTimeout(5, TimeUnit.SECONDS).build()
     private val server = MockWebServer()
     private val records = mutableMapOf<String, CloudFlightRecord>()
@@ -29,6 +31,8 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
     val mutationGateway: RecordMutationGateway
     @Volatile var rejectionStatus: Int? = null
     val requestCount: Int get() = server.requestCount
+    @Volatile private var mutationsSeen = 0
+    val mutationRequestCount: Int get() = mutationsSeen
 
     fun record(identity: com.projectfocus.core.network.di.TokenStore.Snapshot, mode: FlightRecordMode, id: String): CloudFlightRecord? =
         synchronized(records) { records[recordKey(identity, mode, id)] }
@@ -58,12 +62,14 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
         mutationGateway = HttpRecordMutationGateway(http, server.url("/").toString())
         val archives = HttpRecordArchiveGateway(http, server.url("/").toString())
         ReflectionHelpers.setField(coordinator, "mutations", mutationGateway)
+        summaryMutations?.let { ReflectionHelpers.setField(it, "gateway", mutationGateway) }
         ReflectionHelpers.setField(coordinator, "archives", archives)
         sync?.let { ReflectionHelpers.setField(it, "gateway", archives) }
         sync?.let { ReflectionHelpers.setField(it, "summaryGateway", HttpRecordSummaryGateway(http, server.url("/").toString())) }
     }
 
     private fun reply(request: RecordedRequest): MockResponse {
+        if (request.method in setOf("PUT", "PATCH", "DELETE")) mutationsSeen++
         rejectionStatus?.let { return failure(it) }
         val authorization = request.headers["Authorization"] ?: return failure(401)
         val path = request.url.encodedPath
@@ -73,7 +79,7 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
                 val owned = historical.filterKeys { it.startsWith(authorization + "\n") }.toMutableMap()
                 for ((key, record) in records.filterKeys { it.startsWith(authorization + "\n") }) {
                     if (record.deleted) owned.remove(key)
-                    else owned[key] = (record.archive?.summaryJson(record.scene) ?: buildJsonObject {
+                    else owned[key] = (record.archive?.summaryJson(record.scene) ?: historical[key] ?: buildJsonObject {
                         put("flightRecordId", record.id); put("recordType", record.mode.path)
                         record.scene?.let { put("focusIconType", it.focusIconType); put("focusScenario", it.focusScenario) }
                     }).withSummaryScene(record.scene, record.revision)
@@ -125,12 +131,14 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
                 else CloudFlightRecord(mode, id, next(), false, upload.archive, current?.scene ?: upload.scene)
             }
             "PATCH" -> {
-                if (current == null || current.deleted) return failure(404)
+                if (current?.deleted == true || current == null && historical[key] == null) return failure(404)
+                if (current?.archive == null && historical[key]?.let(FlightRecordSummary::parse)?.status != SummaryFlightStatus.ARRIVED)
+                    return failure(409)
                 val value = try { JSONObject(body) } catch (_: Exception) { return failure(400) }
                 if (value.keys().asSequence().toSet() != setOf("focusIconType", "focusScenario")) return failure(400)
                 val patch = try { Json.decodeFromString(FlightRecordScenePatch.serializer(), body) } catch (_: Exception) { return failure(400) }
                 if (patch.focusIconType <= 0 || patch.focusScenario.isBlank()) return failure(400)
-                current.copy(revision = next(), scene = patch)
+                (current ?: CloudFlightRecord(mode, id, 0, false)).copy(revision = next(), scene = patch)
             }
             "DELETE" -> CloudFlightRecord(mode, id, next(), true)
             else -> return failure(405)
@@ -146,6 +154,7 @@ internal class RecordCloudHttpFixture(private val coordinator: RecordCloudMutati
 
     override fun close() {
         ReflectionHelpers.setField(coordinator, "mutations", previousMutations)
+        if (summaryMutations != null && previousSummaryMutations != null) ReflectionHelpers.setField(summaryMutations, "gateway", previousSummaryMutations)
         ReflectionHelpers.setField(coordinator, "archives", previousArchives)
         if (sync != null && previousSync != null) ReflectionHelpers.setField(sync, "gateway", previousSync)
         if (sync != null) ReflectionHelpers.setField(sync, "summaryGateway", previousSummary)

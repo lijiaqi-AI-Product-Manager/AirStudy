@@ -292,6 +292,57 @@ class FlightRecordRoutesTest : ServerTestBase() {
         assertThat(c.str(c.get("/user/me"), "totalFocusedMinutes")).isEqualTo("35")
     }
 
+    @Test fun metadataOnlyCountUpRecordsCanChangeScenesAndDeleteWithoutCreatingArchives() = serverTest("summary-only-actions") { c ->
+        val token = login(c, "summary-actions@airstudy.test")
+        val user = c.str(c.withToken(token).get("/user/me"), "id")!!
+        val id = "summary-action-record"
+        seedSummary(user, id, "up", "arrived")
+        upload(c, token, down(id))
+        val response = send(c, token, HttpMethod.Patch, path(FlightRecordMode.UP, id) + "/focus-scene",
+            """{"focusIconType":2,"focusScenario":"Work"}""", "summary-scene", 1)
+        assertThat(response.status.value).isEqualTo(200)
+        val receipt = revision(response)
+        assertThat(page(c, token).items.single { it.mode == FlightRecordMode.UP }.archive).isNull()
+        val partial = summaries(c, token).records.map(FlightRecordSummary::parse).single { it.mode == FlightRecordMode.UP }
+        assertThat(partial.sceneLabel).isEqualTo("Work"); assertThat(partial.departure?.latitude).isNull()
+        assertThat(partial.flightNumber).isEqualTo("AS321")
+        assertThat(send(c, token, HttpMethod.Delete, path(FlightRecordMode.UP, id), operation = "summary-delete", revision = receipt).status.value).isEqualTo(200)
+        assertThat(summaries(c, token).records.map(FlightRecordSummary::parse).single().mode).isEqualTo(FlightRecordMode.DOWN)
+        val second = login(c, "summary-actions-other@airstudy.test")
+        assertThat(send(c, second, HttpMethod.Patch, path(FlightRecordMode.DOWN, id) + "/focus-scene",
+            """{"focusIconType":2,"focusScenario":"Work"}""").status.value).isEqualTo(404)
+    }
+
+    @Test fun metadataActionsProtectUnknownAndOngoingRecordsInTheirOwnMode() = serverTest("summary-action-protection") { c ->
+        val token = login(c, "summary-protection@airstudy.test")
+        val user = c.str(c.withToken(token).get("/user/me"), "id")!!
+        for ((index, status) in listOf("in_progress", "landing", "unknown", "pending").withIndex()) {
+            val id = "protected-$index"; seedSummary(user, id, "up", status, index + 1L)
+            upload(c, token, down(id))
+            val patch = send(c, token, HttpMethod.Patch, path(FlightRecordMode.UP, id) + "/focus-scene",
+                """{"focusIconType":2,"focusScenario":"Work"}""")
+            assertThat(patch.status.value).isEqualTo(409)
+            assertThat(send(c, token, HttpMethod.Delete, path(FlightRecordMode.UP, id)).status.value).isEqualTo(409)
+        }
+        val id = "cancelled-summary"; seedSummary(user, id, "up", "cancelled", 20)
+        assertThat(send(c, token, HttpMethod.Patch, path(FlightRecordMode.UP, id) + "/focus-scene",
+            """{"focusIconType":2,"focusScenario":"Work"}""").status.value).isEqualTo(409)
+        assertThat(send(c, token, HttpMethod.Delete, path(FlightRecordMode.UP, id)).status.value).isEqualTo(200)
+    }
+
+    private fun seedSummary(user: String, id: String, mode: String, status: String, revision: Long = 1) = transaction {
+        val next = maxOf(revision, (CloudFlightRecords.selectAll().where { CloudFlightRecords.userId eq user }
+            .maxOfOrNull { it[CloudFlightRecords.revision] } ?: 0L) + 1L)
+        CloudFlightRecords.insert {
+            it[userId] = user; it[CloudFlightRecords.recordId] = id; it[CloudFlightRecords.mode] = mode
+            it[CloudFlightRecords.revision] = next; it[deleted] = false; it[archiveJson] = null; it[sceneJson] = null
+            it[summaryJson] = buildJsonObject {
+                put("flightRecordId", id); put("recordType", mode); put("flightStatus", status)
+                put("flightNumber", "AS321"); put("departureAirportCode", "PEK")
+            }.toString()
+        }
+    }
+
     @Test fun failedAggregateWriteRollsBackDeletionMarkerArchiveAndRetryReceiptTogether() = serverTest("cloud-rollback") { c ->
         val token = login(c, "rollback@airstudy.test"); val record = down("rollback-record")
         upload(c, token, record)

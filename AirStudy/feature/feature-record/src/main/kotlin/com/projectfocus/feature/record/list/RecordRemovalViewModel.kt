@@ -6,6 +6,10 @@ import com.projectfocus.service.focus.history.RecordDeletionOperations
 import com.projectfocus.service.focus.history.RecordDeletionResult
 import com.projectfocus.service.focus.history.RecordDeletionTarget
 import com.projectfocus.service.focus.history.RecordCloudFailure
+import com.projectfocus.service.focus.history.HistoryAccount
+import com.projectfocus.service.focus.history.RecordSummaryActionTarget
+import com.projectfocus.service.focus.history.RecordSummaryActionResult
+import com.projectfocus.service.focus.history.RecordSummaryOperations
 import com.projectfocus.core.network.record.RecordMutationOutcome
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -22,11 +26,13 @@ data class RecordRemovalState(
     val target: RecordDeletionTarget? = null,
     val saving: Boolean = false,
     val notice: RecordRemovalNotice? = null,
+    val summaryTarget: RecordSummaryActionTarget? = null,
 )
 
 @HiltViewModel
 class RecordRemovalViewModel @Inject constructor(
     private val operations: RecordDeletionOperations,
+    private val summaryOperations: RecordSummaryOperations? = null,
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(RecordRemovalState())
     val state: StateFlow<RecordRemovalState> = mutableState.asStateFlow()
@@ -34,17 +40,35 @@ class RecordRemovalViewModel @Inject constructor(
     fun delete(target: RecordDeletionTarget) {
         if (state.value.saving || !target.account.isCurrent()) return
         val request = RecordRemovalState(Math.addExact(state.value.attempt, 1L), target, saving = true)
+        submit(target.account, request) { operations.delete(target) }
+    }
+
+    fun deleteSummary(target: RecordSummaryActionTarget) {
+        if (state.value.saving || !target.account.isCurrent()) return
+        val request = RecordRemovalState(Math.addExact(state.value.attempt, 1L), saving = true, summaryTarget = target)
+        submit(target.account, request) {
+            when (requireNotNull(summaryOperations).deleteSummary(target)) {
+                RecordSummaryActionResult.APPLIED -> RecordDeletionResult.DELETED
+                RecordSummaryActionResult.MISSING -> RecordDeletionResult.MISSING
+                RecordSummaryActionResult.CHANGED -> RecordDeletionResult.CHANGED
+                RecordSummaryActionResult.PROTECTED -> RecordDeletionResult.PROTECTED
+                RecordSummaryActionResult.OBSOLETE -> RecordDeletionResult.OBSOLETE
+            }
+        }
+    }
+
+    private fun submit(account: HistoryAccount, request: RecordRemovalState, action: suspend () -> RecordDeletionResult) {
         mutableState.value = request
         viewModelScope.launch {
             try {
-                val notice = when (operations.delete(target)) {
+                val notice = when (action()) {
                     RecordDeletionResult.DELETED, RecordDeletionResult.MISSING -> RecordRemovalNotice.DELETED
                     RecordDeletionResult.CHANGED -> RecordRemovalNotice.CHANGED
                     RecordDeletionResult.PROTECTED -> RecordRemovalNotice.PROTECTED
                     RecordDeletionResult.OBSOLETE -> null
                 }
-                val current = target.account.isCurrent()
-                mutableState.value = request.copy(target = target.takeIf { current }, saving = false,
+                val current = account.isCurrent()
+                mutableState.value = request.copy(target = request.target.takeIf { current }, summaryTarget = request.summaryTarget.takeIf { current }, saving = false,
                     notice = notice.takeIf { current })
             } catch (cancelled: CancellationException) {
                 throw cancelled
@@ -55,11 +79,11 @@ class RecordRemovalViewModel @Inject constructor(
                     reason is RecordMutationOutcome.Rejected && reason.status in setOf(409, 410) -> RecordRemovalNotice.CHANGED
                     else -> RecordRemovalNotice.CLOUD
                 }
-                mutableState.value = request.copy(target = target.takeIf { target.account.isCurrent() }, saving = false,
-                    notice = notice.takeIf { target.account.isCurrent() })
+                mutableState.value = request.copy(target = request.target.takeIf { account.isCurrent() }, summaryTarget = request.summaryTarget.takeIf { account.isCurrent() }, saving = false,
+                    notice = notice.takeIf { account.isCurrent() })
             } catch (_: Exception) {
-                mutableState.value = request.copy(target = target.takeIf { target.account.isCurrent() }, saving = false,
-                    notice = RecordRemovalNotice.FAILED.takeIf { target.account.isCurrent() })
+                mutableState.value = request.copy(target = request.target.takeIf { account.isCurrent() }, summaryTarget = request.summaryTarget.takeIf { account.isCurrent() }, saving = false,
+                    notice = RecordRemovalNotice.FAILED.takeIf { account.isCurrent() })
             } finally {
                 if (state.value.attempt == request.attempt && state.value.saving)
                     mutableState.value = request.copy(saving = false)
@@ -74,7 +98,7 @@ class RecordRemovalViewModel @Inject constructor(
 
     fun discardObsoleteResult() {
         val result = state.value
-        if (!result.saving && result.target?.account?.isCurrent() == false)
-            mutableState.value = result.copy(target = null, notice = null)
+        if (!result.saving && (result.target?.account ?: result.summaryTarget?.account)?.isCurrent() == false)
+            mutableState.value = result.copy(target = null, summaryTarget = null, notice = null)
     }
 }

@@ -229,7 +229,7 @@ class RecordBrowserFlowTest {
         val first = card(0)
         assertEquals("AS321", first.findViewById<TextView>(RecordR.id.pf_record_card_text_flight_number).text.toString())
         assertEquals("03F", first.findViewById<TextView>(RecordR.id.pf_record_card_text_seat).text.toString())
-        assertEquals(View.GONE, first.findViewById<View>(RecordR.id.pf_record_card_img_focus_scene_edit).visibility)
+        assertEquals(View.VISIBLE, first.findViewById<View>(RecordR.id.pf_record_card_img_focus_scene_edit).visibility)
         assertNull(recordModel().state.value.completedDistanceKm)
         assertEquals(com.projectfocus.feature.record.list.FlightStatus.UNKNOWN, recordModel().state.value.items.last().status)
         assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().isEmpty() })
@@ -281,6 +281,81 @@ class RecordBrowserFlowTest {
         oldRetry.performClick(); idle()
         assertFalse(prompt.isShowing); assertTrue(recordModel().state.value.items.isEmpty())
         assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().isEmpty() })
+    }
+
+    @Test fun historicalScenesUseTheNormalPickerAndSurvivePageRecreationWithoutCreatingArchives() {
+        val identity = TokenStore.snapshot()
+        cloud.seedSummary(identity, historical("same-history", "down"))
+        cloud.seedSummary(identity, historical("same-history", "up", at = wall - 1000))
+        showRecords()
+        await { recordModel().state.value.items.size == 2 && list().adapter?.itemCount == 2 }
+        val down = scenePicker(0); sceneChoice(down, "工作").performClick()
+        await { shownScene(0) == "工作" && !recordModel().sceneSave.value.saving }
+        val up = scenePicker(1); sceneChoice(up, "学习").performClick()
+        await { shownScene(1) == "学习" && !recordModel().sceneSave.value.saving }
+        assertNull(cloud.record(identity, FlightRecordMode.DOWN, "same-history")!!.archive)
+        assertNull(cloud.record(identity, FlightRecordMode.UP, "same-history")!!.archive)
+        scenario!!.recreate()
+        scenario!!.onActivity { actual ->
+            activity = actual
+            host = (actual.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment)
+                .childFragmentManager.fragments.first() as RecordListHostFragment
+        }
+        await { list().adapter?.itemCount == 2 && shownScene(0) == "工作" && shownScene(1) == "学习" }
+        assertTrue(recordModel().state.value.items.all { it.cloudSummary != null })
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().isEmpty() })
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().owned(TokenStore.storageScope()).isEmpty() })
+        capture("records-historical-scenes")
+    }
+
+    private fun historicalDeletionPrompt(): RecordDeleteDialog {
+        card(0).performClick()
+        await { ShadowDialog.getLatestDialog().let { it?.isShowing == true && (it is RecordDeleteDialog || it is androidx.appcompat.app.AlertDialog) } }
+        if (ShadowDialog.getLatestDialog() is RecordDeleteDialog) return deletionPrompt()
+        val details = ShadowDialog.getLatestDialog() as androidx.appcompat.app.AlertDialog
+        assertTrue(details.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).isEnabled)
+        details.getButton(androidx.appcompat.app.AlertDialog.BUTTON_NEUTRAL).performClick()
+        return deletionPrompt()
+    }
+
+    @Test fun historicalDeletionWaitsForConfirmationAndRetriesWithoutRemovingTheOtherMode() {
+        val identity = TokenStore.snapshot()
+        cloud.seedSummary(identity, historical("same-history", "up", "cancelled", wall + 1000))
+        cloud.seedSummary(identity, historical("same-history"))
+        showRecords()
+        await { recordModel().state.value.items.size == 2 && list().adapter?.itemCount == 2 }
+        val prompt = historicalDeletionPrompt(); val confirm = prompt.findViewById<View>(RecordR.id.pf_record_delete_confirm)
+        assertTrue(ShadowDialog.getLatestDialog() is RecordDeleteDialog)
+        cloud.rejectionStatus = 503; confirm.performClick()
+        await { confirm.isEnabled && ShadowToast.getTextOfLatestToast()?.toString() == activity.getString(RecordR.string.pf_record_cloud_delete_failed) }
+        assertTrue(prompt.isShowing); assertEquals(2, recordModel().state.value.items.size)
+        assertNull(cloud.record(identity, FlightRecordMode.UP, "same-history"))
+        cloud.rejectionStatus = null; confirm.performClick()
+        await { recordModel().state.value.items.size == 1 && list().adapter?.itemCount == 1 && !prompt.isShowing &&
+            ShadowToast.getTextOfLatestToast()?.toString() == activity.getString(RecordR.string.pf_record_delete_success) }
+        assertEquals(com.projectfocus.service.focus.history.FlightRecordKind.COUNTDOWN, recordModel().state.value.items.single().kind)
+        assertTrue(cloud.record(identity, FlightRecordMode.UP, "same-history")!!.deleted)
+        runBlocking(Dispatchers.IO) { app.recordCloudSync.synchronize(identity) }
+        await { recordModel().state.value.items.size == 1 && list().adapter?.itemCount == 1 }
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().isEmpty() })
+        capture("records-historical-deletion")
+    }
+
+    @Test fun retainedHistoricalDeleteAndSceneButtonsCannotActAfterChangingAccounts() {
+        val identity = TokenStore.snapshot(); cloud.seedSummary(identity, historical("protected-history"))
+        showRecords()
+        await { recordModel().state.value.items.size == 1 && list().adapter?.itemCount == 1 }
+        val prompt = historicalDeletionPrompt(); val oldConfirm = prompt.findViewById<View>(RecordR.id.pf_record_delete_confirm)
+        runBlocking(Dispatchers.IO) { TokenStore.setCancellable("summary-account-two") }
+        await { !prompt.isShowing && recordModel().state.value.ready && list().adapter?.itemCount == 0 }
+        oldConfirm.performClick(); idle(); assertEquals(0, cloud.mutationRequestCount)
+        runBlocking(Dispatchers.IO) { TokenStore.setCancellable("record-browser-account-one"); app.recordCloudSync.synchronize() }
+        await { recordModel().state.value.items.size == 1 && list().adapter?.itemCount == 1 }
+        val picker = scenePicker(0); val oldScene = sceneChoice(picker, "工作")
+        runBlocking(Dispatchers.IO) { TokenStore.setCancellable("summary-account-two") }
+        await { !picker.isShowing && recordModel().state.value.ready && list().adapter?.itemCount == 0 }
+        oldScene.performClick(); idle(); assertEquals(0, cloud.mutationRequestCount)
+        assertNull(cloud.record(identity, FlightRecordMode.DOWN, "protected-history"))
     }
 
     @Test fun incompleteCloudRecordsExplainTheirStatusAndRecoverThroughTheVisibleRetry() {

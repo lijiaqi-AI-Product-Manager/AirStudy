@@ -439,10 +439,14 @@ class SessionRepository @Inject constructor(
     /** Serializes history removal with start, restore and terminal persistence. */
     internal suspend fun <T : Any> withHistoryDeletionLease(
         key: com.projectfocus.service.focus.history.FlightRecordKey, action: suspend () -> T,
+    ): T? = withHistoryDeletionLeases(listOf(key), action)
+
+    internal suspend fun <T : Any> withHistoryDeletionLeases(
+        keys: Collection<com.projectfocus.service.focus.history.FlightRecordKey>, action: suspend () -> T,
     ): T? = runtimeOwnerCommand {
         TokenStore.requireSnapshotLease()
-        require(key.id.isNotBlank())
-        val protected = when (key.kind) {
+        require(keys.isNotEmpty() && keys.all { it.id.isNotBlank() })
+        val protected = keys.any { key -> when (key.kind) {
             com.projectfocus.service.focus.history.FlightRecordKind.COUNTDOWN -> {
                 val activeId = when (val current = controller.state.value) {
                     SessionState.Idle -> null
@@ -454,7 +458,7 @@ class SessionRepository @Inject constructor(
             }
             com.projectfocus.service.focus.history.FlightRecordKind.COUNT_UP ->
                 freeFlightReservation?.sessionId == key.id
-        }
+        } }
         if (protected) return@runtimeOwnerCommand null
         FlightRuntimeLeaseContext.run(action)
     }

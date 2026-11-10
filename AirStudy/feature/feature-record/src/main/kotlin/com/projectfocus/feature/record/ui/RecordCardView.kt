@@ -116,7 +116,7 @@ class RecordCardView @JvmOverloads constructor(
         val sceneColor = builtin?.color ?: color(R.color.pf_record_card_primary)
         sceneIcon.setColorFilter(sceneColor)
         scene.setTextColor(sceneColor)
-        if (item.cloudSummary == null && item.status == FlightStatus.COMPLETED && item.recordedAtWallMs != null && onSceneEdit != null) {
+        if (item.status == FlightStatus.COMPLETED && (item.cloudSummary != null || item.recordedAtWallMs != null) && onSceneEdit != null) {
             sceneEdit.visibility = View.VISIBLE
             (sceneEdit as ImageView).setColorFilter(0xFF8E8E93.toInt())
             sceneEdit.isEnabled = sceneEditingEnabled

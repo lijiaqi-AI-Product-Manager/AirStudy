@@ -31,10 +31,21 @@ class RecordCloudMutationCoordinator @Inject constructor(
     private val localDeletion: RecordDeletionStore,
     private val sceneProjection: RecordSceneWireProjection,
     private val clock: Clock,
+    private val summaryMutations: RecordSummaryMutations? = null,
 ) {
     private val writer = Mutex()
 
     internal suspend fun <T> serialize(block: suspend () -> T): T = writer.withLock { block() }
+
+    internal suspend fun summaryPending(scope: String): Int = summaryMutations?.count(scope) ?: 0
+
+    suspend fun deleteSummary(target: RecordSummaryActionTarget): RecordSummaryActionResult = writer.withLock {
+        requireNotNull(summaryMutations).execute(target, null)
+    }
+
+    suspend fun saveSummaryScene(target: RecordSummaryActionTarget, scene: PlannedScene): RecordSummaryActionResult = writer.withLock {
+        requireNotNull(summaryMutations).execute(target, sceneProjection.project(scene).normalized())
+    }
 
     suspend fun delete(target: RecordDeletionTarget): RecordDeletionResult = writer.withLock {
         val identity = identity(target.account) ?: return@withLock RecordDeletionResult.OBSOLETE
@@ -110,7 +121,9 @@ class RecordCloudMutationCoordinator @Inject constructor(
             if (applied) completed++
         }
         val pending = TokenStore.withSnapshotLease(identity) { journal.pending(account.scope).size } ?: entries.size - completed
-        RecordMutationRecovery(completed, pending, retryable, authenticationRequired)
+        val partial = if (account.isCurrent() && !authenticationRequired) summaryMutations?.recover(identity) else null
+        RecordMutationRecovery(completed + (partial?.completed ?: 0), pending + (partial?.pending ?: summaryPending(account.scope)),
+            retryable || partial?.retryable == true, authenticationRequired || partial?.authenticationRequired == true)
     }
 
     private fun identity(account: HistoryAccount): TokenStore.Snapshot? {

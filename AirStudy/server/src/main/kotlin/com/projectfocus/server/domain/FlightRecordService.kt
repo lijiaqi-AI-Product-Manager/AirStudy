@@ -8,6 +8,7 @@ import com.projectfocus.server.db.Tables.Flights
 import com.projectfocus.server.db.Tables.Users
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -48,7 +49,7 @@ class FlightRecordService(private val database: Database) {
         val scene = validatedScene(patch)
         return mutate(user, mode, id, "scene", scene, options) {
             val current = find(user, mode, id)
-            val legacy = if (current == null && mode == FlightRecordMode.DOWN) legacy(user, id) else null
+            val legacy = if (mode == FlightRecordMode.DOWN) legacy(user, id) else null
             if (current == null && legacy == null || current?.get(Records.deleted) == true)
                 fail(HttpStatusCode.NotFound, "记录不存在")
             val snapshot = current?.get(Records.archiveJson)?.let {
@@ -57,7 +58,8 @@ class FlightRecordService(private val database: Database) {
             val completed = when {
                 snapshot?.countdown != null -> snapshot.countdown.status == "COMPLETED"
                 snapshot?.countUp != null -> snapshot.countUp.status == FreeFlightStatus.COMPLETED
-                else -> (legacy ?: legacy(user, id))?.get(Flights.status) == "COMPLETED"
+                current?.get(Records.summaryJson) != null -> summaryStatus(current) == SummaryFlightStatus.ARRIVED
+                else -> legacy?.get(Flights.status) == "COMPLETED"
             }
             if (!completed) fail(HttpStatusCode.Conflict, "该记录不能修改场景")
             checkRevision(current, options)
@@ -75,6 +77,8 @@ class FlightRecordService(private val database: Database) {
             val current = find(user, mode, id)
             if (current?.get(Records.deleted) == true) return@mutate current[Records.revision]
             val legacy = if (mode == FlightRecordMode.DOWN) legacy(user, id) else null
+            if (current?.get(Records.summaryJson) != null && summaryStatus(current) !in setOf(SummaryFlightStatus.ARRIVED, SummaryFlightStatus.CANCELLED))
+                fail(HttpStatusCode.Conflict, "进行中的飞行不能删除")
             if (legacy != null && legacy[Flights.status] !in setOf("COMPLETED", "CANCELLED", "ABANDONED"))
                 fail(HttpStatusCode.Conflict, "进行中的飞行不能删除")
             checkRevision(current, options)
@@ -149,6 +153,9 @@ class FlightRecordService(private val database: Database) {
     private fun legacy(user: String, id: String) = Flights.selectAll().where {
         (Flights.userId eq user) and (Flights.id eq id)
     }.singleOrNull()
+
+    private fun summaryStatus(row: ResultRow) = FlightRecordSummary.parse(
+        Json.parseToJsonElement(requireNotNull(row[Records.summaryJson])).jsonObject).status
 
     private fun nextRevision(user: String): Long = Math.addExact(Records.selectAll().where { Records.userId eq user }
         .orderBy(Records.revision to SortOrder.DESC).limit(1).singleOrNull()?.get(Records.revision) ?: 0L, 1L)

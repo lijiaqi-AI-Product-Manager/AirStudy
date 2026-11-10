@@ -36,6 +36,7 @@ class RecordRecoveryStatusStore @Inject constructor(
     private val inbox: RecordCloudSyncJournal,
     private val scenes: RecordSceneWireProjection,
     private val clock: Clock,
+    private val summaries: RecordSummaryMutationJournal? = null,
 ) {
     private val running = MutableStateFlow<TokenStore.Snapshot?>(null)
     private fun key(scope: String) = "record.cloud.status.v1." + RecordCloudSnapshots.digest(scope)
@@ -72,6 +73,7 @@ class RecordRecoveryStatusStore @Inject constructor(
                 val scope = TokenStore.storageScope(identity)
                 val entries = inbox.entries(scope)
                 val pending = mutations.pending(scope)
+                val summaryPending = summaries?.pending(scope).orEmpty()
                 val previous = db.appSettingDao().get(key(scope))?.let {
                     try { decode(HistoryAccount(scope, identity.generation), it) } catch (_: Exception) { null }
                 }
@@ -90,12 +92,12 @@ class RecordRecoveryStatusStore @Inject constructor(
                     val mode = if (it.key.kind == FlightRecordKind.COUNTDOWN) com.projectfocus.core.network.dto.FlightRecordMode.DOWN
                         else com.projectfocus.core.network.dto.FlightRecordMode.UP
                     (mode to it.remoteId) !in represented
-                }
+                } + summaryPending.count { (it.summary.mode to it.summary.id) !in represented }
                 val uploads = if (syncing && result == null) previous?.pendingUploads ?: 0
-                    else ((result?.pending ?: 0) - entries.size - pending.size).coerceAtLeast(0)
+                    else ((result?.pending ?: 0) - entries.size - pending.size - summaryPending.size).coerceAtLeast(0)
                 val authenticationRequired = result?.authenticationRequired ?: (syncing && previous?.authenticationRequired == true)
                 val unavailable = failed || (if (syncing && result == null) previous?.unavailable == true
-                    else result?.retryable == true && entries.isEmpty() && pending.isEmpty() && uploads == 0)
+                    else result?.retryable == true && entries.isEmpty() && pending.isEmpty() && summaryPending.isEmpty() && uploads == 0)
                 val value = JSONObject().put("version", 1).put("scope", scope).put("missingArchives", missing)
                     .put("unsupportedScenes", unsupported).put("protectedRecords", protectedCount).put("pendingChanges", changes)
                     .put("pendingUploads", uploads).put("authenticationRequired", authenticationRequired)
