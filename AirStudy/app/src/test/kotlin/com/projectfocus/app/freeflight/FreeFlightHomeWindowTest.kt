@@ -13,6 +13,7 @@ import com.projectfocus.app.MainActivity
 import com.projectfocus.app.ProjectFocusApp
 import com.projectfocus.app.R
 import com.projectfocus.app.booking.FreeFlightHostOwnerFactory
+import com.projectfocus.app.route.RecordCloudHttpFixture
 import com.projectfocus.app.testing.shutdownRealApplicationAfterTest
 import com.projectfocus.core.datastore.PrefKey
 import com.projectfocus.core.datastore.SettingsRepository
@@ -66,11 +67,13 @@ class FreeFlightHomeWindowTest {
     private lateinit var activity: MainActivity
     private lateinit var activityController: ActivityController<MainActivity>
     private var serviceController: ServiceController<InjectedFreeFlightRuntimeService>? = null
+    private lateinit var records: RecordCloudHttpFixture
     private val id = "actual-freeflight-home-restoration-fixture"
 
     @Before fun open() {
         app = ApplicationProvider.getApplicationContext()
         awaitStartup()
+        records = RecordCloudHttpFixture(app.recordCloudMutations, app.recordCloudSync)
         shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
         graph = EntryPointAccessors.fromApplication(app, FreeFlightRuntimeEntryPoint::class.java)
         store = ReflectionHelpers.getField(graph.repository(), "store")
@@ -113,7 +116,10 @@ class FreeFlightHomeWindowTest {
                 controller.destroy()
                 runBlocking(Dispatchers.IO) { withTimeout(10_000) { checkNotNull(scope.coroutineContext[Job]).join() } }
             }
-        } finally { shutdownRealApplicationAfterTest(app) }
+        } finally {
+            try { shutdownRealApplicationAfterTest(app) }
+            finally { if (::records.isInitialized) records.close() }
+        }
     }
     private fun awaitStartup() {
         val restoration = app.admissionApplicationScope.async(Dispatchers.IO) { app.awaitInitialAccountRestore() }
