@@ -52,7 +52,7 @@ class StatsHourPanel @JvmOverloads constructor(context: Context, attrs: Attribut
         val dash = context.getString(R.string.stats_placeholder)
         if (data == null) {
             peak.showStatic(dash); active.showStatic(dash); chart.clear(); chart.visibility = GONE; message.visibility = VISIBLE
-            message.setText(if (state.readFailed && current) R.string.stats_read_failed else R.string.stats_placeholder)
+            message.setText(if (state.readFailed && current) R.string.stats_read_failed else if (!state.coverage.hours) R.string.stats_history_incomplete else R.string.stats_placeholder)
         } else {
             message.visibility = GONE; chart.visibility = VISIBLE
             peak.showStatic(data.peakHour?.let { context.getString(R.string.stats_peak_hour_value_fmt, it, (it + 1) % 24) } ?: dash)

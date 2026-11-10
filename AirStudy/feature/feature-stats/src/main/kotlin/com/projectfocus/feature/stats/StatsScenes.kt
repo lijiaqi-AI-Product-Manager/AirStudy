@@ -48,11 +48,14 @@ object StatsScenes {
         identity(record)?.canonicalKey==canonical(selectedKey)
 
     fun group(records: List<RecordedFlight>, range: StatsDateRange? = null): List<StatsSceneEntry> {
+        return groupFacts(records.map(StatsFlightFact::recorded), range)
+    }
+    internal fun groupFacts(records: List<StatsFlightFact>, range: StatsDateRange? = null): List<StatsSceneEntry> {
         val rows=linkedMapOf<String,StatsSceneEntry>()
         for(record in records) {
-            if(!record.completed || (range!=null && record.recordedAtWallMs !in range))continue
-            val scene=identity(record) ?: continue
-            val minutes=StatsFocusMinutes.value(record)
+            if(record.completed != true || (range!=null && !record.inRange(range)))continue
+            val scene=record.scene ?: continue
+            val minutes=record.focusMinutes ?: continue
             val previous=rows[scene.canonicalKey]
             val total=(previous?.focusMinutes ?: 0.0)+minutes
             require(total.isFinite() && total>=0.0)

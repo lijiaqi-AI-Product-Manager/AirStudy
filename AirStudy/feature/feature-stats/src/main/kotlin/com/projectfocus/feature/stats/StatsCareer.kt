@@ -20,29 +20,30 @@ data class StatsCareer(
 ) {
     companion object {
         fun calculate(records: List<RecordedFlight>, airportCounts: Map<String, Int>, airportCodes: Map<String, Set<String>>): StatsCareer {
-            val completed = records.filter { it.completed }
-            val distance = completed.sumOf { it.distanceKm }
+            return calculateFacts(records.map(StatsFlightFact::recorded),airportCounts,airportCodes)
+        }
+        internal fun calculateFacts(records: List<StatsFlightFact>, airportCounts: Map<String, Int>, airportCodes: Map<String, Set<String>>): StatsCareer {
+            val completed = records.filter { it.completed == true }
+            val distance = completed.mapNotNull { it.distanceKm }.sum()
             require(distance.isFinite() && distance >= 0.0)
             fun known(value: String?) = !value.isNullOrBlank() && value !in setOf("UNKNOWN", "Unknown", "---", "—")
             val destinations = completed.mapNotNull { flight ->
-                when (flight) {
-                    is RecordedFlight.Countdown -> flight.record.let {
-                        HistoryDestination(it.destinationAirportCode, it.destinationAirportName, it.destinationCity, it.destinationCountry)
+                flight.destination?.let { place ->
+                    if (!known(place.code) || !known(place.country)) null
+                    else {
+                        val code=requireNotNull(place.code)
+                        HistoryDestination(code,place.name ?: code,place.city.orEmpty(),requireNotNull(place.country))
                     }
-                    is RecordedFlight.CountUp -> flight.archive.landingAirport?.let { HistoryDestination(it.code, it.displayName, it.displayCity, it.country) }
-                }?.takeIf { known(it.code) && known(it.country) }
+                }
             }.distinctBy { it.code }
             val cityFlights = completed.mapNotNull { flight ->
-                val city = when (flight) {
-                    is RecordedFlight.Countdown -> flight.record.destinationCity
-                    is RecordedFlight.CountUp -> flight.archive.landingAirport?.displayCity
-                }?.trim().orEmpty()
+                val city = flight.destination?.city?.trim().orEmpty()
                 city.takeIf(::known)
-                    ?.let { flight.destinationCountry.orEmpty() to it }
+                    ?.let { flight.destination?.country.orEmpty() to it }
             }.groupingBy { it }.eachCount()
             val cities = cityFlights.map { (place, count) -> StatsCareerCity(place.second, place.first, count) }
                 .sortedWith(compareByDescending<StatsCareerCity> { it.arrivals }.thenBy { it.name }.thenBy { it.country })
-            val countries = completed.filter { known(it.destinationCountry) }.groupBy { it.destinationCountry!! }.map { (country, _) ->
+            val countries = completed.filter { known(it.destination?.country) }.groupBy { requireNotNull(it.destination?.country) }.map { (country, _) ->
                 val codes = destinations.filter { it.country == country }.map { it.code }.toSet()
                 val total = if (airportCodes[country].orEmpty().containsAll(codes)) airportCounts[country] ?: 0 else 0
                 StatsCareerCountry(country, codes.size, total)
@@ -55,10 +56,13 @@ data class StatsCareer(
 data class StatsFlightStreak(val currentDays: Int, val bestDays: Int) {
     companion object {
         fun calculate(records: List<RecordedFlight>, range: StatsDateRange, nowWallMs: Long, zone: ZoneId): StatsFlightStreak {
+            return calculateFacts(records.map(StatsFlightFact::recorded),range,nowWallMs,zone)
+        }
+        internal fun calculateFacts(records: List<StatsFlightFact>, range: StatsDateRange, nowWallMs: Long, zone: ZoneId): StatsFlightStreak {
             val today = Instant.ofEpochMilli(nowWallMs).atZone(zone).toLocalDate()
             val anchor = minOf(today, range.lastDate)
-            val days = records.asSequence().filter { it.completed && it.recordedAtWallMs in range }
-                .map { Instant.ofEpochMilli(it.recordedAtWallMs).atZone(zone).toLocalDate() }
+            val days = records.asSequence().filter { it.completed == true && it.inRange(range) }
+                .map { Instant.ofEpochMilli(requireNotNull(it.recordedAtWallMs)).atZone(zone).toLocalDate() }
                 .filter { it <= anchor }.toSortedSet()
             var previous: LocalDate? = null
             var run = 0

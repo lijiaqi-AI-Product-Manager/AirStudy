@@ -2,6 +2,7 @@ package com.projectfocus.feature.stats
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.TextView
 import android.widget.Toast
 import android.view.View
 import androidx.fragment.app.Fragment
@@ -72,9 +73,9 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             }
         }
         view.findViewById<StatsTrendPanel>(R.id.statsTrendPanel).interactionAllowed=::dateControlsActive
-        view.findViewById<StatsHourPanel>(R.id.statsHourPanel).apply { interactionAllowed=::dateControlsActive; onRetryRequested=viewModel::retry }
-        view.findViewById<StatsInsightsPanel>(R.id.statsInsightsPanel).apply { interactionAllowed=::dateControlsActive; onRetryRequested=viewModel::retry }
-        view.findViewById<StatsHighlightsPanel>(R.id.statsHighlightsPanel).apply { interactionAllowed=::dateControlsActive; onRetryRequested=viewModel::retry }
+        view.findViewById<StatsHourPanel>(R.id.statsHourPanel).apply { interactionAllowed=::dateControlsActive; onRetryRequested=::retryData }
+        view.findViewById<StatsInsightsPanel>(R.id.statsInsightsPanel).apply { interactionAllowed=::dateControlsActive; onRetryRequested=::retryData }
+        view.findViewById<StatsHighlightsPanel>(R.id.statsHighlightsPanel).apply { interactionAllowed=::dateControlsActive; onRetryRequested=::retryData }
         view.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel).apply {
             interactionAllowed = ::dateControlsActive
             currentWallMs = viewModel::currentWallMs
@@ -89,7 +90,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
 
         view.findViewById<StatsCareerPanel>(R.id.statsCareerPanel).apply {
             interactionAllowed = ::dateControlsActive
-            onRetryRequested = viewModel::retry
+            onRetryRequested = ::retryData
             onCountryRequested = action@{ country, captured ->
                 val account = captured.account ?: return@action
                 if (!dateControlsActive() || !viewModel.isCurrentQuery(account, captured.queryRevision)) return@action
@@ -121,6 +122,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
                         closeDateRange()
                         render(StatsUiState())
                     }
+                    if (observed == TokenStore.snapshot() && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) requestCloudHistory()
                 }
             }
         }
@@ -165,6 +167,13 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         lastState = state
         val root = view ?: return
         val current = state.account?.isCurrent() == true
+        root.findViewById<TextView>(R.id.statsHistoryStatus).apply {
+            visibility=if(current && !state.isLoading && state.coverage.incomplete)View.VISIBLE else View.GONE
+            setOnClickListener {
+                if (lastState === state && state.account?.isCurrent() == true && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
+                    withAccount(state.account, { lastState === state }) { retryData() }
+            }
+        }
         root.findViewById<StatsDateControls>(R.id.statsDateControls).bind(state, viewModel.zone)
         root.findViewById<StatsHeadlineView>(R.id.statsHeadline).bind(state, viewModel.zone)
         root.findViewById<StatsTrendPanel>(R.id.statsTrendPanel).bind(state, viewModel.zone)
@@ -220,7 +229,14 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     private fun shareStats() {
         val state = lastState ?: return
         if (state.isLoading || state.account?.isCurrent() != true) return
-        val summary = getString(
+        val partial = !state.coverage.periodFlights || !state.coverage.periodFocus || !state.coverage.periodDistance || !state.coverage.periodTravel
+        val dash = getString(R.string.stats_placeholder)
+        val summary = if (partial) getString(R.string.stats_share_partial,
+            state.flights.toString().takeIf { state.coverage.periodFlights } ?: dash,
+            java.lang.String.format(java.util.Locale.getDefault(),"%.1f",state.distanceKm).takeIf { state.coverage.periodDistance } ?: dash,
+            state.focusMinutes.toString().takeIf { state.coverage.periodFocus } ?: dash,
+            state.airports.toString().takeIf { state.coverage.periodTravel } ?: dash,
+            state.countries.toString().takeIf { state.coverage.periodTravel } ?: dash) else getString(
             R.string.stats_share_text,
             state.flights,
             state.distanceKm,
@@ -266,7 +282,18 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         old?.dismiss()
     }
 
-    override fun onResume() { super.onResume(); viewModel.refreshNow() }
+    private fun requestCloudHistory() {
+        if (!TokenStore.snapshot().token.isNullOrBlank())
+            (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.requestRecordCloudSync()
+    }
+
+    private fun retryData() {
+        viewModel.retry()
+        val account = lastState?.account ?: return
+        if (account.isCurrent()) (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.retryRecordCloudSync(account)
+    }
+
+    override fun onResume() { super.onResume(); viewModel.refreshNow(); requestCloudHistory() }
     override fun onStop() {
         closeDateRange()
         view?.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel)?.chart?.clearSelection()

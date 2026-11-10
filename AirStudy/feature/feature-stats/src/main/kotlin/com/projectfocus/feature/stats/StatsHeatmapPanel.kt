@@ -77,6 +77,7 @@ class StatsHeatmapPanel(context: Context, attrs: AttributeSet? = null) : LinearL
             emptyLabel.visibility = VISIBLE
             emptyLabel.setText(when { state.readFailed && current -> R.string.stats_heatmap_unavailable
                 state.isLoading || !current -> R.string.stats_placeholder
+                !state.coverage.annual -> R.string.stats_history_incomplete
                 else -> R.string.stats_heatmap_no_data_short })
         } else {
             emptyLabel.visibility = GONE

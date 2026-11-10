@@ -16,14 +16,14 @@ class StatsHourHabits private constructor(values: List<Double>) {
         private const val HOUR = 3_600_000L
         private const val DAY = HOUR * 24
         fun calculate(records: List<RecordedFlight>, range: StatsDateRange, zone: ZoneId): StatsHourHabits {
+            return calculateFacts(records.map(StatsFlightFact::recorded), range, zone)
+        }
+        internal fun calculateFacts(records: List<StatsFlightFact>, range: StatsDateRange, zone: ZoneId): StatsHourHabits {
             val bins = DoubleArray(24)
             for (record in records) {
-                if (!record.completed || record.recordedAtWallMs !in range) continue
-                val duration = when (record) {
-                    is RecordedFlight.Countdown -> record.record.actualFocusMinutes.coerceAtLeast(0).toLong() * 60_000L
-                    is RecordedFlight.CountUp -> record.archive.clock.activeElapsedMs
-                }
-                var cursor = record.recordedAtWallMs
+                if (record.completed != true || !record.inRange(range)) continue
+                val duration = record.hourDurationMs ?: continue
+                var cursor = requireNotNull(record.recordedAtWallMs)
                 val until = Math.addExact(cursor, duration)
                 while (cursor < until) {
                     val instant = Instant.ofEpochMilli(cursor)

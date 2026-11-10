@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.service.focus.history.FlightHistoryReader
 import com.projectfocus.service.focus.history.HistoryAccount
+import com.projectfocus.service.focus.history.RecordSummaryStore
+import com.projectfocus.service.focus.history.RecordSummaryState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.time.Clock
 import java.time.Instant
@@ -28,6 +30,7 @@ class StatsViewModel @Inject constructor(
     private val history: FlightHistoryReader,
     private val clock: Clock,
     val zone: ZoneId,
+    private val summaries: RecordSummaryStore? = null,
 ) : ViewModel() {
     private val now = MutableStateFlow(clock.millis())
     private val query = MutableStateFlow(StatsQuery(TokenStore.snapshot().generation, StatsDateSelection.current(now.value, zone),
@@ -45,8 +48,9 @@ class StatsViewModel @Inject constructor(
         }
     }
 
-    val state: StateFlow<StatsUiState> = combine(history.records, query, now) { loaded, selected, wall ->
-        try { StatsProjection.build(loaded, selected, wall, zone) }
+    val state: StateFlow<StatsUiState> = combine(history.records, query, now,
+        summaries?.observe() ?: kotlinx.coroutines.flow.flowOf<RecordSummaryState?>(null)) { loaded, selected, wall, remote ->
+        try { StatsProjection.build(loaded, selected, wall, zone, remote) }
         catch (error: CancellationException) { throw error }
         catch (_: Exception) { StatsUiState(account = loaded.account, readFailed = true, queryRevision = selected.revision,
             nowWallMs = wall, selectedSceneKey = selected.sceneKey.takeIf { selected.generation == loaded.account.generation }.orEmpty(),

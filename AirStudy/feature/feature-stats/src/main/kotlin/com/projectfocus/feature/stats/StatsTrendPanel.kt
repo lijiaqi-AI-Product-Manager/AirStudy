@@ -24,6 +24,7 @@ class StatsTrendPanel @JvmOverloads constructor(context: Context,attrs: Attribut
     val lineButton=button(R.drawable.stats_ic_trend_line,R.string.stats_trend_mode_line)
     val barButton=button(R.drawable.stats_ic_trend_bar,R.string.stats_trend_mode_stacked_bar)
     val rangeLabel=visual.text(11f,visual.tertiaryText)
+    val incompleteLabel=visual.text(13f,visual.tertiaryText).apply { setText(R.string.stats_history_incomplete);visibility=GONE }
     private val totalNumber=StatsNumberView(context,20f)
     private val peakNumber=StatsNumberView(context,20f)
     val totalText: TextView get()=totalNumber
@@ -32,6 +33,7 @@ class StatsTrendPanel @JvmOverloads constructor(context: Context,attrs: Attribut
     val focusChart=StatsTrendChart(context,StatsTrendMetric.FOCUS)
     val completedScroll=scroll(completedChart)
     val focusScroll=scroll(focusChart)
+    private val chartContainer=FrameLayout(context)
     val activeChart get()=if(metric==StatsTrendMetric.COMPLETED)completedChart else focusChart
     val activeScroll get()=if(metric==StatsTrendMetric.COMPLETED)completedScroll else focusScroll
     var metric=StatsTrendMetric.COMPLETED;private set
@@ -76,11 +78,12 @@ class StatsTrendPanel @JvmOverloads constructor(context: Context,attrs: Attribut
         metrics.addView(View(context).apply { setBackgroundColor(visual.alpha(visual.border,.28f)) },LayoutParams(visual.dp(1),visual.dp(38)))
         metrics.addView(number(peakNumber,R.string.stats_trend_peak_label),LayoutParams(0,LayoutParams.WRAP_CONTENT,1f))
         addView(metrics,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT).apply { topMargin=visual.dp(10) })
-        val charts=FrameLayout(context).apply {
+        chartContainer.apply {
             addView(completedScroll,FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
             addView(focusScroll,FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
         }
-        addView(charts,LayoutParams(LayoutParams.MATCH_PARENT,visual.dp(224)).apply { topMargin=visual.dp(8) })
+        addView(chartContainer,LayoutParams(LayoutParams.MATCH_PARENT,visual.dp(224)).apply { topMargin=visual.dp(8) })
+        addView(incompleteLabel,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT).apply { topMargin=visual.dp(8) })
         switch.requested={ next ->
             val state=bound
             if(state!=null && interactive(state) && next!=metric) {
@@ -89,7 +92,7 @@ class StatsTrendPanel @JvmOverloads constructor(context: Context,attrs: Attribut
         }
         fun change(next: StatsTrendMode) {
             val state=bound
-            if(state!=null && interactive(state) && next!=mode) {
+            if(state!=null && interactive(state) && metricKnown(state) && next!=mode) {
                 mode=next;completedChart.setMode(next);focusChart.setMode(next);styleModes(true)
             }
         }
@@ -108,6 +111,7 @@ class StatsTrendPanel @JvmOverloads constructor(context: Context,attrs: Attribut
     }
     private fun interactive(state: StatsUiState)=bound===state && state.account?.isCurrent()==true &&
         !state.isLoading && state.trend!=null && (interactionAllowed?.invoke() ?: true)
+    private fun metricKnown(state: StatsUiState)=if(metric==StatsTrendMetric.COMPLETED)state.coverage.periodFlights else state.coverage.periodFocus
     fun bind(state: StatsUiState,zone: ZoneId) {
         val changed=bound?.account!=state.account
         if(changed) {
@@ -117,8 +121,10 @@ class StatsTrendPanel @JvmOverloads constructor(context: Context,attrs: Attribut
         bound=state
         val ready=!state.isLoading && state.account?.isCurrent()==true && state.trend!=null
         val timeZone=TimeZone.getTimeZone(zone)
-        completedChart.bind(if(ready)state.trend else null,state.account,timeZone)
-        focusChart.bind(if(ready)state.trend else null,state.account,timeZone)
+        completedChart.bind(if(ready && state.coverage.periodFlights)state.trend else null,state.account,timeZone)
+        focusChart.bind(if(ready && state.coverage.periodFocus)state.trend else null,state.account,timeZone)
+        completedChart.visibility=if(ready && state.coverage.periodFlights)VISIBLE else GONE
+        focusChart.visibility=if(ready && state.coverage.periodFocus)VISIBLE else GONE
         completedChart.setMode(mode);focusChart.setMode(mode)
         switch.select(metric,ready,false);styleModes(ready)
         rangeLabel.text=if(state.account?.isCurrent()==true && state.dates!=null)
@@ -126,7 +132,11 @@ class StatsTrendPanel @JvmOverloads constructor(context: Context,attrs: Attribut
         showMetric(false);renderSummary(state)
     }
     private fun renderSummary(state: StatsUiState) {
-        val ready=!state.isLoading && state.account?.isCurrent()==true && state.trend!=null && state.overview!=null
+        val known=metricKnown(state)
+        incompleteLabel.visibility=if(!known && !state.isLoading && state.account?.isCurrent()==true)VISIBLE else GONE
+        chartContainer.visibility=if(incompleteLabel.visibility==VISIBLE)GONE else VISIBLE
+        val ready=known && !state.isLoading && state.account?.isCurrent()==true && state.trend!=null && state.overview!=null
+        styleModes(ready)
         if(!ready) {
             summaryKey=null
             totalNumber.showStatic(context.getString(R.string.stats_placeholder));peakNumber.showStatic(context.getString(R.string.stats_placeholder))

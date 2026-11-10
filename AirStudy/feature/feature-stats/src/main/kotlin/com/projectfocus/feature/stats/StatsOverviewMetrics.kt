@@ -14,11 +14,14 @@ data class StatsOverviewMetrics(
 ) {
     companion object {
         fun calculate(records: List<RecordedFlight>, range: StatsDateRange, zone: ZoneId): StatsOverviewMetrics {
-            val completed = records.filter { it.completed && it.recordedAtWallMs in range }
-            fun minutes(record: RecordedFlight): Double = StatsFocusMinutes.value(record)
-            val total = completed.sumOf(::minutes)
+            return calculateFacts(records.map(StatsFlightFact::recorded), range, zone)
+        }
+        internal fun calculateFacts(records: List<StatsFlightFact>, range: StatsDateRange, zone: ZoneId): StatsOverviewMetrics {
+            val completed = records.filter { it.completed == true && it.inRange(range) }
+            val focused = completed.mapNotNull { it.focusMinutes }
+            val total = focused.sum()
             require(total.isFinite() && total >= 0.0)
-            val dates = completed.map { Instant.ofEpochMilli(it.recordedAtWallMs).atZone(zone).toLocalDate() }.toSortedSet()
+            val dates = completed.map { Instant.ofEpochMilli(requireNotNull(it.recordedAtWallMs)).atZone(zone).toLocalDate() }.toSortedSet()
             var previous: LocalDate? = null
             var run = 0
             var best = 0
@@ -27,7 +30,7 @@ data class StatsOverviewMetrics(
                 best = maxOf(best, run)
                 previous = date
             }
-            return StatsOverviewMetrics(total, completed.size, dates.size, completed.maxOfOrNull(::minutes) ?: 0.0, best)
+            return StatsOverviewMetrics(total, completed.size, dates.size, focused.maxOrNull() ?: 0.0, best)
         }
     }
 }

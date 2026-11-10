@@ -74,17 +74,18 @@ class StatsScenePanel @JvmOverloads constructor(context: Context, attrs: Attribu
         toggle.setText(if(allTime)R.string.stats_show_current_period else R.string.stats_show_all_scenarios)
         val ready = !state.isLoading && state.account?.isCurrent() == true
         toggle.isEnabled = ready
-        displayedRows = if (!ready) emptyList() else if (allTime) state.allTimeScenes else state.periodScenes
+        val complete = if (allTime) state.coverage.allScenes else state.coverage.periodScenes
+        displayedRows = if (!ready || !complete) emptyList() else if (allTime) state.allTimeScenes else state.periodScenes
         chart.contentDescription = context.getString(if(allTime)R.string.stats_scenario_chart_accessibility_hint else R.string.stats_period_scenario_chart_accessibility_hint)
         chart.bind(displayedRows, context.getString(if(allTime)R.string.stats_all_time_label else R.string.stats_current_period_label),state.selectedSceneKey,ready)
-        chart.visibility = if(ready)VISIBLE else GONE
+        chart.visibility = if(ready && complete)VISIBLE else GONE
         cancelLegendAnimations()
         legend.removeAllViews()
         if (displayedRows.isEmpty()) {
             legend.addView(visual.text(13f,visual.tertiaryText).apply {
                 gravity = Gravity.CENTER
                 setPadding(0,visual.dp(14),0,visual.dp(14))
-                setText(if(state.readFailed)R.string.stats_read_failed else if(ready)R.string.stats_empty else R.string.stats_placeholder)
+                setText(if(state.readFailed)R.string.stats_read_failed else if(ready && !complete)R.string.stats_history_incomplete else if(ready)R.string.stats_empty else R.string.stats_placeholder)
             },LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT))
             return
         }

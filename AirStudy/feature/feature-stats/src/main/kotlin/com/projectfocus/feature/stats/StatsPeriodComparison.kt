@@ -20,9 +20,12 @@ internal object StatsPeriodComparison {
         return selection.copy(anchor=previous).range(zone)
     }
     fun calculate(records: List<RecordedFlight>,currentMinutes: Double,selection: StatsDateSelection,zone: ZoneId): StatsFocusComparison {
+        return calculateFacts(records.map(StatsFlightFact::recorded),currentMinutes,selection,zone)
+    }
+    internal fun calculateFacts(records: List<StatsFlightFact>,currentMinutes: Double,selection: StatsDateSelection,zone: ZoneId): StatsFocusComparison {
         require(currentMinutes.isFinite() && currentMinutes>=0.0)
         val previous=previousRange(selection,zone)
-        val minutes=records.asSequence().filter { it.completed && it.recordedAtWallMs in previous }.sumOf(StatsFocusMinutes::value)
+        val minutes=records.asSequence().filter { it.completed == true && it.inRange(previous) }.mapNotNull { it.focusMinutes }.sum()
         require(minutes.isFinite() && minutes>=0.0)
         val difference=currentMinutes-minutes
         return StatsFocusComparison(difference,if(minutes>0.0)difference/minutes else null)

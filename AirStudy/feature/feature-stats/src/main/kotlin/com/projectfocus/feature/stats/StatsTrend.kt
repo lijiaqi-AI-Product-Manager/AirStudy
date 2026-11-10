@@ -25,6 +25,9 @@ data class StatsTrendSeries(val granularity: StatsTrendGranularity, val buckets:
 
 object StatsTrend {
     fun calculate(records: List<RecordedFlight>, range: StatsDateRange, zone: ZoneId): StatsTrendSeries {
+        return calculateFacts(records.map(StatsFlightFact::recorded), range, zone)
+    }
+    internal fun calculateFacts(records: List<StatsFlightFact>, range: StatsDateRange, zone: ZoneId): StatsTrendSeries {
         val span = range.untilWallMs - range.fromWallMs
         val granularity = when {
             span <= 129_600_000L -> StatsTrendGranularity.HOUR
@@ -32,7 +35,7 @@ object StatsTrend {
             span <= 18_144_000_000L -> StatsTrendGranularity.WEEK
             else -> StatsTrendGranularity.MONTH
         }
-        val completed = records.filter { it.completed && it.recordedAtWallMs in range }
+        val completed = records.filter { it.completed == true && it.inRange(range) }
         if (completed.isEmpty()) return StatsTrendSeries(granularity, emptyList())
         var cursor = Instant.ofEpochMilli(range.fromWallMs).atZone(zone)
         if (granularity == StatsTrendGranularity.MONTH) cursor = cursor.withDayOfMonth(1)
@@ -48,16 +51,17 @@ object StatsTrend {
             cursor = next(cursor)
             intervals += from to minOf(cursor.toInstant().toEpochMilli(), range.untilWallMs)
         }
-        val grouped = Array(intervals.size) { mutableListOf<RecordedFlight>() }
+        val grouped = Array(intervals.size) { mutableListOf<StatsFlightFact>() }
         for (record in completed) {
+            val startedAt = requireNotNull(record.recordedAtWallMs)
             var left = 0
             var right = intervals.lastIndex
             while (left <= right) {
                 val middle = (left + right).ushr(1)
                 val interval = intervals[middle]
                 when {
-                    record.recordedAtWallMs < interval.first -> right = middle - 1
-                    record.recordedAtWallMs >= interval.second -> left = middle + 1
+                    startedAt < interval.first -> right = middle - 1
+                    startedAt >= interval.second -> left = middle + 1
                     else -> { grouped[middle] += record; break }
                 }
             }
@@ -65,9 +69,9 @@ object StatsTrend {
         }
         val buckets = intervals.mapIndexed { index, interval ->
             val rows = grouped[index]
-            val minutes = rows.sumOf(StatsFocusMinutes::value)
+            val minutes = rows.mapNotNull { it.focusMinutes }.sum()
             require(minutes.isFinite() && minutes >= 0.0)
-            StatsTrendBucket(interval.first, interval.second, rows.size, minutes, StatsScenes.group(rows))
+            StatsTrendBucket(interval.first, interval.second, rows.size, minutes, StatsScenes.groupFacts(rows))
         }
         return StatsTrendSeries(granularity, buckets)
     }

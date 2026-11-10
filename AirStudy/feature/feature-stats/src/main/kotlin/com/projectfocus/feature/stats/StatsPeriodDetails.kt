@@ -26,24 +26,28 @@ class StatsPeriodDetails private constructor(
     companion object {
         fun calculate(records: List<RecordedFlight>, range: StatsDateRange, zone: ZoneId,
                       hours: StatsHourHabits = StatsHourHabits.calculate(records,range,zone)): StatsPeriodDetails {
-            val completed = records.filter { it.completed && it.recordedAtWallMs in range }
+            return calculateFacts(records.map(StatsFlightFact::recorded),range,zone,hours)
+        }
+        internal fun calculateFacts(records: List<StatsFlightFact>, range: StatsDateRange, zone: ZoneId,
+            hours: StatsHourHabits?, focusKnown: Boolean = true, scenesKnown: Boolean = true): StatsPeriodDetails {
+            val completed = records.filter { it.completed == true && it.inRange(range) && it.focusMinutes != null }
             val days = sortedMapOf<LocalDate,Double>()
             for (record in completed) {
-                val date = Instant.ofEpochMilli(record.recordedAtWallMs).atZone(zone).toLocalDate()
-                days[date] = (days[date] ?: 0.0) + StatsFocusMinutes.value(record)
+                val date = Instant.ofEpochMilli(requireNotNull(record.recordedAtWallMs)).atZone(zone).toLocalDate()
+                days[date] = (days[date] ?: 0.0) + requireNotNull(record.focusMinutes)
             }
             require(days.values.all { it.isFinite() && it >= 0.0 })
             val best = days.entries.maxByOrNull { it.value }?.takeIf { it.value > 0.0 }
                 ?.let { StatsBestDay(it.key,it.value) }
-            val scene = StatsScenes.group(completed).sortedWith(compareByDescending<StatsSceneEntry> { it.focusMinutes }
+            val scene = StatsScenes.groupFacts(completed).sortedWith(compareByDescending<StatsSceneEntry> { it.focusMinutes }
                 .thenBy { it.canonicalKey }).firstOrNull { it.focusMinutes > 0.0 }
-            val periods = hours.minutes.chunked(6).map { it.sum() }
+            val periods = hours?.minutes.orEmpty().chunked(6).map { it.sum() }
             val period = periods.maxOrNull()?.takeIf { it > 0.0 }
                 ?.let { StatsDayPart.entries[periods.indexOf(it)] }
-            val ranked = completed.map { StatsHighlight(it.key,it.recordedAtWallMs,StatsFocusMinutes.value(it),StatsScenes.identity(it)) }
+            val ranked = completed.map { StatsHighlight(it.key,requireNotNull(it.recordedAtWallMs),requireNotNull(it.focusMinutes),it.scene) }
                 .sortedWith(compareByDescending<StatsHighlight> { it.focusMinutes }.thenByDescending { it.startedAtWallMs }
                     .thenBy { it.key.kind.ordinal }.thenBy { it.key.id }).take(5)
-            return StatsPeriodDetails(best,scene,period,ranked)
+            return StatsPeriodDetails(best.takeIf { focusKnown },scene.takeIf { scenesKnown },period,ranked.takeIf { focusKnown }.orEmpty())
         }
     }
 }

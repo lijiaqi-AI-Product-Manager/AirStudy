@@ -22,7 +22,7 @@ class StatsHeadlineView @JvmOverloads constructor(context: Context, attrs: Attri
     val comparisonLabel: TextView
     internal val focus: StatsNumberView
     internal val metrics: List<StatsNumberView>
-    private data class NumbersKey(val account: HistoryAccount, val query: Long, val metrics: StatsOverviewMetrics)
+    private data class NumbersKey(val account: HistoryAccount, val query: Long, val metrics: StatsOverviewMetrics, val coverage: StatsCoverage)
     private var bound: NumbersKey? = null
     val isAnimating get() = focus.isAnimating || metrics.any { it.isAnimating }
 
@@ -93,16 +93,25 @@ class StatsHeadlineView @JvmOverloads constructor(context: Context, attrs: Attri
         if (account?.isCurrent()!=true || state.isLoading || overview==null) { unavailable(); return }
         periodLabel.text = state.dates?.let { StatsDateLabels.label(context,it,zone,state.nowWallMs,false) }
             ?: context.getString(R.string.stats_placeholder)
-        val key = NumbersKey(account,state.queryRevision,overview)
+        val key = NumbersKey(account,state.queryRevision,overview,state.coverage)
         if (bound != key) {
             bound = key
-            focus.animateTo(overview.totalFocusMinutes) { StatsFocusText.rich(context,it,visual.secondaryText) }
-            metrics[0].animateTo(overview.completedFlights.toDouble()) { Math.round(it).toString() }
-            metrics[1].animateTo(overview.activeDays.toDouble()) { Math.round(it).toString() }
-            metrics[2].animateTo(overview.longestFocusMinutes) { StatsFocusText.rich(context,it,visual.secondaryText) }
-            metrics[3].animateTo(overview.bestStreakDays.toDouble()) { context.getString(R.string.stats_streak_days,Math.round(it)) }
+            fun show(view: StatsNumberView, known: Boolean, value: Double, format: (Double) -> CharSequence) {
+                if (known) view.animateTo(value,format) else view.showStatic(context.getString(R.string.stats_placeholder))
+            }
+            show(focus,state.coverage.periodFocus,overview.totalFocusMinutes) { StatsFocusText.rich(context,it,visual.secondaryText) }
+            show(metrics[0],state.coverage.periodFlights,overview.completedFlights.toDouble()) { Math.round(it).toString() }
+            show(metrics[1],state.coverage.periodDates,overview.activeDays.toDouble()) { Math.round(it).toString() }
+            show(metrics[2],state.coverage.periodFocus,overview.longestFocusMinutes) { StatsFocusText.rich(context,it,visual.secondaryText) }
+            show(metrics[3],state.coverage.periodDates,overview.bestStreakDays.toDouble()) { context.getString(R.string.stats_streak_days,Math.round(it)) }
         }
         val comparison = state.focusComparison
+        if (!state.coverage.comparison) {
+            comparisonLabel.visibility=VISIBLE
+            comparisonLabel.setText(R.string.stats_placeholder)
+            comparisonLabel.setTextColor(visual.secondaryText);comparisonLabel.background=null
+            return
+        }
         comparisonLabel.visibility = if(comparison==null)GONE else VISIBLE
         if(comparison!=null) {
             val same = abs(comparison.deltaMinutes)<0.0001

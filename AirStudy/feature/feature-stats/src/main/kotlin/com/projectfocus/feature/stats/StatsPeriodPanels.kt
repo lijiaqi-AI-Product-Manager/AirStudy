@@ -73,19 +73,19 @@ class StatsInsightsPanel @JvmOverloads constructor(context: Context, attrs: Attr
         val best = data.bestDay?.let {
             val wall=it.date.atStartOfDay(zone).toInstant().toEpochMilli()
             context.getString(R.string.stats_insight_day_value_fmt,style.date(wall,20,zone),style.duration(it.focusMinutes))
-        } ?: empty
+        } ?: if (!state.coverage.periodFocus) context.getString(R.string.stats_placeholder) else empty
         append("stats-insight-best-day",R.drawable.stats_ic_best_day,visual.color(R.color.stats_insight_day_tint),R.string.stats_insight_best_day,best)
         val scene = data.topScene
         val sceneKey = scene?.iconKey ?: "study"
         val sceneValue = scene?.let { context.getString(R.string.stats_insight_scenario_value_fmt,
-            labels.label(it.key,it.iconKey),style.duration(it.focusMinutes)) } ?: empty
+            labels.label(it.key,it.iconKey),style.duration(it.focusMinutes)) } ?: if (!state.coverage.periodScenes) context.getString(R.string.stats_placeholder) else empty
         append("stats-insight-top-scene",labels.icon(sceneKey),labels.color(sceneKey),R.string.stats_insight_top_scenario,sceneValue)
         val part = data.topPeriod?.let { context.getString(when(it) {
             StatsDayPart.DAWN -> R.string.stats_period_dawn
             StatsDayPart.MORNING -> R.string.stats_period_morning
             StatsDayPart.AFTERNOON -> R.string.stats_period_afternoon
             StatsDayPart.EVENING -> R.string.stats_period_evening
-        }) } ?: empty
+        }) } ?: if (!state.coverage.hours) context.getString(R.string.stats_placeholder) else empty
         append("stats-insight-top-period",R.drawable.stats_ic_period,visual.mix(visual.accent,visual.secondaryText,.14f),R.string.stats_insight_top_period,part)
     }
     private fun append(key: String, icon: Int, tint: Int, caption: Int, value: String) {
@@ -130,6 +130,7 @@ class StatsHighlightsPanel @JvmOverloads constructor(context: Context, attrs: At
         message.setText(when {
             state.readFailed && current -> R.string.stats_read_failed
             data==null -> R.string.stats_placeholder
+            !state.coverage.periodFocus -> R.string.stats_history_incomplete
             else -> R.string.stats_insight_no_data_short
         })
         message.setOnClickListener {

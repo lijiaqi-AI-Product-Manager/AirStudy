@@ -27,13 +27,18 @@ data class StatsAnnualHeatmap private constructor(
 
     companion object {
         fun calculate(records: List<RecordedFlight>, year: Int, zone: ZoneId): StatsAnnualHeatmap {
+            return calculateFacts(records.map(StatsFlightFact::recorded), year, zone)
+        }
+        internal fun calculateFacts(records: List<StatsFlightFact>, year: Int, zone: ZoneId): StatsAnnualHeatmap {
             val first = LocalDate.of(year, 1, 1).atStartOfDay(zone).toInstant().toEpochMilli()
             val until = LocalDate.of(year + 1, 1, 1).atStartOfDay(zone).toInstant().toEpochMilli()
             val daily = sortedMapOf<LocalDate, Double>()
             records.forEach { record ->
-                if (record.completed && record.recordedAtWallMs >= first && record.recordedAtWallMs < until) {
-                    val date = Instant.ofEpochMilli(record.recordedAtWallMs).atZone(zone).toLocalDate()
-                    val minutes = (daily[date] ?: 0.0) + StatsFocusMinutes.value(record)
+                val start = record.recordedAtWallMs
+                val focus = record.focusMinutes
+                if (record.completed == true && start != null && focus != null && start >= first && start < until) {
+                    val date = Instant.ofEpochMilli(start).atZone(zone).toLocalDate()
+                    val minutes = (daily[date] ?: 0.0) + focus
                     require(minutes.isFinite() && minutes >= 0.0)
                     daily[date] = minutes
                 }

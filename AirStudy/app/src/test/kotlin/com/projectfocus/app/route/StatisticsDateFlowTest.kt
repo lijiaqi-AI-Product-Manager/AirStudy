@@ -1,5 +1,6 @@
 package com.projectfocus.app.route
 
+import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
@@ -23,6 +24,10 @@ import com.projectfocus.core.model.flight.PlannedFlightMetadataCodec
 import com.projectfocus.core.model.flight.PlannedScene
 import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.core.network.dto.*
+import com.projectfocus.service.focus.history.*
+import kotlinx.serialization.json.*
+import org.robolectric.util.ReflectionHelpers
 import com.projectfocus.feature.stats.StatsDateControls
 import com.projectfocus.feature.stats.StatsDateRangeDialog
 import com.projectfocus.feature.stats.StatsPeriod
@@ -44,6 +49,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
@@ -67,6 +73,111 @@ import com.projectfocus.feature.stats.R as StatsR
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class StatisticsDateFlowTest {
+    private fun historical(id: String="historical-same",mode: String="down",seconds: Double?=120.25,offset: Long=0) = buildJsonObject {
+        val start=wall+3_600_000+offset
+        put("flightRecordId",id);put("recordType",mode);put("flightStatus","arrived")
+        put("flightStartTime",java.time.Instant.ofEpochMilli(start).toString())
+        seconds?.let { put("durationSeconds",it);put("flightEndTime",java.time.Instant.ofEpochMilli(start+(it*1000).toLong()).toString()) }
+        put("flightDistanceKm",42.5);put("focusIconType",3);put("focusScenario","阅读")
+        put("arrivalAirport",buildJsonObject { put("code","TSN");put("name","Tianjin Airport");put("city","天津");put("country","CN") })
+    }
+    private fun model(): StatsViewModel {
+        val host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+        val fragment=host.childFragmentManager.fragments.filterIsInstance<StatsFragment>().single()
+        return ViewModelProvider(fragment)[StatsViewModel::class.java]
+    }
+    private suspend fun summaryTarget(mode: FlightRecordMode): RecordSummaryActionTarget {
+        val store=ReflectionHelpers.getField<RecordSummaryStore>(app.recordCloudSync,"summaries")
+        val account=HistoryAccount(TokenStore.storageScope(),TokenStore.snapshot().generation)
+        val state=withTimeout(5000) { store.observe().first { it.account==account && it.records.any { row -> row.mode==mode } } }
+        return RecordSummaryActionTarget(account,state.records.single { it.mode==mode })
+    }
+    @Test fun historicalStatisticsUseBothModesAcrossPanelsAndSurvivePageRecreation() {
+        runBlocking(Dispatchers.IO) {
+            TokenStore.setCancellable("statistics-history-owner")
+            val identity=TokenStore.snapshot()
+            cloud.seedSummary(identity,historical());cloud.seedSummary(identity,historical(mode="up",seconds=180.5,offset=1000))
+        }
+        launch()
+        await { count()=="2" && !model().state.value.coverage.incomplete }
+        val state=model().state.value
+        assertEquals(300.75/60,state.overview!!.totalFocusMinutes,1e-10)
+        assertEquals(2,state.career!!.completedFlights);assertEquals(85.0,state.career!!.distanceKm,0.0)
+        assertEquals(2,state.periodDetails!!.highlights.size);assertEquals(1,state.annualHeatmap!!.days.size)
+        assertEquals(300.75/60,state.hourHabits!!.minutes.sum(),1e-10)
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().none { it.ownerScope==TokenStore.storageScope() } })
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().owned(TokenStore.storageScope()).isEmpty() })
+        capture("statistics-historical-known")
+        scenario!!.recreate();scenario!!.onActivity { activity=it }
+        await { count()=="2" && model().state.value.periodDetails?.highlights?.size==2 }
+        assertEquals(300.75/60,model().state.value.overview!!.totalFocusMinutes,1e-10)
+    }
+    @Test fun incompleteHistoricalMetricsStayUnknownAndTheVisibleRetryCanRestoreAFullArchive() {
+        val id="historical-statistics-restore"
+        runBlocking(Dispatchers.IO) {
+            TokenStore.setCancellable("statistics-history-incomplete")
+            cloud.seedSummary(TokenStore.snapshot(),historical(id,seconds=null))
+        }
+        launch()
+        await { count()=="1" && !model().state.value.coverage.periodFocus }
+        assertEquals("—",activity.findViewById<TextView>(StatsR.id.statsFocus).text.toString())
+        assertNull(model().state.value.hourHabits);assertNull(model().state.value.annualHeatmap)
+        val retry=activity.findViewById<View>(StatsR.id.statsHistoryStatus)
+        assertEquals(View.VISIBLE,retry.visibility)
+        activity.findViewById<View>(StatsR.id.statsShare).performClick()
+        val chooser=shadowOf(activity).nextStartedActivity
+        assertEquals(Intent.ACTION_CHOOSER,chooser.action)
+        val shared=chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!.getStringExtra(Intent.EXTRA_TEXT)!!
+        assertTrue(shared.contains("—"));assertTrue(shared.contains("部分历史资料待恢复"))
+        capture("statistics-historical-incomplete")
+        val airport=PlannedAirport(1,"PEK","Airport","北京","CN",40.0,116.0)
+        val archive=FlightRecordArchiveSnapshot(FlightRecordMode.DOWN,id,countdown=CountdownRecordArchive(id=id,focusType="SOLO",
+            departure=airport,destination=airport.copy(id=2,code="TSN",name="Tianjin Airport",city="天津",latitude=39.0,longitude=117.0),
+            startTimeMillis=wall+3_600_000,endTimeMillis=wall+3_900_000,durationMinutes=25,actualFocusMinutes=5,distanceKm=99.25,
+            status="COMPLETED",createdAt=wall,updatedAt=wall+3_900_000))
+        cloud.seed(TokenStore.snapshot(),FlightRecordMode.DOWN,id,archive,FlightRecordScenePatch(3,"阅读"))
+        retry.performClick()
+        await { count()=="1" && !model().state.value.coverage.incomplete && model().state.value.overview?.totalFocusMinutes==5.0 &&
+            retry.visibility==View.GONE && activity.findViewById<TextView>(StatsR.id.statsFocus).text.toString()=="5m" }
+        assertEquals(View.GONE,retry.visibility);assertEquals(99.25,model().state.value.career!!.distanceKm,0.0)
+        assertNotNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(id) })
+        capture("statistics-historical-restored")
+    }
+    @Test fun historicalSceneChangesAndDeletionRefreshTheOpenStatisticsWithoutCreatingArchives() {
+        runBlocking(Dispatchers.IO) {
+            TokenStore.setCancellable("statistics-history-actions")
+            cloud.seedSummary(TokenStore.snapshot(),historical(seconds=120.0))
+            cloud.seedSummary(TokenStore.snapshot(),historical(mode="up",seconds=60.0,offset=1000))
+        }
+        launch();await { count()=="2" && model().state.value.overview?.totalFocusMinutes==3.0 }
+        runBlocking(Dispatchers.IO) {
+            assertEquals(RecordSummaryActionResult.APPLIED,app.recordCloudMutations.saveSummaryScene(summaryTarget(FlightRecordMode.DOWN),
+                PlannedScene("work","工作","work",0,true)))
+        }
+        await { model().state.value.periodScenes.size==2 && model().state.value.periodScenes.any { it.canonicalKey=="work" } }
+        runBlocking(Dispatchers.IO) { assertEquals(RecordSummaryActionResult.APPLIED,app.recordCloudMutations.deleteSummary(summaryTarget(FlightRecordMode.UP))) }
+        await { count()=="1" && model().state.value.overview?.totalFocusMinutes==2.0 && model().state.value.periodScenes.size==1 }
+        assertEquals("work",model().state.value.periodScenes.single().canonicalKey)
+        assertEquals(42.5,model().state.value.career!!.distanceKm,0.0)
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().none { it.ownerScope==TokenStore.storageScope() } })
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.freeFlightArchiveDao().owned(TokenStore.storageScope()).isEmpty() })
+    }
+    @Test fun anAccountChangeCannotKeepThePreviousAccountsHistoricalStatistics() {
+        runBlocking(Dispatchers.IO) {
+            TokenStore.setCancellable("statistics-history-a")
+            cloud.seedSummary(TokenStore.snapshot(),historical());cloud.seedSummary(TokenStore.snapshot(),historical(mode="up"))
+        }
+        launch();await { count()=="2" && model().state.value.coverage.periodFocus }
+        runBlocking(Dispatchers.IO) {
+            TokenStore.setCancellable("statistics-history-b")
+            cloud.seedSummary(TokenStore.snapshot(),historical(seconds=null))
+            app.recordCloudSync.synchronize()
+        }
+        await { count()=="1" && !model().state.value.coverage.periodFocus }
+        assertEquals(1,model().state.value.career!!.completedFlights)
+        assertEquals("—",activity.findViewById<TextView>(StatsR.id.statsFocus).text.toString())
+        assertEquals(TokenStore.storageScope(),model().state.value.account!!.scope)
+    }
     @Test fun periodDetailsUseRealBothModeRecordsAndFollowSceneDateRecreationAndOwnerChanges() {
         launch()
         fun insights()=activity.findViewById<StatsInsightsPanel>(StatsR.id.statsInsightsPanel)
@@ -183,7 +294,8 @@ class StatisticsDateFlowTest {
             return ViewModelProvider(host.childFragmentManager.primaryNavigationFragment as StatsFragment)[StatsViewModel::class.java]
         }
         val year=today.year
-        await { model().state.value.annualHeatmap!=null && !model().state.value.isLoading && count()!=null && heatmap().yearLabel.text.contains(year.toString()) }
+        await { model().state.value.annualHeatmap!=null && !model().state.value.isLoading &&
+            model().state.value.coverage.periodFlights && count()==expected(model().state.value.flights) && heatmap().yearLabel.text.contains(year.toString()) }
         val originalDates=model().state.value.dates
         val originalRevision=model().state.value.queryRevision
         val originalCount=count()
@@ -253,6 +365,7 @@ class StatisticsDateFlowTest {
         }
     }
     private lateinit var app: ProjectFocusApp
+    private lateinit var cloud: RecordCloudHttpFixture
     private lateinit var activity: MainActivity
     private var scenario: ActivityScenario<MainActivity>? = null
     private val zone = ZoneId.systemDefault()
@@ -261,6 +374,7 @@ class StatisticsDateFlowTest {
     @Before fun open() = runBlocking(Dispatchers.IO) {
         app=ApplicationProvider.getApplicationContext()
         withTimeout(15_000) { app.awaitInitialAccountRestore(); app.awaitInitialAirportSeed() }
+        cloud=RecordCloudHttpFixture(app.recordCloudMutations,app.recordCloudSync)
         TokenStore.setCancellable("statistics-route-owner-one")
         app.database.flightHistoryDao().insert(legacy("shared-id",wall))
         app.database.flightHistoryDao().insert(legacy("yesterday",today.minusDays(1).atStartOfDay(zone).toInstant().toEpochMilli()))
@@ -276,7 +390,7 @@ class StatisticsDateFlowTest {
         val store=RoomFreeFlightArchiveStore(app.database.freeFlightArchiveDao())
         assertTrue(store.commit(null,start,null));assertTrue(store.commit(0,complete,null))
     }
-    @After fun close() { scenario?.close(); TokenStore.clear() }
+    @After fun close() { scenario?.close(); TokenStore.clear(); if(::cloud.isInitialized)cloud.close() }
     private fun legacy(id: String, at: Long, owner: String=TokenStore.storageScope(),status: String="COMPLETED") = FlightHistoryEntity(
         id,null,"SOLO",null,"PEK","Beijing Airport","北京","CN",40.0,116.0,
         "TSN","Tianjin Airport","天津","CN",39.0,117.0,at,at+300_000,25,5,99.25,status,

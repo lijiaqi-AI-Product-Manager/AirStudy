@@ -63,6 +63,17 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
+            <TextView
+                android:id="@+id/statsHistoryStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:minHeight="48dp"
+                android:gravity="center_vertical"
+                android:padding="12dp"
+                android:text="@string/stats_history_retry"
+                android:textColor="@color/text_secondary"
+                android:visibility="gone" />
+
             <com.projectfocus.feature.stats.StatsDateControls
                 android:id="@+id/statsDateControls"
                 android:layout_width="match_parent"
@@ -121,7 +132,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="@dimen/space_l"
-                android:text="@string/stats_source_note"
+                android:text="@string/stats_history_source_note"
                 android:textAppearance="@style/TextAppearance.Pf.Caption"
                 android:textColor="@color/text_tertiary" />
         </LinearLayout>

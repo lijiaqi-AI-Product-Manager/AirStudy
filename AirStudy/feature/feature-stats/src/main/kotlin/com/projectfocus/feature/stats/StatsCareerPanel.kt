@@ -135,11 +135,11 @@ class StatsCareerPanel @JvmOverloads constructor(context: Context, attrs: Attrib
         val placeholder = context.getString(R.string.stats_placeholder)
         fun show(view: StatsNumberView, value: Double?, format: (Double) -> CharSequence) {
             if (value == null) view.showStatic(placeholder)
-            else if (old?.account != state.account || old?.career != state.career || old?.flightStreak != state.flightStreak) view.animateTo(value, format)
+            else if (old?.account != state.account || old?.career != state.career || old?.flightStreak != state.flightStreak || old?.coverage != state.coverage) view.animateTo(value, format)
             else view.showStatic(format(value))
         }
-        show(mileage, career?.distanceKm) { context.getString(R.string.stats_km_value_fmt, String.format(Locale.US, "%,d", Math.round(it))) }
-        show(flights, career?.completedFlights?.toDouble()) { context.getString(R.string.stats_times_fmt, Math.round(it)) }
+        show(mileage, career?.distanceKm?.takeIf { state.coverage.allDistance }) { context.getString(R.string.stats_km_value_fmt, String.format(Locale.US, "%,d", Math.round(it))) }
+        show(flights, career?.completedFlights?.toDouble()?.takeIf { state.coverage.allFlights }) { context.getString(R.string.stats_times_fmt, Math.round(it)) }
         show(onTime, career?.onTimeRate?.times(100)) { context.getString(R.string.stats_ontime_rate_value_fmt, Math.round(it)) }
         val run = state.flightStreak.takeIf { ready }
         show(streak, run?.currentDays?.toDouble()) { context.getString(R.string.stats_streak_days_fmt, Math.round(it)) }
@@ -147,18 +147,20 @@ class StatsCareerPanel @JvmOverloads constructor(context: Context, attrs: Attrib
         best.contentDescription = best.text
         cityRows.removeAllViews(); countryRows.removeAllViews(); countryHighlight.removeAllViews()
         if (old?.career != state.career || old?.account != state.account) cityScroll.scrollTo(0, 0)
-        geography.visibility = if (career != null && (career.cities.isNotEmpty() || career.countries.isNotEmpty())) VISIBLE else GONE
-        citySection.visibility = if (career?.cities.isNullOrEmpty()) GONE else VISIBLE
-        countrySection.visibility = if (career?.countries.isNullOrEmpty()) GONE else VISIBLE
-        show(cityCount, career?.cityCount?.toDouble()) { Math.round(it).toString() }
-        career?.cities?.take(5)?.forEachIndexed { index, city ->
+        val cities = career?.cities.orEmpty().takeIf { state.coverage.allCities }.orEmpty()
+        val countries = career?.countries.orEmpty().takeIf { state.coverage.allCountries }.orEmpty()
+        geography.visibility = if (cities.isNotEmpty() || countries.isNotEmpty()) VISIBLE else GONE
+        citySection.visibility = if (cities.isEmpty()) GONE else VISIBLE
+        countrySection.visibility = if (countries.isEmpty()) GONE else VISIBLE
+        show(cityCount, career?.cityCount?.toDouble()?.takeIf { state.coverage.allCities }) { Math.round(it).toString() }
+        cities.take(5).forEachIndexed { index, city ->
             val tile = column(12, 11, false)
             tile.addView(number(20f, 12).apply { showStatic(city.arrivals.toString()) }, full())
             tile.addView(visual.text(11f, visual.tertiaryText).apply { text = city.name; setSingleLine(true); ellipsize = TextUtils.TruncateAt.END }, full(5))
             tile.contentDescription = city.name + " " + context.getString(R.string.stats_times_fmt, city.arrivals)
             cityRows.addView(tile, LayoutParams(0, -2, 1f).apply { if (index > 0) leftMargin = visual.dp(8) })
         }
-        career?.countries?.firstOrNull()?.let { row ->
+        countries.firstOrNull()?.let { row ->
             countryHighlight.addView(flag(40, 28))
             countryHighlight.addView(LinearLayout(context).apply {
                 orientation = VERTICAL
@@ -167,8 +169,8 @@ class StatsCareerPanel @JvmOverloads constructor(context: Context, attrs: Attrib
             }, LayoutParams(0, -2, 1f).apply { leftMargin = visual.dp(12) })
             countryHighlight.addView(number(20f).apply { showStatic(if (row.totalAirports > 0) "${row.visitedAirports}/${row.totalAirports}" else row.visitedAirports.toString()) })
         }
-        val maximum = career?.countries?.maxOfOrNull { it.visitedAirports } ?: 0
-        career?.countries?.take(5)?.forEachIndexed { index, row ->
+        val maximum = countries.maxOfOrNull { it.visitedAirports } ?: 0
+        countries.take(5).forEachIndexed { index, row ->
             val container = LinearLayout(context).apply { orientation = VERTICAL; isFocusable = true; tag = row.country }
             val header = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
             header.addView(flag(22, 15))
@@ -183,8 +185,9 @@ class StatsCareerPanel @JvmOverloads constructor(context: Context, attrs: Attrib
             container.setOnClickListener { if (interactive(state)) onCountryRequested?.invoke(row.country, state) }
             countryRows.addView(container, full(if (index == 0) 0 else 10))
         }
-        message.visibility = if (career == null) VISIBLE else GONE
-        message.setText(if (state.readFailed && current) R.string.stats_read_failed else R.string.stats_placeholder)
+        val incomplete = !state.coverage.allDistance || !state.coverage.allFlights || !state.coverage.allCities || !state.coverage.allCountries
+        message.visibility = if (career == null || incomplete) VISIBLE else GONE
+        message.setText(if (state.readFailed && current) R.string.stats_read_failed else if (incomplete) R.string.stats_history_incomplete else R.string.stats_placeholder)
         message.setOnClickListener {
             if (state.readFailed && bound === state && state.account?.isCurrent() == true && interactionAllowed()) onRetryRequested?.invoke()
         }
