@@ -5,6 +5,7 @@ import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.network.dto.*
 import com.projectfocus.server.db.CloudFlightRecords
+import com.projectfocus.server.db.FlightRecordOperations
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -16,6 +17,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import org.junit.jupiter.api.Test
 import java.net.URLEncoder
 import java.util.UUID
+import java.security.MessageDigest
 
 class FlightRecordRoutesTest : ServerTestBase() {
     private val codec = Json { encodeDefaults = true; ignoreUnknownKeys = true }
@@ -141,6 +143,50 @@ class FlightRecordRoutesTest : ServerTestBase() {
             assertThat(page(c, token).items.single().archive).isEqualTo(original)
             assertThat(page(c, token).items.single().revision).isEqualTo(1L)
         }
+    }
+
+    @Test fun legacyCountdownSnapshotsAndAcceptedRetriesSurviveMissingOptionalNumbers() = serverTest("legacy-countdown-number") { c ->
+        val token = login(c, "legacy-countdown-number@airstudy.test")
+        for (explicitNull in listOf(false, true)) {
+            val record = down("legacy-number-$explicitNull")
+            val operation = "accepted-legacy-$explicitNull"
+            val accepted = upload(c, token, record, operation)
+            assertThat(accepted.status.value).isEqualTo(200)
+            val acceptedRevision = revision(accepted)
+            val current = transaction {
+                CloudFlightRecords.selectAll().where { CloudFlightRecords.recordId eq record.id }
+                    .single()[CloudFlightRecords.archiveJson]!!
+            }
+            val root = codec.parseToJsonElement(current).jsonObject
+            val down = root.getValue("countdown").jsonObject
+            val legacy = JsonObject(root + ("countdown" to JsonObject(
+                if (explicitNull) down + ("flightNumber" to JsonNull) else down - "flightNumber"))).toString()
+            // Retain a pre-upgrade accepted receipt together with its exact stored snapshot.
+            val legacyRequest = codec.encodeToString(listOf("upload", "down", record.id, legacy + "\nnull", ""))
+            val legacyHash = MessageDigest.getInstance("SHA-256").digest(legacyRequest.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it) }
+            transaction {
+                CloudFlightRecords.update({ CloudFlightRecords.recordId eq record.id }) { it[archiveJson] = legacy }
+                FlightRecordOperations.update({ FlightRecordOperations.operationId eq operation }) { it[requestHash] = legacyHash }
+            }
+            val retried = upload(c, token, record, operation)
+            assertThat(retried.status.value).isEqualTo(200)
+            assertThat(revision(retried)).isEqualTo(acceptedRevision)
+            val repeated = upload(c, token, record, operation + "-new")
+            assertThat(repeated.status.value).isEqualTo(200)
+            assertThat(revision(repeated)).isEqualTo(acceptedRevision)
+            val changedNumber = record.copy(countdown = record.countdown!!.copy(flightNumber = "AS9999"))
+            assertThat(upload(c, token, changedNumber, operation).status.value).isEqualTo(409)
+            val changedDistance = record.copy(countdown = record.countdown!!.copy(distanceKm = 601.0))
+            assertThat(upload(c, token, changedDistance, operation + "-changed").status.value).isEqualTo(409)
+            val stored = transaction {
+                CloudFlightRecords.selectAll().where { CloudFlightRecords.recordId eq record.id }
+                    .single()[CloudFlightRecords.archiveJson]!!
+            }
+            assertThat(stored).isEqualTo(legacy)
+            assertThat(page(c, token).items.single { it.id == record.id }.revision).isEqualTo(acceptedRevision)
+        }
+        assertThat(c.withToken(token).str(c.get("/user/me"), "totalFocusedMinutes")).isEqualTo("70")
     }
 
     @Test fun assignedCountdownNumberSurvivesFullTransferSummaryBackfillAndSceneEdits() = serverTest("countdown-number") { c ->

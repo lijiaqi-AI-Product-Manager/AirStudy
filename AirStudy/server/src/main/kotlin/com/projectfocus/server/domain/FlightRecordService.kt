@@ -8,6 +8,8 @@ import com.projectfocus.server.db.Tables.Flights
 import com.projectfocus.server.db.Tables.Users
 import io.ktor.http.HttpStatusCode
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -25,16 +27,19 @@ class FlightRecordService(private val database: Database) {
         validateKey(id)
         val archive = body.archive.withoutDeviceOwnership()
         require(archive.mode == mode && archive.id == id)
-        val payload = recordJson.encodeToString(FlightRecordArchiveSnapshot.serializer(), archive)
+        val encoded = recordJson.encodeToString(FlightRecordArchiveSnapshot.serializer(), archive)
+        val payload = if (mode == FlightRecordMode.DOWN) withoutNullCountdownNumber(encoded) else encoded
         require(payload.toByteArray(Charsets.UTF_8).size <= 32 * 1024 * 1024)
         val scene = body.scene?.let(::validatedScene)
-        return mutate(user, mode, id, "upload", payload + "\n" + scene, options) {
+        val compatibleRequests = if (encoded != payload) listOf(encoded + "\n" + scene) else emptyList()
+        return mutate(user, mode, id, "upload", payload + "\n" + scene, options, compatibleRequests) {
             val current = find(user, mode, id)
             if (current?.get(Records.deleted) == true) fail(HttpStatusCode.Gone, "记录已删除")
             val stored = current?.get(Records.archiveJson)
-            if (stored != null && stored != payload) fail(HttpStatusCode.Conflict, "记录内容已更改")
+            val comparable = stored?.let { if (mode == FlightRecordMode.DOWN) withoutNullCountdownNumber(it) else it }
+            if (comparable != null && comparable != payload) fail(HttpStatusCode.Conflict, "记录内容已更改")
             checkRevision(current, options)
-            if (stored == payload) return@mutate current!![Records.revision]
+            if (comparable == payload) return@mutate current!![Records.revision]
             val revision = nextRevision(user)
             write(user, mode, id, current, revision, false, payload, current?.get(Records.sceneJson) ?: scene,
                 archive.summaryJson().toString())
@@ -113,18 +118,30 @@ class FlightRecordService(private val database: Database) {
         }
     }
 
+    /** Older snapshots omitted this optional field; explicit null carries the same unknown value. */
+    private fun withoutNullCountdownNumber(payload: String): String {
+        val root = try { recordJson.parseToJsonElement(payload).jsonObject } catch (_: Exception) { return payload }
+        val down = root["countdown"] as? JsonObject ?: return payload
+        if (down["flightNumber"] != JsonNull) return payload
+        return JsonObject(root + ("countdown" to JsonObject(down - "flightNumber"))).toString()
+    }
+
     private fun mutate(user: String, mode: FlightRecordMode, id: String, action: String, payload: String,
-                       options: FlightRecordMutationOptions, block: () -> Long): FlightRecordMutationReceipt = transaction(database) {
+                       options: FlightRecordMutationOptions, compatiblePayloads: List<String> = emptyList(),
+                       block: () -> Long): FlightRecordMutationReceipt = transaction(database) {
         Users.selectAll().where { Users.id eq user }.forUpdate().singleOrNull()
             ?: fail(HttpStatusCode.Unauthorized, "请重新登录")
-        val hash = MessageDigest.getInstance("SHA-256").digest(
+        fun fingerprint(value: String) = MessageDigest.getInstance("SHA-256").digest(
             recordJson.encodeToString(kotlinx.serialization.serializer<List<String>>(),
-                listOf(action, mode.path, id, payload, options.expectedRevision?.toString() ?: "")).toByteArray(Charsets.UTF_8)
+                listOf(action, mode.path, id, value, options.expectedRevision?.toString() ?: "")).toByteArray(Charsets.UTF_8)
         ).joinToString("") { "%02x".format(it) }
+        val hash = fingerprint(payload)
         if (options.operationId != null) {
             val receipt = Operations.selectAll().where { (Operations.userId eq user) and (Operations.operationId eq options.operationId) }.singleOrNull()
             if (receipt != null) {
-                if (receipt[Operations.requestHash] != hash) fail(HttpStatusCode.Conflict, "操作编号已用于其他修改")
+                val accepted = receipt[Operations.requestHash]
+                if (accepted != hash && compatiblePayloads.none { fingerprint(it) == accepted })
+                    fail(HttpStatusCode.Conflict, "操作编号已用于其他修改")
                 return@transaction FlightRecordMutationReceipt(receipt[Operations.revision])
             }
         }
