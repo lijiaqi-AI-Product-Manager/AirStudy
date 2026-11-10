@@ -106,6 +106,8 @@ class PlannedFlightMetadataRoomTest {
         assertThat(PlannedFlightMetadataCodec.decodeSceneOrNull(ongoing.sceneSnapshotJson)).isEqualTo(scene)
         assertThat(PlannedFlightMetadataCodec.decodeDepartureOrNull(ongoing.plannedDepartureJson)).isEqualTo(departure)
         assertThat(ongoing.categoryId).isNull()
+        assertThat(ongoing.flightNumber).isEqualTo("AS2401")
+        assertThat(repository.currentRoute().flightNumber).isEqualTo("AS2401")
         assertThat(repository.currentRoute().scenarioLabel).isEqualTo(scene.displayName)
 
         ticks(repository, 60)
@@ -113,6 +115,7 @@ class PlannedFlightMetadataRoomTest {
         val completed = database.flightHistoryDao().findById(id)!!
         assertThat(completed.status).isEqualTo(SessionRepository.STATUS_COMPLETED)
         assertThat(completed.durationMinutes).isEqualTo(1)
+        assertThat(completed.flightNumber).isEqualTo("AS2401")
         assertThat(completed.sceneSnapshotJson).isEqualTo(ongoing.sceneSnapshotJson)
         assertThat(completed.plannedDepartureJson).isEqualTo(ongoing.plannedDepartureJson)
         val settled = repository.settle()!!
@@ -121,6 +124,7 @@ class PlannedFlightMetadataRoomTest {
 
         reopenDatabase()
         val reread = database.flightHistoryDao().findById(id)!!
+        assertThat(reread.flightNumber).isEqualTo("AS2401")
         assertThat(PlannedFlightMetadataCodec.decodeSceneOrNull(reread.sceneSnapshotJson)).isEqualTo(scene)
         assertThat(PlannedFlightMetadataCodec.decodeDepartureOrNull(reread.plannedDepartureJson)).isEqualTo(departure)
         assertThat(reread.categoryId).isNull()
@@ -139,6 +143,7 @@ class PlannedFlightMetadataRoomTest {
         database.flightHistoryDao().update(latest.copy(
             sceneSnapshotJson = opaque,
             plannedDepartureJson = null,
+            flightNumber = "AS2402",
         ))
 
         ticks(repository, 60)
@@ -146,11 +151,13 @@ class PlannedFlightMetadataRoomTest {
         assertThat(checkpoint.actualFocusMinutes).isEqualTo(2)
         assertThat(checkpoint.sceneSnapshotJson).isEqualTo(opaque)
         assertThat(checkpoint.plannedDepartureJson).isNull()
+        assertThat(checkpoint.flightNumber).isEqualTo("AS2402")
         assertThat(repository.abandon()).isTrue()
         val terminal = database.flightHistoryDao().findById(id)!!
         assertThat(terminal.status).isEqualTo(SessionRepository.STATUS_CANCELLED)
         assertThat(terminal.sceneSnapshotJson).isEqualTo(opaque)
         assertThat(terminal.plannedDepartureJson).isNull()
+        assertThat(terminal.flightNumber).isEqualTo("AS2402")
         assertThat(repository.settle()!!.sceneSnapshotJson).isEqualTo(opaque)
     }
 
@@ -169,6 +176,7 @@ class PlannedFlightMetadataRoomTest {
         assertThat(running.accumulatedMs).isEqualTo(60_000L)
         assertThat(restored.currentRoute().scene).isEqualTo(builtin)
         assertThat(restored.currentRoute().plannedDeparture).isEqualTo(departure)
+        assertThat(restored.currentRoute().flightNumber).isEqualTo("AS2401")
         assertThat(restored.currentRoute().scenarioLabel).isEqualTo("学习")
         assertThat(restored.abandon()).isTrue()
         val saved = database.flightHistoryDao().findById(id)!!
@@ -206,11 +214,13 @@ class PlannedFlightMetadataRoomTest {
         restored.restore()
         assertThat(restored.currentRoute().scene).isNull()
         assertThat(restored.currentRoute().plannedDeparture).isNull()
+        assertThat(restored.currentRoute().flightNumber).isNull()
         ticks(restored, 60)
         val row = database.flightHistoryDao().findById(id)!!
         assertThat(row.status).isEqualTo(SessionRepository.STATUS_COMPLETED)
         assertThat(row.sceneSnapshotJson).isNull()
         assertThat(row.plannedDepartureJson).isNull()
+        assertThat(row.flightNumber).isNull()
     }
 
     @Test
@@ -228,14 +238,35 @@ class PlannedFlightMetadataRoomTest {
         assertThat(repository.abandon()).isTrue()
         val saved = database.flightHistoryDao().findById(id)!!
         assertThat(saved.status).isEqualTo(SessionRepository.STATUS_CANCELLED)
+        assertThat(saved.flightNumber).isEqualTo("AS2401")
         assertThat(PlannedFlightMetadataCodec.decodeSceneOrNull(saved.sceneSnapshotJson)).isEqualTo(scene)
         assertThat(PlannedFlightMetadataCodec.decodeDepartureOrNull(saved.plannedDepartureJson)).isEqualTo(departure)
+    }
+
+    @Test
+    fun clearedFlightNumberIsNotRegeneratedAtCheckpointRestoreOrCompletion() = runBlocking {
+        val repository = newRepository()
+        assertThat(repository.startPlannedFlight(plan(latitude = 0.30))).isTrue()
+        val id = (repository.state.value as SessionState.Running).sessionId
+        val original = database.flightHistoryDao().findById(id)!!
+        assertThat(original.flightNumber).isEqualTo("AS2401")
+        database.flightHistoryDao().update(original.copy(flightNumber = null))
+        ticks(repository, 60)
+        assertThat(database.flightHistoryDao().findById(id)!!.flightNumber).isNull()
+        reopenDatabase()
+        val restored = newRepository()
+        assertThat(restored.restore()).isInstanceOf(SessionState.Running::class.java)
+        assertThat(restored.currentRoute().flightNumber).isNull()
+        ticks(restored, 120)
+        val completed = database.flightHistoryDao().findById(id)!!
+        assertThat(completed.status).isEqualTo(SessionRepository.STATUS_COMPLETED)
+        assertThat(completed.flightNumber).isNull()
     }
 
     private fun plan(latitude: Double = 0.30): FlightLegPlan = FlightLegPlan.between(
         PlannedAirport(101, "AAA", "Origin", "Origin City", "Test", 0.0, 0.0),
         PlannedAirport(102, "BBB", "Destination", "Destination City", "Test", latitude, 0.0),
-    ).copy(scene = scene, plannedDeparture = departure, seat = "1A")
+    ).copy(scene = scene, plannedDeparture = departure, seat = "1A", flightNumber = "AS2401")
 
     private fun newRepository(): SessionRepository = SessionRepository(
         controller = SessionController(

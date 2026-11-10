@@ -45,7 +45,8 @@ class RecordCloudSnapshots @Inject constructor(private val db: AppDatabase, priv
                         row.destinationCountry, row.destinationLatitude, row.destinationLongitude),
                     row.startTimeMillis, row.endTimeMillis, row.durationMinutes, row.actualFocusMinutes, row.distanceKm,
                     row.status, row.seat, row.createdAt, row.updatedAt, row.logJson, row.quote, row.quoteAuthor,
-                    row.sceneSnapshotJson, row.plannedDepartureJson, row.hasAnnouncedDeparture, row.hasAnnouncedDescent, row.hasAnnouncedArrival))
+                    row.sceneSnapshotJson, row.plannedDepartureJson, row.hasAnnouncedDeparture, row.hasAnnouncedDescent, row.hasAnnouncedArrival,
+                    flightNumber = row.flightNumber))
                 originalScene = PlannedFlightMetadataCodec.decodeSceneOrNull(row.sceneSnapshotJson)
                 localMetadata = listOf(row.id, row.ownerScope, row.categoryId, row.isSynced, row.syncedAt).toString()
             }

@@ -111,6 +111,28 @@ class PlannedFlightSessionBridgeTest {
         assertThat(h.gateway.requests).hasSize(1)
     }
 
+    @Test fun assignedNumberRemainsPartOfTheOwnedRouteAfterColdRestoreAndCompletion() = runTest {
+        val h = harness(backgroundScope)
+        val assigned = h.plan.copy(flightNumber = "AS2701")
+        h.enable(assigned)
+        assertThat(h.actions().startFlight(assigned)).isTrue(); runCurrent()
+        val id = (h.sessions.state.value as SessionState.Running).sessionId
+        assertThat(h.handle().route.flightNumber).isEqualTo("AS2701")
+        assertThat(h.sessions.currentRoute().flightNumber).isEqualTo("AS2701")
+        assertThat(h.database.flightHistoryDao().findById(id)!!.flightNumber).isEqualTo("AS2701")
+        h.recreate()
+        assertThat(h.sessions.restore()).isInstanceOf(SessionState.Running::class.java)
+        h.bridge.retryCurrent(); runCurrent()
+        assertThat(h.handle().sessionId).isEqualTo(id)
+        assertThat(h.sessions.currentRoute().flightNumber).isEqualTo("AS2701")
+        h.ticks(60)
+        h.bridge.retryCurrent(); runCurrent()
+        val row = h.database.flightHistoryDao().findById(id)!!
+        assertThat(row.status).isEqualTo("COMPLETED")
+        assertThat(row.flightNumber).isEqualTo("AS2701")
+        assertThat(h.handle().terminalHandedOff).isTrue()
+    }
+
     @Test fun rejectActiveDoesNotClaim() = runTest {
         val h = harness(backgroundScope)
         h.enable()

@@ -124,6 +124,7 @@ internal object DailyFlightPlans {
                             builtin.color, true, displayName = wire.focusSceneText)
                     }
                 }, plannedDeparture = draft.plannedDeparture,
+                flightNumber = normalizeAssignment(wire.flightNo).takeIf(String::isNotEmpty),
             )
         } catch (_: IllegalArgumentException) { null }
         return DailyFlightLeg(wire, route)
@@ -147,7 +148,12 @@ internal object DailyFlightPlans {
                         (SourceFlightPlanStatus.parse(it.snapshot.legStatus) == SourceFlightPlanStatus.parse(leg.legStatus) &&
                             it.snapshot.flightNo == leg.flightNo && it.snapshot.seatNo == leg.seatNo)) }?.singleOrNull()
                 val route = old?.route ?: route(leg, snapshot.timezone, snapshot.localPlanDate, index)
-                DailyFlightLeg(leg, route?.copy(seat = leg.seatNo.takeIf(String::isNotBlank)))
+                DailyFlightLeg(leg, route?.let {
+                    try {
+                        it.copy(seat = leg.seatNo.takeIf(String::isNotBlank),
+                            flightNumber = normalizeAssignment(leg.flightNo).takeIf(String::isNotEmpty))
+                    } catch (_: IllegalArgumentException) { null }
+                })
             })
 
     private fun sameRouteMetadata(previous: DailyFlightLeg, leg: FlightPlanLegSnapshot): Boolean {
@@ -183,6 +189,7 @@ internal object DailyFlightPlans {
         val builtin = SourceSceneCatalog.builtins.firstOrNull { it.type == leg.focusIconCode }
         FlightLegPlan.between(from, to).copy(
             seat = leg.seatNo.takeIf(String::isNotBlank),
+            flightNumber = normalizeAssignment(leg.flightNo).takeIf(String::isNotEmpty),
             plannedDeparture = PlannedDeparture(local.toLocalDate().toString(), local.hour, local.minute, timezone),
             // Server plans do not contain the picker's independent option/cloud identity.
             scene = PlannedScene("wire:$date:$index", leg.focusSceneText, builtin?.iconKey.orEmpty(),

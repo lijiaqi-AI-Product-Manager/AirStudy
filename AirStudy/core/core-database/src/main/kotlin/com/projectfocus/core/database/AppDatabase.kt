@@ -79,6 +79,6 @@ abstract class AppDatabase : RoomDatabase() {
         const val NAME: String = "projectfocus.db"
 
 
-        const val VERSION: Int = 26
+        const val VERSION: Int = 27
     }
 }

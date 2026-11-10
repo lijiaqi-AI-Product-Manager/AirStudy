@@ -34,8 +34,10 @@ data class FlightLegPlan(
     val categoryId: Long? = null,
     val scene: PlannedScene? = null,
     val plannedDeparture: PlannedDeparture? = null,
+    val flightNumber: String? = null,
 ) {
     init {
+        require(flightNumber == null || flightNumber.length <= 128) { "Invalid flight number" }
         require(categoryId == null || categoryId >= 0L) { "Invalid focus category" }
         require(departure.id != destination.id && departure.code != destination.code) {
             "Departure and destination must differ"

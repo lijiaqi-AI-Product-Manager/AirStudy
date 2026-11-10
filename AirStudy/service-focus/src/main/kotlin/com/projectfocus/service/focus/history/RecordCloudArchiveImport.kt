@@ -174,7 +174,7 @@ class RecordCloudArchiveImport @Inject constructor(
                 destinationLatitude = value.destination.latitude, destinationLongitude = value.destination.longitude,
                 startTimeMillis = value.startTimeMillis, endTimeMillis = value.endTimeMillis,
                 durationMinutes = value.durationMinutes, actualFocusMinutes = value.actualFocusMinutes, distanceKm = value.distanceKm,
-                status = value.status, categoryId = null, seat = value.seat,
+                status = value.status, categoryId = null, seat = value.seat, flightNumber = value.flightNumber,
                 hasAnnouncedDeparture = value.hasAnnouncedDeparture, hasAnnouncedDescent = value.hasAnnouncedDescent,
                 hasAnnouncedArrival = value.hasAnnouncedArrival, logJson = value.logJson,
                 isSynced = true, createdAt = value.createdAt, updatedAt = value.updatedAt,

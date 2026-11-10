@@ -171,7 +171,7 @@ class RecordBrowserFlowTest {
 
     @Test fun cloudRecordsRestoreAndReceiveRemoteChangesThroughTheNormalPage() {
         runBlocking(Dispatchers.IO) {
-            app.database.flightHistoryDao().insert(countdown("shared-id"))
+            app.database.flightHistoryDao().insert(countdown("shared-id").copy(flightNumber = "AS2701"))
             saveIndependentRecord()
             assertEquals(2, app.recordCloudSync.synchronize().uploaded)
             app.database.withTransaction {
@@ -186,7 +186,22 @@ class RecordBrowserFlowTest {
         await { list().adapter?.itemCount == 2 && model.state.value.items.map { it.kind }.toSet() ==
             setOf(com.projectfocus.service.focus.history.FlightRecordKind.COUNTDOWN, com.projectfocus.service.focus.history.FlightRecordKind.COUNT_UP) }
         assertEquals(setOf("shared-id"), model.state.value.items.map { it.id }.toSet())
+        val countdownPosition = model.state.value.items.indexOfFirst {
+            it.kind == com.projectfocus.service.focus.history.FlightRecordKind.COUNTDOWN
+        }
+        await { (list().findViewHolderForAdapterPosition(countdownPosition)?.itemView as? RecordCardView)
+            ?.findViewById<TextView>(RecordR.id.pf_record_card_text_flight_number)?.text?.toString() == "AS2701" }
+        assertEquals("AS2701", runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById("shared-id")!!.flightNumber })
         capture("records-cloud-restored")
+        card(countdownPosition).performClick()
+        await {
+            val overlay = activity.findViewById<View>(RecordR.id.pf_record_page_share_preview)
+            val image = activity.findViewById<View>(RecordR.id.pf_record_page_share_card_image)
+            overlay != null && overlay.alpha >= 0.999f && image != null && image.scaleX >= 1.059f
+        }
+        capture("records-countdown-assigned-number-preview")
+        activity.onBackPressedDispatcher.onBackPressed()
+        await { activity.findViewById<View>(RecordR.id.pf_record_page_share_preview) == null }
         runBlocking(Dispatchers.IO) {
             assertTrue(cloud.mutationGateway.changeScene(TokenStore.snapshot(), com.projectfocus.core.network.dto.FlightRecordMode.DOWN,
                 "shared-id", com.projectfocus.core.network.dto.FlightRecordScenePatch(2, "工作"),

@@ -172,7 +172,7 @@ class SessionRepository @Inject constructor(
         startResolved(
             plan.categoryId ?: NO_CATEGORY, plan.durationMinutes * 60_000L,
             RouteInfo(plan.departure.code, plan.destination.code, plan.departure, plan.destination,
-                plan.distanceKm, plan.seat, plan.scene, plan.plannedDeparture),
+                plan.distanceKm, plan.seat, plan.scene, plan.plannedDeparture, plan.flightNumber),
             requestedSessionId,
         )
     }
@@ -392,6 +392,7 @@ class SessionRepository @Inject constructor(
             ongoing.distanceKm, ongoing.seat,
             PlannedFlightMetadataCodec.decodeSceneOrNull(ongoing.sceneSnapshotJson),
             PlannedFlightMetadataCodec.decodeDepartureOrNull(ongoing.plannedDepartureJson),
+            ongoing.flightNumber,
         )
         freeFlightHost = null
         withContext(NonCancellable) {
@@ -631,6 +632,7 @@ class SessionRepository @Inject constructor(
             status = STATUS_ONGOING,
             categoryId = s.categoryId.takeIf { it != NO_CATEGORY },
             seat = route.seat,
+            flightNumber = route.flightNumber,
             sceneSnapshotJson = PlannedFlightMetadataCodec.encodeScene(route.scene),
             plannedDepartureJson = PlannedFlightMetadataCodec.encodeDeparture(route.plannedDeparture),
             hasAnnouncedDeparture = false,
@@ -685,6 +687,7 @@ class SessionRepository @Inject constructor(
             status = if (a.abandoned) STATUS_CANCELLED else STATUS_COMPLETED,
             categoryId = a.categoryId.takeIf { it != NO_CATEGORY } ?: base?.categoryId,
             seat = if (base != null) base.seat else route.seat,
+            flightNumber = if (base != null) base.flightNumber else route.flightNumber,
             hasAnnouncedDeparture = base?.hasAnnouncedDeparture ?: false,
             hasAnnouncedDescent = base?.hasAnnouncedDescent ?: false,
             hasAnnouncedArrival = base?.hasAnnouncedArrival ?: false,
@@ -776,6 +779,7 @@ data class RouteInfo(
     val seat: String? = null,
     val scene: PlannedScene? = null,
     val plannedDeparture: PlannedDeparture? = null,
+    val flightNumber: String? = null,
 ) {
     /** 本品冻结的独立场景展示快照；不反查或改写专注类别。 */
     val scenarioLabel: String

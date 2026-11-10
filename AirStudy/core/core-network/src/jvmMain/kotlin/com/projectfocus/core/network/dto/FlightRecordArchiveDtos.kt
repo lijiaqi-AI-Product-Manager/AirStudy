@@ -32,6 +32,7 @@ data class CountdownRecordArchive(
     val hasAnnouncedDeparture: Boolean = false,
     val hasAnnouncedDescent: Boolean = false,
     val hasAnnouncedArrival: Boolean = false,
+    val flightNumber: String? = null,
 ) {
     fun validated(): CountdownRecordArchive = apply {
         require(id.isNotBlank() && id.length <= 128 && id == id.trim())
@@ -46,6 +47,7 @@ data class CountdownRecordArchive(
         require(sceneSnapshotJson == null || sceneSnapshotJson.length <= 65_536)
         require(plannedDepartureJson == null || plannedDepartureJson.length <= 65_536)
         require(seat == null || seat.length <= 32)
+        require(flightNumber == null || flightNumber.length <= 128)
         require(quote == null || quote.length <= 4096)
         require(quoteAuthor == null || quoteAuthor.length <= 512)
     }

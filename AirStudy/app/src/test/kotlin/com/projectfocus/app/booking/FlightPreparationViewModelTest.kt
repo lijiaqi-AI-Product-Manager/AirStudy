@@ -509,6 +509,20 @@ class FlightPreparationViewModelTest {
         assertThat(vm.state.value.scene).isNull()
     }
 
+    @Test
+    fun assignedNumberInConfirmedPlanReachesTheActualStartSnapshot() = runTest(dispatcher) {
+        val plan = FlightLegPlan.between(PEK, PVG).copy(plannedDeparture = FIXED_DEPARTURE,
+            seat = "04F", flightNumber = "AS2701")
+        val actions = FakeActions()
+        val vm = model(actions, FakeStore(plan))
+        advanceUntilIdle()
+        assertThat(vm.state.value.confirmed).isTrue()
+        assertThat(vm.state.value.plan!!.flightNumber).isEqualTo("AS2701")
+        vm.startFlight(); advanceUntilIdle()
+        assertThat(actions.starts.single()).isEqualTo(plan)
+        assertThat(vm.state.value.started).isTrue()
+    }
+
     private fun preview(vm: FlightPreparationViewModel) {
         if (vm.state.value.stage in setOf(PreparationStage.EXPANDED, PreparationStage.COLLAPSED, PreparationStage.COMPACT)) vm.beginEditing()
         if (vm.state.value.stage == PreparationStage.DESTINATION) vm.nextDestination()

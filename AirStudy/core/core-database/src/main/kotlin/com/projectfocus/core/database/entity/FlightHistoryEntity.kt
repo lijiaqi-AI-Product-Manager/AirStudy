@@ -180,4 +180,8 @@ data class FlightHistoryEntity(
 
     @ColumnInfo(name = "ownerScope", defaultValue = "NULL")
     val ownerScope: String? = null,
+
+    /** Assigned at preparation; missing legacy values remain unknown. */
+    @ColumnInfo(name = "flightNumber", defaultValue = "NULL")
+    val flightNumber: String? = null,
 )

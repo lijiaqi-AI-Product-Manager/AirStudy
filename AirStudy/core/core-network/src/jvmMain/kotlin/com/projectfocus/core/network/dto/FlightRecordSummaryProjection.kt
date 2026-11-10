@@ -24,7 +24,7 @@ fun FlightRecordArchiveSnapshot.summaryJson(scene: FlightRecordScenePatch? = nul
         put("durationSeconds", down?.actualFocusMinutes?.toDouble()?.times(60.0) ?: up!!.clock.activeElapsedMs / 1000.0)
         put("flightDistanceKm", down?.distanceKm ?: up!!.cumulativeDistanceKm)
         (down?.seat ?: up?.seat)?.let { put("seatNumber", it) }
-        up?.flightNumber?.let { put("flightNumber", it) }
+        (down?.flightNumber ?: up?.flightNumber)?.let { put("flightNumber", it) }
         val selected = scene ?: up?.scene?.takeIf { it.type > 0 }?.let { FlightRecordScenePatch(it.type, it.title.orEmpty()) }
         selected?.let { put("focusIconType", it.focusIconType); put("focusScenario", it.focusScenario) }
     }

@@ -110,6 +110,24 @@ class SourcePendingFlightInputsTest {
         assertNull(SourcePendingFlightInputs.from(leg(departure, null)))
     }
 
+    @Test fun assignedNumberSurvivesPlanRefreshAndPendingReconstructionWithoutRegeneration() {
+        val snapshot = DailyFlightPlanSnapshot("2026-10-31", "Asia/Shanghai", listOf(leg().copy(flightNo = " AS2701 ")))
+        val original = DailyFlightPlans.fromSnapshot(snapshot)
+        assertEquals("AS2701", original.legs.single().route!!.flightNumber)
+        val refreshed = DailyFlightPlans.fromSnapshot(snapshot.copy(legs = listOf(leg().copy(flightNo = "AS2702"))), original)
+        assertEquals("AS2702", refreshed.legs.single().route!!.flightNumber)
+        val clock = PreparationClock { ZonedDateTime.parse("2026-10-31T09:00:00+08:00[Asia/Shanghai]") }
+        SharedPreferencesGlobalFlightPlanStore(preferences, clock).beginPending(refreshed, refreshed.legs.single())
+        val restored = SharedPreferencesGlobalFlightPlanStore(preferences, clock).current().pendingSelection!!.candidate
+        assertEquals("AS2702", restored.route!!.flightNumber)
+        assertEquals("AS2702", restored.snapshot.flightNo)
+        val unassigned = DailyFlightPlans.fromSnapshot(snapshot.copy(legs = listOf(leg().copy(flightNo = "待分配"))), refreshed)
+        assertNull(unassigned.legs.single().route!!.flightNumber)
+        val malformed = DailyFlightPlans.fromSnapshot(snapshot.copy(legs = listOf(leg().copy(flightNo = "X".repeat(129)))), refreshed)
+        assertNull(malformed.legs.single().route)
+        assertEquals("X".repeat(129), malformed.legs.single().snapshot.flightNo)
+    }
+
     private fun leg(from: FlightPlanAirportDto? = departure, to: FlightPlanAirportDto? = arrival) =
         FlightPlanLegSnapshot(1, from, to, "2026-10-31T01:00:00Z", "waiting_takeoff", 100.0,
             "", "", 1, "Study")

@@ -95,9 +95,9 @@ class RecordCloudSyncCoordinatorTest {
         id, null, "SOLO", null, "PEK", "Airport", "Beijing", "CN", 40.0, 116.0,
         "LHR", "Airport", "London", "GB", 51.4, -0.4, wall, wall + 300_000, 10, 5, 99.25, status,
         null, "01A", false, false, false, null, false, wall, wall, ownerScope = owner)
-    private suspend fun savedDown(id: String = "shared-id", status: String = "COMPLETED"):
+    private suspend fun savedDown(id: String = "shared-id", status: String = "COMPLETED", flightNumber: String? = null):
         FlightRecordArchiveSnapshot {
-        db.flightHistoryDao().insert(down(id, status))
+        db.flightHistoryDao().insert(down(id, status).copy(flightNumber = flightNumber))
         return requireNotNull(snapshots.capture(account(), FlightRecordKey(FlightRecordKind.COUNTDOWN, id))).upload.archive
     }
     private suspend fun savedUp(id: String = "shared-id", ongoing: Boolean = false, owner: String = account().scope): FreeFlightArchive {
@@ -138,7 +138,7 @@ class RecordCloudSyncCoordinatorTest {
     }
 
     @Test fun bothModesRestoreTheirActualDataAndSamplesAfterReinstall() = runBlocking(Dispatchers.IO) {
-        val expectedDown = savedDown(); val expectedUp = savedUp(); val expectedSamples = db.freeFlightArchiveDao().positions("shared-id", account().scope)
+        val expectedDown = savedDown(flightNumber = "AS2401"); val expectedUp = savedUp(); val expectedSamples = db.freeFlightArchiveDao().positions("shared-id", account().scope)
         assertTrue(expectedSamples.isNotEmpty())
         assertEquals(2, sync.synchronize().uploaded)
         assertEquals(setOf(FlightRecordMode.DOWN, FlightRecordMode.UP), remote.uploads.map { it.second.archive.mode }.toSet())
@@ -146,6 +146,8 @@ class RecordCloudSyncCoordinatorTest {
         val result = sync.synchronize()
         assertEquals(2, result.restored); assertEquals(0, result.pending)
         val restoredDown = requireNotNull(db.flightHistoryDao().findById("shared-id"))
+        assertEquals("AS2401", expectedDown.countdown!!.flightNumber)
+        assertEquals("AS2401", restoredDown.flightNumber)
         assertEquals(expectedDown.countdown!!.actualFocusMinutes, restoredDown.actualFocusMinutes)
         assertEquals(expectedDown.countdown!!.departure.latitude, restoredDown.departureLatitude, 0.0)
         val restored = decodeHistoryArchive(requireNotNull(db.freeFlightArchiveDao().get("shared-id", account().scope)))

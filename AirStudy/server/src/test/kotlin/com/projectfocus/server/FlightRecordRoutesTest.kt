@@ -143,6 +143,26 @@ class FlightRecordRoutesTest : ServerTestBase() {
         }
     }
 
+    @Test fun assignedCountdownNumberSurvivesFullTransferSummaryBackfillAndSceneEdits() = serverTest("countdown-number") { c ->
+        val token = login(c, "countdown-number@airstudy.test")
+        val base = down("assigned-number")
+        val record = base.copy(countdown = base.countdown!!.copy(flightNumber = "AS2701"))
+        assertThat(upload(c, token, record).status.value).isEqualTo(200)
+        assertThat(page(c, token).items.single().archive).isEqualTo(record)
+        assertThat(summaries(c, token).records.single().let(FlightRecordSummary::parse).flightNumber).isEqualTo("AS2701")
+        transaction { CloudFlightRecords.update({ CloudFlightRecords.recordId eq record.id }) { it[summaryJson] = null } }
+        assertThat(summaries(c, token).records.single().let(FlightRecordSummary::parse).flightNumber).isEqualTo("AS2701")
+        assertThat(send(c, token, HttpMethod.Patch, path(record.mode, record.id) + "/focus-scene",
+            """{"focusIconType":3,"focusScenario":"Study"}""").status.value).isEqualTo(200)
+        assertThat(summaries(c, token).records.single().let(FlightRecordSummary::parse).flightNumber).isEqualTo("AS2701")
+        assertThat(page(c, token).items.single().archive).isEqualTo(record)
+        val unassigned = down("unassigned-number")
+        assertThat(upload(c, token, unassigned).status.value).isEqualTo(200)
+        assertThat(summaries(c, token).records.map(FlightRecordSummary::parse).single { it.id == unassigned.id }.flightNumber).isNull()
+        val invalid = base.copy(id = "invalid-number", countdown = base.countdown!!.copy(id = "invalid-number", flightNumber = "X".repeat(129)))
+        assertThat(upload(c, token, invalid).status.value).isEqualTo(400)
+    }
+
     @Test fun bothModesKeepTheirCompleteSnapshotsAndPositionSamplesSeparate() = serverTest("cloud-roundtrip") { c ->
         val token = login(c, "roundtrip@airstudy.test"); val id = "same-record"
         assertThat(upload(c, token, down(id)).status.value).isEqualTo(200)

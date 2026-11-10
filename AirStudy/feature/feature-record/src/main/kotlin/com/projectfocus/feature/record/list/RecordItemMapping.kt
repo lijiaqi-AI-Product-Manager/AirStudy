@@ -45,7 +45,7 @@ object RecordItemMapping {
             completionRatio = ratio,
             kind = record.key.kind,
             dateText = date.format(start).uppercase(Locale.ENGLISH),
-            flightNumber = archive?.flightNumber?.takeIf { it.isNotBlank() },
+            flightNumber = (legacy?.flightNumber ?: archive?.flightNumber)?.takeIf { it.isNotBlank() },
             seat = (legacy?.seat ?: archive?.seat)?.takeIf { it.isNotBlank() },
             sceneTitle = (scene?.displayName?.takeIf { it.isNotBlank() } ?: scene?.name ?: archive?.scene?.title)
                 ?.takeIf { it.isNotBlank() },

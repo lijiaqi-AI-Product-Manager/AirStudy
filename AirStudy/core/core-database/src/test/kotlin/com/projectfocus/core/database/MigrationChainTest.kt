@@ -124,7 +124,7 @@ class MigrationChainTest {
         )
         createRaw(version = 22, statements = statements)
         withRoom { db ->
-            assertEquals(37, columnsOf(db, "flight_history").size)
+            assertEquals(38, columnsOf(db, "flight_history").size)
             db.query("SELECT categoryId, seat, quote, quoteAuthor, syncedAt, sceneSnapshotJson, " +
                 "plannedDepartureJson, durationMinutes, actualFocusMinutes FROM flight_history WHERE id = 'legacy-metadata'")
                 .use { c ->
@@ -179,6 +179,32 @@ class MigrationChainTest {
                 assertEquals("opaque preserved bytes", row.getString(2))
             }
             db.query("PRAGMA foreign_key_check").use { assertTrue(!it.moveToFirst()) }
+        }
+    }
+
+    @Test
+    fun v26UpgradeLeavesUnassignedFlightNumbersUnknownAndPreservesArchiveData() {
+        val schema = schemaJson(26)
+        createRaw(26, createSqlOf(schema) + listOf(
+            insertSql(schema, "flight_history", mapOf("id" to "legacy-number", "status" to "COMPLETED",
+                "ownerScope" to "retained-owner", "seat" to "04F", "actualFocusMinutes" to 23,
+                "sceneSnapshotJson" to "opaque scene", "plannedDepartureJson" to "opaque clock")),
+        ))
+        withRoom { db ->
+            db.query("SELECT flightNumber, ownerScope, seat, actualFocusMinutes, sceneSnapshotJson, plannedDepartureJson " +
+                "FROM flight_history WHERE id = 'legacy-number'").use { row ->
+                assertTrue(row.moveToFirst()); assertTrue(row.isNull(0))
+                assertEquals("retained-owner", row.getString(1)); assertEquals("04F", row.getString(2))
+                assertEquals(23, row.getInt(3)); assertEquals("opaque scene", row.getString(4))
+                assertEquals("opaque clock", row.getString(5))
+            }
+            db.execSQL("UPDATE flight_history SET flightNumber = ? WHERE id = 'legacy-number'", arrayOf("AS2701"))
+            db.query("PRAGMA foreign_key_check").use { assertTrue(!it.moveToFirst()) }
+        }
+        withRoom { db ->
+            db.query("SELECT flightNumber FROM flight_history WHERE id = 'legacy-number'").use { row ->
+                assertTrue(row.moveToFirst()); assertEquals("AS2701", row.getString(0))
+            }
         }
     }
 

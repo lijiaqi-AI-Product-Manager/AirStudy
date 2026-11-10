@@ -367,7 +367,8 @@ class PlannedFlightSessionBridge internal constructor(
         sameAirport(route.departure, plan.departure) && sameAirport(route.arrival, plan.destination) &&
             route.departureCode == plan.departure.code && route.arrivalCode == plan.destination.code &&
             route.distanceKm == plan.distanceKm && route.seat == plan.seat &&
-            route.scene == plan.scene && route.plannedDeparture == plan.plannedDeparture
+            route.scene == plan.scene && route.plannedDeparture == plan.plannedDeparture &&
+            route.flightNumber == plan.flightNumber
 
     private fun matchesRow(row: FlightHistoryEntity, plan: FlightLegPlan): Boolean =
         row.departureAirportCode == plan.departure.code && row.departureAirportName == plan.departure.name &&
@@ -377,7 +378,7 @@ class PlannedFlightSessionBridge internal constructor(
             row.destinationCity == plan.destination.city && row.destinationCountry == plan.destination.country &&
             row.destinationLatitude == plan.destination.latitude && row.destinationLongitude == plan.destination.longitude &&
             row.distanceKm == plan.distanceKm && row.durationMinutes == plan.durationMinutes &&
-            row.categoryId == plan.categoryId && row.seat == plan.seat &&
+            row.categoryId == plan.categoryId && row.seat == plan.seat && row.flightNumber == plan.flightNumber &&
             (row.sceneSnapshotJson == null || PlannedFlightMetadataCodec.decodeSceneOrNull(row.sceneSnapshotJson) != null) &&
             (row.plannedDepartureJson == null || PlannedFlightMetadataCodec.decodeDepartureOrNull(row.plannedDepartureJson) != null) &&
             PlannedFlightMetadataCodec.decodeSceneOrNull(row.sceneSnapshotJson) == plan.scene &&

@@ -1,11 +1,11 @@
-# AirStudy 数据结构（Room v26）
+# AirStudy 数据结构（Room v27）
 
 ## 表结构总览
 
 | 表 | 用途 | 当前列数 |
 |---|---|---:|
 | `airports` | 离线机场目录 | 15 |
-| `flight_history` | 倒计时历史与检查点 | 37 |
+| `flight_history` | 倒计时历史与检查点 | 38 |
 | `focus_categories` | 专注类别 | 8 |
 | `blocked_apps` | 类别屏蔽规则 | 6 |
 | `stamps` | 邮戳与资源版本 | 11 |
@@ -19,7 +19,7 @@
 | `free_flight_position` | 独立正计时位置序列 | 8 |
 | `flight_record_scene` | 可编辑的历史场景标记 | 9 |
 
-共 14 张表、147 列。完整列定义、默认值、索引和外键以最新导出的 `core/core-database/schemas/com.projectfocus.core.database.AppDatabase/26.json` 为准。
+共 14 张表、148 列。完整列定义、默认值、索引和外键以最新导出的 `core/core-database/schemas/com.projectfocus.core.database.AppDatabase/27.json` 为准。
 
 ## 倒计时历史
 
@@ -28,6 +28,8 @@
 `quote` 与 `quoteAuthor` 保存结果语录；`syncedAt` 记录同步时间。`sceneSnapshotJson` 与 `plannedDepartureJson` 分别保存独立场景和计划起飞输入，不占用类别外键。检查点与终态保留已有原始快照，包括未知字段和明确的空值。
 
 v25 增加可空的 `ownerScope TEXT DEFAULT NULL`。新飞行在接受起飞时冻结身份范围，后续检查点、终态和恢复保留该值。24→25 只追加这一列，不更新旧行、不推断旧归属，也不改写独立正计时归档。
+
+v27 增加可空的 `flightNumber TEXT DEFAULT NULL`。准备页已有的航班号随起飞、检查点、冷启动恢复、完成和取消存档保留，完整记录上传与下载以及列表摘要使用同一值。26→27 只追加这一列，旧记录保留空值，不按当前机场资料重新生成航班号。
 
 汇总读取仅在匿名身份下包含归属为空的旧倒计时记录。已登录身份按准确的范围筛选。该范围当前随登录凭证区分，凭证续期和重新登录后的历史关联仍待实现。
 

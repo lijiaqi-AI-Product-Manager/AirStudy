@@ -982,6 +982,12 @@ object Migrations {
         }
     }
 
+    val MIGRATION_26_27 = object : Migration(26, 27) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("ALTER TABLE `flight_history` ADD COLUMN `flightNumber` TEXT DEFAULT NULL")
+        }
+    }
+
     val ALL: List<Migration> = listOf(
         MIGRATION_1_2,
         MIGRATION_2_3,
@@ -1008,5 +1014,6 @@ object Migrations {
         MIGRATION_23_24,
         MIGRATION_24_25,
         MIGRATION_25_26,
+        MIGRATION_26_27,
     )
 }
