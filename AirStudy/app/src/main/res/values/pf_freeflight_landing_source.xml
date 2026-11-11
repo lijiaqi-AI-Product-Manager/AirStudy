@@ -3,6 +3,7 @@
     <string name="pf_ff_land_common_cancel">取消</string>
     <string name="pf_ff_land_common_confirm">确认</string>
     <string name="pf_ff_land_confirm_landing">确认降落</string>
+    <string name="pf_ff_land_confirming">正在确认降落…</string>
     <string name="pf_ff_land_free_flight_landing_action">降落</string>
     <string name="pf_ff_land_free_flight_landing_confirm_message">是否确认结束正计时并进行降落</string>
     <string name="pf_ff_land_free_flight_landing_confirm_title">确认降落</string>

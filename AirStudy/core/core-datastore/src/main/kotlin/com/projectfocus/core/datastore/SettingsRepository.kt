@@ -9,6 +9,10 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
@@ -131,7 +135,9 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
     // ==================================================================
 
     suspend fun <T> write(key: PrefKey<T>, value: T) {
-        store.edit { prefs -> put(prefs, key, value) }
+        writeOnStorageContext {
+            store.edit { prefs -> put(prefs, key, value) }
+        }
     }
 
 
@@ -143,26 +149,37 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
 
     suspend fun writeAll(pairs: List<Pair<PrefKey<*>, Any?>>) {
         if (pairs.isEmpty()) return
-        store.edit { prefs ->
-            pairs.forEach { (key, value) ->
-                @Suppress("UNCHECKED_CAST")
-                put(prefs, key as PrefKey<Any?>, value)
+        writeOnStorageContext {
+            store.edit { prefs ->
+                pairs.forEach { (key, value) ->
+                    @Suppress("UNCHECKED_CAST")
+                    put(prefs, key as PrefKey<Any?>, value)
+                }
             }
         }
     }
 
 
     suspend fun resetToDefaults() {
-        store.edit { prefs ->
+        writeOnStorageContext {
+            store.edit { prefs ->
 
-            //   object 单例在静态初始化未完成时读到 null。
-            PrefKey.ALL.filterNotNull().forEach { prefs.remove(prefKeyOf(it)) }
+                //   object 单例在静态初始化未完成时读到 null。
+                PrefKey.ALL.filterNotNull().forEach { prefs.remove(prefKeyOf(it)) }
+            }
         }
     }
 
     /** 清空全部（含第三方键，慎用） */
     suspend fun clear() {
-        store.edit { it.clear() }
+        writeOnStorageContext {
+            store.edit { it.clear() }
+        }
+    }
+
+    private suspend fun writeOnStorageContext(block: suspend () -> Unit) = coroutineScope {
+        // Submit before yielding so rapid edits retain their invocation order.
+        async(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) { block() }.await()
     }
 
     // ==================================================================

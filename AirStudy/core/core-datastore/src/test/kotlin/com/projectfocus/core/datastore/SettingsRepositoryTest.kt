@@ -3,6 +3,8 @@ package com.projectfocus.core.datastore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import com.google.common.truth.Truth.assertThat
+import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -12,7 +14,10 @@ import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import java.util.concurrent.ConcurrentLinkedQueue
+import kotlin.coroutines.CoroutineContext
 import org.junit.After
 import org.junit.Before
 import org.junit.Rule
@@ -133,6 +138,74 @@ class SettingsRepositoryTest {
         assertThat(repo.read(PrefKey.GlassEnabled)).isFalse()
         // 同一个 PrefKey 的其它键不能受污染
         assertThat(repo.read(PrefKey.GlassDispersion)).isEqualTo(0.35f)
+    }
+
+    @Test
+    fun `all mutations persist while their caller continuation queue is paused`() = runBlocking {
+        checkMutationWithPausedCallerQueue(
+            action = { repo.write(PrefKey.MaterialAlpha, 0.49f) },
+            stored = { repo.read(PrefKey.MaterialAlpha) == 0.49f },
+        )
+        checkMutationWithPausedCallerQueue(
+            action = { repo.writeAll(listOf(PrefKey.MaterialAlpha to 0.61f, PrefKey.BlacklistEnabled to false)) },
+            stored = { repo.read(PrefKey.MaterialAlpha) == 0.61f && !repo.read(PrefKey.BlacklistEnabled) },
+        )
+        checkMutationWithPausedCallerQueue(
+            action = { repo.resetToDefaults() },
+            stored = { repo.read(PrefKey.MaterialAlpha) == PrefKey.MaterialAlpha.default &&
+                repo.read(PrefKey.BlacklistEnabled) == PrefKey.BlacklistEnabled.default },
+        )
+        store.edit { it[androidx.datastore.preferences.core.stringPreferencesKey("extra_preference")] = "value" }
+        checkMutationWithPausedCallerQueue(
+            action = { repo.clear() },
+            stored = { store.data.first().asMap().isEmpty() },
+        )
+    }
+
+    @Test
+    fun `rapid mutations retain the final requested value`() = runBlocking {
+        repeat(5) { batch ->
+            val dispatcher = QueuedCallerDispatcher()
+            val caller = CoroutineScope(SupervisorJob() + dispatcher)
+            val values = listOf(0.21f, 0.41f, 0.71f).map { it + batch * 0.01f }
+            val jobs = values.map { value ->
+                caller.launch(start = CoroutineStart.UNDISPATCHED) { repo.write(PrefKey.MaterialAlpha, value) }
+            }
+            try {
+                withContext(Dispatchers.IO) {
+                    withTimeout(5_000) {
+                        while (repo.read(PrefKey.MaterialAlpha) != values.last()) kotlinx.coroutines.delay(10)
+                    }
+                }
+                withTimeout(5_000) {
+                    while (jobs.any { !it.isCompleted }) { dispatcher.drain();kotlinx.coroutines.delay(10) }
+                }
+                jobs.forEach { it.join() }
+                assertThat(repo.read(PrefKey.MaterialAlpha)).isEqualTo(values.last())
+            } finally { caller.cancel();dispatcher.drain() }
+        }
+    }
+
+    private suspend fun checkMutationWithPausedCallerQueue(action: suspend () -> Unit, stored: suspend () -> Boolean) {
+        val dispatcher = QueuedCallerDispatcher()
+        val caller = CoroutineScope(SupervisorJob() + dispatcher)
+        val job = caller.launch(start = CoroutineStart.UNDISPATCHED) { action() }
+        try {
+            // Read the actual store without progressing the caller's queued continuations.
+            withContext(Dispatchers.IO) {
+                withTimeout(5_000) { while (!stored()) kotlinx.coroutines.delay(10) }
+            }
+            withTimeout(5_000) {
+                while (!job.isCompleted) { dispatcher.drain();kotlinx.coroutines.delay(10) }
+            }
+            job.join()
+        } finally { caller.cancel();dispatcher.drain() }
+    }
+
+    private class QueuedCallerDispatcher : CoroutineDispatcher() {
+        private val tasks = ConcurrentLinkedQueue<Runnable>()
+        override fun dispatch(context: CoroutineContext, block: Runnable) { tasks.add(block) }
+        fun drain() { while (true) (tasks.poll() ?: return).run() }
     }
 
     // ==================================================================

@@ -38,7 +38,8 @@ jobs:
         run: bash ./gradlew :app:hiltJavaCompileDebugUnitTest --stacktrace
       - name: Verify core flight behavior
         run: >-
-          bash ./gradlew :core:core-model:test :core:core-database:testDebugUnitTest
+          bash ./gradlew :core:core-model:test :core:core-datastore:testDebugUnitTest
+          :core:core-database:testDebugUnitTest
           :core:core-network:testDebugUnitTest
           :core:core-ui:testDebugUnitTest :service-focus:testDebugUnitTest
           :feature:feature-home:testDebugUnitTest --stacktrace
@@ -105,4 +106,6 @@ jobs:
             AirStudy/**/build/reports/ui-insets/
             AirStudy/**/build/reports/ui-seats/
             AirStudy/**/build/reports/flight-hud-preview/
+            AirStudy/**/build/reports/freeflight-landing-surface/
+            AirStudy/**/build/reports/freeflight-home/
           retention-days: 7
