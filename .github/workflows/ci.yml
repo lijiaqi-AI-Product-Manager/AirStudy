@@ -49,6 +49,7 @@ jobs:
           :feature:feature-stats:testDebugUnitTest :app:testDebugUnitTest
           --tests 'com.projectfocus.app.freeflight.*'
           --tests 'com.projectfocus.app.admission.freeflight.*'
+          --tests 'com.projectfocus.app.countdown.*'
           --tests 'com.projectfocus.app.booking.FlightPreparation*'
           --tests 'com.projectfocus.app.booking.DailyFlightPreparationViewModelTest'
           --tests 'com.projectfocus.app.booking.SourcePendingFlightInputsTest'
@@ -90,4 +91,5 @@ jobs:
             AirStudy/**/build/reports/records/
             AirStudy/**/build/reports/airport-mark/
             AirStudy/**/build/reports/statistics/
+            AirStudy/**/build/reports/ordinary-countdown/
           retention-days: 7

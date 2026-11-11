@@ -123,6 +123,7 @@ internal class FreeFlightSeatSurface(
     initial: FreeFlightSeatChoice?,
     private val onChosen: (FreeFlightSeatChoice) -> Unit,
     private val onConfirmed: (FreeFlightSeatChoice) -> Unit,
+    sceneArguments: Bundle = Bundle().apply { putBoolean("freeFlightPreparation", true) },
 ) : FrameLayout(activity) {
     val map = SeatSelectionMapView(activity).apply { id = R.id.pf_ff_seat_map;setLightCabin(!night) }
     val confirm = MaterialButton(activity).apply {
@@ -131,7 +132,7 @@ internal class FreeFlightSeatSurface(
         insetTop = 0;insetBottom = 0;cornerRadius = (28f * resources.displayMetrics.density).toInt();strokeWidth = 0;elevation = 15f * resources.displayMetrics.density
         backgroundTintList = ColorStateList.valueOf(if (night) Color.WHITE else Color.BLACK);setTextColor(if (night) Color.BLACK else Color.WHITE)
     }
-    private val arguments = Bundle().apply { putBoolean("freeFlightPreparation", true) }
+    private val arguments = Bundle(sceneArguments)
     private var selected: FreeFlightSeatChoice? = initial
     private var dialog: Dialog? = null
     private var editor: SeatSceneEditorSession? = null

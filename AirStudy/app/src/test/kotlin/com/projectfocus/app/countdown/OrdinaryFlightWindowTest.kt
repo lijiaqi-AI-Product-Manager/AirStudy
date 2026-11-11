@@ -1,0 +1,358 @@
+package com.projectfocus.app.countdown
+
+import android.Manifest
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.os.Bundle
+import android.os.Looper
+import android.os.SystemClock
+import android.view.MotionEvent
+import android.view.View
+import android.view.ViewGroup
+import android.widget.TextView
+import androidx.lifecycle.ViewModelProvider
+import androidx.navigation.fragment.NavHostFragment
+import androidx.test.core.app.ApplicationProvider
+import com.projectfocus.app.MainActivity
+import com.projectfocus.app.ProjectFocusApp
+import com.projectfocus.app.R
+import com.projectfocus.app.home.HomeMapStyleSelection
+import com.projectfocus.app.route.RecordCloudHttpFixture
+import com.projectfocus.app.testing.shutdownRealApplicationAfterTest
+import com.projectfocus.core.datastore.PrefKey
+import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.feature.booking.seat.SeatSceneChoices
+import com.projectfocus.feature.booking.seat.SeatSelectionMapView
+import com.projectfocus.service.focus.session.SessionState
+import java.io.File
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.Robolectric
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows.shadowOf
+import org.robolectric.android.controller.ActivityController
+import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDialog
+import com.projectfocus.feature.completion.R as PassR
+import com.projectfocus.feature.focus.R as ModeR
+
+/** Real ordinary entry, native controls, retained coordinator, Core and Room; no device or map-service acceptance. */
+@RunWith(RobolectricTestRunner::class)
+@Config(application = ProjectFocusApp::class, sdk = [34], qualifiers = "zh-rCN-w432dp-h960dp-mdpi")
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class OrdinaryFlightWindowTest {
+    private lateinit var app: ProjectFocusApp
+    private lateinit var activityController: ActivityController<MainActivity>
+    private lateinit var activity: MainActivity
+    private lateinit var records: RecordCloudHttpFixture
+
+    @Before fun open() {
+        app = ApplicationProvider.getApplicationContext()
+        runBlocking(Dispatchers.IO) { withTimeout(20_000) { app.awaitInitialAccountRestore(); app.awaitInitialAirportSeed() } }
+        records = RecordCloudHttpFixture(app.recordCloudMutations, app.recordCloudSync)
+        shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        runBlocking(Dispatchers.IO) { TokenStore.setCancellable("ordinary-native-window-account") }
+        app.getSharedPreferences(HomeMapStyleSelection.FILE_NAME, android.content.Context.MODE_PRIVATE).edit()
+            .clear().putString("origin_code", "PEK").putString("destination_code", "TSN").commit()
+        HomeMapStyleSelection.select(app, 4)
+        activityController = Robolectric.buildActivity(MainActivity::class.java).setup().visible()
+        activity = activityController.get()
+        runBlocking(Dispatchers.IO) { activity.settingsRepository.write(PrefKey.BlacklistEnabled, false) }
+        activity.supportFragmentManager.executePendingTransactions()
+        navHost().navController.navigate(R.id.action_permission_to_home)
+        navHost().childFragmentManager.executePendingTransactions()
+        await("Home start control") { activity.findViewById<View>(R.id.btnStartFlight)?.isShown == true }
+    }
+
+    @After fun close() {
+        try {
+            if (::activityController.isInitialized) activityController.pause().stop().destroy()
+            TokenStore.clear()
+        } finally {
+            try { shutdownRealApplicationAfterTest(app) }
+            finally { if (::records.isInitialized) records.close() }
+        }
+    }
+
+    @Test fun actualHomeSeatInspectionReadyAndDepartCreateOneFrozenFlightAndRecord() {
+        activity.findViewById<View>(R.id.btnStartFlight).performClick()
+        await("Ordinary seats") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+        assertEquals(R.id.homeFragment, navHost().navController.currentDestination!!.id)
+        assertIdleAndNoRecord()
+        capture("ordinary-seats-day")
+        chooseAndConfirmSeat()
+        val opened = requireNotNull(coordinator().state.value.route)
+        val number = requireNotNull(opened.flightNumber)
+        assertEquals("1A", opened.seat)
+        assertNotNull(opened.scene)
+        assertEquals(number, activity.findViewById<TextView>(PassR.id.tv_flight_code).text.toString())
+        assertIdleAndNoRecord()
+        assertPaperTransparency()
+        capture("ordinary-boarding-day")
+        activity.findViewById<View>(R.id.ordinaryCheckIn).performClick()
+        await("Inspection surface") { coordinator().state.value.step == OrdinaryPreparationStep.INSPECTION }
+        assertIdleAndNoRecord()
+        capture("ordinary-inspection-day")
+        tearActualBand()
+        await("Boarding confirmation") { activity.findViewById<View>(R.id.ordinaryPrepareBoarding)?.isShown == true }
+        assertIdleAndNoRecord()
+        capture("ordinary-prepare-day")
+        activity.findViewById<View>(R.id.ordinaryPrepareBoarding).performClick()
+        await("Ready surface") { activity.findViewById<View>(R.id.ordinaryReady)?.isShown == true }
+        assertIdleAndNoRecord()
+        advance(550)
+        capture("ordinary-ready-day")
+        val depart = activity.findViewById<View>(R.id.pf_ff_depart)
+        depart.performClick(); depart.performClick()
+        await("Accepted ordinary Core session") {
+            coordinator().state.value.step == OrdinaryPreparationStep.STARTED && activity.sessionRepository.state.value is SessionState.Running &&
+                activity.findViewById<View>(R.id.ordinaryPreparation) == null
+        }
+        assertNull(activity.findViewById<View>(R.id.ordinaryPreparation))
+        assertEquals(number, activity.sessionRepository.currentRoute().flightNumber)
+        assertEquals(opened.scene, activity.sessionRepository.currentRoute().scene)
+        val ongoing = runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().ongoing() }!!
+        assertEquals(number, ongoing.flightNumber)
+        assertEquals("1A", ongoing.seat)
+        assertEquals(opened.departure.name, ongoing.departureAirportName)
+        assertEquals(opened.destination.name, ongoing.destinationAirportName)
+        capture("ordinary-running-day")
+        runBlocking(Dispatchers.IO) { assertTrue(activity.sessionRepository.abandon()); assertNotNull(activity.sessionRepository.settle()) }
+        val row = runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(ongoing.id) }!!
+        assertEquals(number, row.flightNumber)
+        assertEquals("1A", row.seat)
+        assertEquals(1, runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().size })
+    }
+
+    @Test fun countdownModeSelectionReturnsToTheActualOrdinarySeatFlow() {
+        activity.findViewById<View>(R.id.menuTakeOff).performClick()
+        await("Flight mode page") { walk(activity.window.decorView).filterIsInstance<TextView>()
+            .any { it.text.toString() == activity.getString(ModeR.string.flight_mode_select_countdown) } }
+        val label = walk(activity.window.decorView).filterIsInstance<TextView>()
+            .first { it.text.toString() == activity.getString(ModeR.string.flight_mode_select_countdown) }
+        clickParent(label)
+        await("Mode countdown seats") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+        assertEquals(R.id.homeFragment, navHost().navController.currentDestination!!.id)
+        assertTrue(coordinator().cancel())
+        await("Home restored") { activity.findViewById<View>(R.id.ordinaryPreparation) == null }
+        assertIdleAndNoRecord()
+    }
+
+    @Test fun theSeparateHomePlanEntryStillOpensTheActualDailyPlanEditor() {
+        activity.findViewById<View>(R.id.btnFlightPlan).performClick()
+        await("Independent daily plan entry") { navHost().navController.currentDestination?.id == R.id.flightPreparationFragment }
+        navHost().childFragmentManager.executePendingTransactions()
+        assertTrue(navHost().childFragmentManager.primaryNavigationFragment is com.projectfocus.app.booking.FlightPreparationFragment)
+        assertFalse(coordinator().state.value.active)
+        assertIdleAndNoRecord()
+    }
+
+    @Test fun activityRecreationRetainsBoardingFactsWithoutStartingOrChoosingAnotherFlight() {
+        assertTrue(activity.openOrdinaryFlightPreparation())
+        await("Seats before recreation") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+        chooseAndConfirmSeat()
+        val before = coordinator().state.value
+        activityController.recreate(); activity = activityController.get()
+        activity.supportFragmentManager.executePendingTransactions()
+        navHost().childFragmentManager.executePendingTransactions()
+        await("Retained boarding window") { activity.findViewById<View>(R.id.ordinaryCheckIn)?.let { it.isShown && it.isEnabled } == true &&
+            activity.findViewById<BoardingSequenceView>(R.id.ordinaryBoardingArtwork)?.renderedFrame == 0 }
+        assertEquals(before.requestId, coordinator().state.value.requestId)
+        assertEquals(before.route, coordinator().state.value.route)
+        assertEquals(before.boardingAt, coordinator().state.value.boardingAt)
+        assertEquals(before.route!!.flightNumber, activity.findViewById<TextView>(PassR.id.tv_flight_code).text.toString())
+        assertIdleAndNoRecord()
+        await("Restored boarding artwork") { activity.findViewById<BoardingSequenceView>(R.id.ordinaryBoardingArtwork)?.renderedFrame == 0 }
+        capture("ordinary-boarding-restored")
+        assertTrue(coordinator().cancel())
+        await("Restored window cancellation") { activity.findViewById<View>(R.id.ordinaryPreparation) == null }
+        assertIdleAndNoRecord()
+    }
+
+    @Test fun sameTokenNewGenerationWhileReadyCannotStartTheOpenedFlight() {
+        assertTrue(activity.openOrdinaryFlightPreparation())
+        await("Seats before identity change") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+        chooseAndConfirmSeat()
+        activity.findViewById<View>(R.id.ordinaryCheckIn).performClick()
+        await("Inspection before identity change") { coordinator().state.value.step == OrdinaryPreparationStep.INSPECTION }
+        tearActualBand()
+        await("Boarding before identity change") { activity.findViewById<View>(R.id.ordinaryPrepareBoarding)?.isShown == true }
+        activity.findViewById<View>(R.id.ordinaryPrepareBoarding).performClick()
+        await("Ready before identity change") { activity.findViewById<View>(R.id.ordinaryReady)?.isShown == true }
+        runBlocking(Dispatchers.IO) { TokenStore.setCancellable("ordinary-native-window-account") }
+        activity.findViewById<View>(R.id.pf_ff_depart).performClick()
+        await("Stale ordinary flight rejected") { coordinator().state.value.step == OrdinaryPreparationStep.UNAVAILABLE }
+        assertNull(activity.findViewById<View>(R.id.ordinaryPreparation))
+        assertIdleAndNoRecord()
+    }
+
+    @Test
+    @Config(qualifiers = "zh-rCN-w800dp-h400dp-land-mdpi")
+    fun compactNightBoardingInspectionAndReadyKeepTheirControlsInTheActualWindow() {
+        HomeMapStyleSelection.select(activity, 2)
+        assertTrue(activity.openOrdinaryFlightPreparation())
+        await("Compact seats") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+        chooseAndConfirmSeat()
+        assertPaperTransparency()
+        capture("ordinary-boarding-night-landscape")
+        val checkIn = activity.findViewById<View>(R.id.ordinaryCheckIn)
+        assertOnScreen(checkIn)
+        checkIn.performClick()
+        await("Compact inspection") { coordinator().state.value.step == OrdinaryPreparationStep.INSPECTION }
+        capture("ordinary-inspection-night-landscape")
+        tearActualBand()
+        await("Compact boarding confirmation") { activity.findViewById<View>(R.id.ordinaryPrepareBoarding)?.isShown == true }
+        assertOnScreen(activity.findViewById(R.id.ordinaryPrepareBoarding))
+        capture("ordinary-prepare-night-landscape")
+        activity.findViewById<View>(R.id.ordinaryPrepareBoarding).performClick()
+        await("Compact ready") { activity.findViewById<View>(R.id.ordinaryReady)?.isShown == true }
+        advance(550)
+        assertOnScreen(activity.findViewById(R.id.pf_ff_depart))
+        capture("ordinary-ready-night-landscape")
+        assertTrue(coordinator().cancel())
+        assertIdleAndNoRecord()
+    }
+
+    @Test fun aShortOrLeftwardSwipeResetsAndAccessibleInspectionStillNeedsExplicitBoarding() {
+        assertTrue(activity.openOrdinaryFlightPreparation())
+        await("Accessible seats") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+        chooseAndConfirmSeat()
+        activity.findViewById<View>(R.id.ordinaryCheckIn).performClick()
+        await("Accessible inspection") { coordinator().state.value.step == OrdinaryPreparationStep.INSPECTION }
+        val band = activity.findViewById<View>(PassR.id.tear_touch_band)
+        val artwork = activity.findViewById<BoardingSequenceView>(R.id.ordinaryBoardingArtwork)
+        for (distance in listOf(-350f, 299f)) {
+            val now = SystemClock.uptimeMillis()
+            for ((action, x) in listOf(MotionEvent.ACTION_DOWN to 20f, MotionEvent.ACTION_MOVE to 20f + distance,
+                    MotionEvent.ACTION_UP to 20f + distance)) {
+                MotionEvent.obtain(now, now + 100L, action, x, band.height / 2f, 0).also { band.dispatchTouchEvent(it); it.recycle() }
+            }
+            advance(350)
+            await("Intact reset paper") { artwork.renderedFrame == 0 }
+            assertEquals(OrdinaryPreparationStep.INSPECTION, coordinator().state.value.step)
+            assertIdleAndNoRecord()
+        }
+        assertTrue(band.performClick())
+        await("Accessible boarding confirmation") { coordinator().state.value.step == OrdinaryPreparationStep.PREPARE }
+        assertEquals(179, artwork.renderedFrame)
+        assertNull(activity.findViewById<View>(R.id.ordinaryReady))
+        assertIdleAndNoRecord()
+        assertTrue(coordinator().cancel())
+    }
+
+    @Test fun cancellingTheRealNotificationPromptKeepsTheFlightUnsubmitted() {
+        assertTrue(activity.openOrdinaryFlightPreparation())
+        await("Permission seats") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+        chooseAndConfirmSeat()
+        activity.findViewById<View>(R.id.ordinaryCheckIn).performClick()
+        tearActualBand()
+        await("Permission boarding confirmation") { coordinator().state.value.step == OrdinaryPreparationStep.PREPARE }
+        shadowOf(app).denyPermissions(Manifest.permission.POST_NOTIFICATIONS)
+        activity.findViewById<View>(R.id.ordinaryPrepareBoarding).performClick()
+        await("Notification permission dialog") { ShadowDialog.getLatestDialog()?.isShowing == true }
+        assertEquals(OrdinaryPreparationStep.PREPARE, coordinator().state.value.step)
+        assertIdleAndNoRecord()
+        (ShadowDialog.getLatestDialog() as androidx.appcompat.app.AlertDialog)
+            .getButton(android.content.DialogInterface.BUTTON_NEGATIVE).performClick()
+        await("Boarding action restored") { activity.findViewById<View>(R.id.ordinaryPrepareBoarding)?.isEnabled == true }
+        assertEquals(OrdinaryPreparationStep.PREPARE, coordinator().state.value.step)
+        assertIdleAndNoRecord()
+        assertTrue(coordinator().cancel())
+    }
+
+    private fun chooseAndConfirmSeat() {
+        await("Seat map laid out") { activity.findViewById<SeatSelectionMapView>(R.id.pf_ff_seat_map)?.width?.let { it > 0 } == true }
+        advance(700)
+        val chosen = (activity.seatSceneChoices(Bundle()) as SeatSceneChoices.Ready).values.first()
+        val map = activity.findViewById<SeatSelectionMapView>(R.id.pf_ff_seat_map)
+        walk(map).filterIsInstance<TextView>().single { it.tag == "01A" }.performClick()
+        advance(30)
+        val dialog = requireNotNull(ShadowDialog.getLatestDialog())
+        val label = walk(requireNotNull(dialog.window).decorView).filterIsInstance<TextView>().first { it.text.toString() == chosen.title }
+        clickParent(label)
+        await("Confirmed scene available") { coordinator().state.value.selection?.scene?.optionId == chosen.optionId }
+        val confirm = activity.findViewById<View>(R.id.pf_ff_seat_confirm)
+        assertTrue(confirm.isShown)
+        confirm.performClick(); confirm.performClick()
+        await("Printed boarding window") { coordinator().state.value.step == OrdinaryPreparationStep.BOARDING &&
+            activity.findViewById<View>(R.id.ordinaryCheckIn)?.let { it.isShown && it.isEnabled } == true &&
+            activity.findViewById<BoardingSequenceView>(R.id.ordinaryBoardingArtwork)?.renderedFrame == 0 }
+    }
+
+    private fun assertPaperTransparency() {
+        val paper = activity.findViewById<View>(PassR.id.boarding_pass_root)
+        val bitmap = Bitmap.createBitmap(paper.width, paper.height, Bitmap.Config.ARGB_8888)
+        try {
+            paper.draw(Canvas(bitmap))
+            assertEquals("The artwork margin must preserve its encoded alpha", 1,
+                android.graphics.Color.alpha(bitmap.getPixel(paper.width / 2, paper.height * 95 / 100)))
+            assertEquals("The printed paper must be present", 255,
+                android.graphics.Color.alpha(bitmap.getPixel(paper.width / 2, paper.height * 30 / 100)))
+        } finally { bitmap.recycle() }
+    }
+
+    private fun tearActualBand() {
+        val band = activity.findViewById<View>(PassR.id.tear_touch_band)
+        await("Tear band laid out") { band.width > 0 && band.height > 0 }
+        val now = SystemClock.uptimeMillis()
+        val y = band.height * .5f
+        for ((action, delta, x) in listOf(Triple(MotionEvent.ACTION_DOWN, 0L, band.width * .1f),
+            Triple(MotionEvent.ACTION_MOVE, 100L, band.width * .1f + 300f), Triple(MotionEvent.ACTION_UP, 200L, band.width * .1f + 300f))) {
+            MotionEvent.obtain(now, now + delta, action, x, y, 0).also { band.dispatchTouchEvent(it); it.recycle() }
+        }
+    }
+
+    private fun assertIdleAndNoRecord() {
+        assertEquals(SessionState.Idle, activity.sessionRepository.state.value)
+        assertNull(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().ongoing() })
+        assertTrue(runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().getAll().isEmpty() })
+    }
+
+    private fun assertOnScreen(view: View) {
+        val point = IntArray(2); view.getLocationOnScreen(point)
+        assertTrue(view.isShown)
+        assertTrue(point[0] >= 0 && point[1] >= 0)
+        assertTrue(point[0] + view.width <= activity.window.decorView.width)
+        assertTrue(point[1] + view.height <= activity.window.decorView.height)
+    }
+
+    private fun coordinator() = ViewModelProvider(activity)[OrdinaryFlightPreparationViewModel::class.java].coordinator
+    private fun navHost() = activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+    private fun clickParent(label: View) {
+        var target = label
+        while (!target.isClickable) target = target.parent as View
+        target.performClick()
+    }
+    private fun walk(view: View): Sequence<View> = sequence {
+        yield(view)
+        if (view is ViewGroup) for (index in 0 until view.childCount) yieldAll(walk(view.getChildAt(index)))
+    }
+    private fun advance(millis: Long) = shadowOf(Looper.getMainLooper()).idleFor(millis, TimeUnit.MILLISECONDS)
+    private fun await(label: String, condition: () -> Boolean) {
+        val until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20)
+        while (!condition()) {
+            check(System.nanoTime() < until) { "Timed out: $label" }
+            advance(16); Thread.sleep(3)
+        }
+        advance(16)
+    }
+    private fun capture(name: String) {
+        advance(32)
+        val root = activity.window.decorView
+        assertTrue(root.width > 0 && root.height > 0)
+        val bitmap = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
+        root.draw(Canvas(bitmap))
+        val file = File("build/reports/ordinary-countdown/$name.png")
+        file.parentFile!!.mkdirs()
+        file.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+        bitmap.recycle()
+    }
+}

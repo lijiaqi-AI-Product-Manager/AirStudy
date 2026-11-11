@@ -34,7 +34,6 @@ import com.projectfocus.core.database.dao.AirportDao
 import com.projectfocus.core.database.entity.AirportEntity
 import com.projectfocus.core.datastore.PrefKey
 import com.projectfocus.core.datastore.SettingsRepository
-import com.projectfocus.core.ui.nav.FlightPreparationNavigator
 import com.projectfocus.feature.flight.hud.HudSnapshot
 import com.projectfocus.feature.flight.hud.FlightHudView
 import com.projectfocus.feature.flight.hud.FlightHudCallbacks
@@ -394,6 +393,11 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupStartFlight(view: View) {
+        view.findViewById<View>(R.id.btnFlightPlan).setOnClickListener {
+            if (sessionRepository.state.value is SessionState.Idle && !freeFlightCompletionCoordinator.blocksPreparation() && freeFlightPresentation == null) {
+                com.projectfocus.core.ui.nav.FlightPreparationNavigator.open(findNavController(), originCode(), destinationCode())
+            }
+        }
         view.findViewById<View>(R.id.btnStartFlight).setOnClickListener {
             if (originCode().isEmpty()) {
                 safeNavigate(R.id.action_home_to_airport,
@@ -438,6 +442,11 @@ class HomeFragment : Fragment() {
     /** Read the current persisted choice even while the visible map is reloading. */
     private fun originCode(): String = prefs.getString(PREF_ORIGIN, null).orEmpty()
 
+    internal fun ordinaryOriginReference(): com.projectfocus.feature.airport.ui.AirportReferencePoint? =
+        pickedOrigin?.takeIf { it.code.equals(originCode(), ignoreCase = true) }?.let {
+            com.projectfocus.feature.airport.ui.AirportReferencePoint.from(it.latitude, it.longitude)
+        }
+
     private fun startFlight(view: View) {
         if (freeFlightCompletionCoordinator.blocksPreparation()) return
         if (sessionRepository.state.value !is SessionState.Idle) {
@@ -450,7 +459,9 @@ class HomeFragment : Fragment() {
             showHomeStatus(view, R.string.home_same_airport)
             return
         }
-        FlightPreparationNavigator.open(findNavController(), origin, destination)
+        if ((activity as? com.projectfocus.core.ui.nav.OrdinaryFlightPreparationHost)?.openOrdinaryFlightPreparation() != true) {
+            showHomeStatus(view, R.string.home_start_rejected)
+        }
     }
 
     private fun showHomeStatus(view: View, textRes: Int) {
@@ -462,6 +473,8 @@ class HomeFragment : Fragment() {
     private fun renderSessionState(view: View, state: SessionState) {
         val idle = state is SessionState.Idle
         view.findViewById<View>(R.id.btnStartFlight).isEnabled = idle && freeFlightPresentation == null &&
+            !completionVisible && !freeFlightCompletionCoordinator.blocksPreparation()
+        view.findViewById<View>(R.id.btnFlightPlan).isEnabled = idle && freeFlightPresentation == null &&
             !completionVisible && !freeFlightCompletionCoordinator.blocksPreparation()
         if (idle && freeFlightFrame == null) {
             view.findViewById<SourceMapHostView>(R.id.sourceMap).setFlightProgress(0f)

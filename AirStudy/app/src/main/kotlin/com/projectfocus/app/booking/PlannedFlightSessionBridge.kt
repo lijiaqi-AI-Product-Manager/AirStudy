@@ -134,14 +134,22 @@ class PlannedFlightSessionBridge internal constructor(
     }
 
     /** Actual production preparation action. A status failure cannot reject Core. */
-    suspend fun start(plan: FlightLegPlan): Boolean = commands.withLock {
+    suspend fun start(plan: FlightLegPlan): Boolean = startSession(plan, associatePlan = true)
+
+    /** A normal flight cannot adopt a matching daily-plan selection. */
+    suspend fun startOrdinary(plan: FlightLegPlan, expectedIdentity: TokenStore.Snapshot): Boolean =
+        startSession(plan, associatePlan = false, expectedIdentity = expectedIdentity)
+
+    private suspend fun startSession(plan: FlightLegPlan, associatePlan: Boolean,
+                                    expectedIdentity: TokenStore.Snapshot? = null): Boolean = commands.withLock {
         observe()
         val current = syncIdentity()
+        if (expectedIdentity != null && current != expectedIdentity) return@withLock false
         if (sessions.state.value !is SessionState.Idle) return@withLock false
         val owner = FlightPlanOwnership.scope(current)
         val state = global.current()
         val selection = state.activeSelection?.takeIf {
-            state.ownerScope == owner && it.candidate.route?.copy(seat = plan.seat) == plan
+            associatePlan && state.ownerScope == owner && it.candidate.route?.copy(seat = plan.seat) == plan
         }?.copy(seatNo = plan.seat.orEmpty())
         val handle = AcceptedFlightHandle(owner, UUID.randomUUID().toString(),
             clock.now().toInstant().toEpochMilli(), plan, selection)
@@ -150,7 +158,7 @@ class PlannedFlightSessionBridge internal constructor(
         persistBestEffort(handle, current)
         withContext(NonCancellable) {
             if (identity() != current) return@withContext false
-            val accepted = sessions.startPlannedFlight(plan, handle.sessionId)
+            val accepted = sessions.startPlannedFlight(plan, handle.sessionId, current)
             if (!accepted) {
                 discard(handle, current)
                 return@withContext false

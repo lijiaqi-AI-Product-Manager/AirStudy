@@ -41,9 +41,43 @@ import timber.log.Timber
 
 /** Hosts navigation, system insets, theme changes and session side effects. */
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), SeatSceneChoicesHost, com.projectfocus.core.ui.nav.FreeFlightPreparationHost {
+class MainActivity : AppCompatActivity(), SeatSceneChoicesHost, com.projectfocus.core.ui.nav.FreeFlightPreparationHost,
+    com.projectfocus.core.ui.nav.OrdinaryFlightPreparationHost {
 
     private var freeFlightPreparationController: com.projectfocus.app.freeflight.FreeFlightPreparationController? = null
+    private var ordinaryPreparationController: com.projectfocus.app.countdown.OrdinaryFlightPreparationController? = null
+    private val ordinaryPreparation by lazy {
+        androidx.lifecycle.ViewModelProvider(this)[com.projectfocus.app.countdown.OrdinaryFlightPreparationViewModel::class.java]
+    }
+
+    override fun openOrdinaryFlightPreparation(): Boolean {
+        if (freeFlightPreparationController?.isActive == true || !returnHomeForFreeFlight()) return false
+        val coordinator = ordinaryPreparation.coordinator
+        if (coordinator.state.value.active) { ensureOrdinaryPreparationSurface(); return true }
+        val selected = coordinator.selectedContext()
+        if (selected.originCode.isEmpty() || selected.destinationCode.isEmpty()) {
+            val host = supportFragmentManager.findFragmentById(R.id.nav_host_container) as? NavHostFragment ?: return false
+            val home = host.childFragmentManager.primaryNavigationFragment as? com.projectfocus.app.home.HomeFragment
+            host.navController.navigate(R.id.action_home_to_airport, Bundle().apply {
+                putString(com.projectfocus.app.route.RouteArgs.ARG_MODE,
+                    if (selected.originCode.isEmpty()) com.projectfocus.app.route.RouteArgs.MODE_PICK_ORIGIN
+                    else com.projectfocus.app.route.RouteArgs.MODE_PICK_DESTINATION)
+                if (selected.originCode.isNotEmpty()) com.projectfocus.feature.airport.ui.AirportSearchReferenceArgs
+                    .writeTo(this, home?.ordinaryOriginReference())
+            })
+            return true
+        }
+        ordinaryPreparationController?.detach()
+        ordinaryPreparationController = com.projectfocus.app.countdown.OrdinaryFlightPreparationController(this, coordinator)
+        coordinator.begin()
+        return true
+    }
+
+    private fun ensureOrdinaryPreparationSurface() {
+        if (ordinaryPreparation.coordinator.state.value.active && ordinaryPreparationController == null) {
+            ordinaryPreparationController = com.projectfocus.app.countdown.OrdinaryFlightPreparationController(this, ordinaryPreparation.coordinator)
+        }
+    }
 
     internal fun beginFreeFlightHomePresentation(): java.io.Closeable? {
         val host = supportFragmentManager.findFragmentById(R.id.nav_host_container) as? NavHostFragment ?: return null
@@ -58,6 +92,7 @@ class MainActivity : AppCompatActivity(), SeatSceneChoicesHost, com.projectfocus
     }
 
     override fun openFreeFlightPreparation(): Boolean {
+        if (ordinaryPreparation.coordinator.state.value.active) return false
         if (freeFlightPreparationController?.isActive == true) return returnHomeForFreeFlight()
         val actions = (application as? com.projectfocus.app.freeflight.FreeFlightPreparationActionsProvider)
             ?.freeFlightPreparationActions(this, null) ?: return false
@@ -95,7 +130,14 @@ class MainActivity : AppCompatActivity(), SeatSceneChoicesHost, com.projectfocus
         // View teardown is not explicit preparation cancellation or formal-admission cancellation.
         freeFlightPreparationController?.detach()
         freeFlightPreparationController = null
+        ordinaryPreparationController?.detach()
+        ordinaryPreparationController = null
         super.onDestroy()
+    }
+
+    override fun onPostResume() {
+        super.onPostResume()
+        ensureOrdinaryPreparationSurface()
     }
 
     /** Actual Activity binding lifetime; returning from a picker retains this token. */
@@ -150,6 +192,9 @@ class MainActivity : AppCompatActivity(), SeatSceneChoicesHost, com.projectfocus
 
     @Inject
     lateinit var settingsRepository: SettingsRepository
+
+    @Inject
+    lateinit var blockedApps: com.projectfocus.core.database.dao.BlockedAppDao
 
     /** 避免 Activity 重建后重复 restore；真正的“是否恢复过”由 SessionRepository 的状态判断。 */
     private var restoreAttempted = false
@@ -392,6 +437,7 @@ class MainActivity : AppCompatActivity(), SeatSceneChoicesHost, com.projectfocus
         super.onResume()
         plannedFlightSessions.resume()
         freeFlightPreparationController?.refreshNight()
+        ordinaryPreparationController?.refreshNight()
         if (dayChangeDetector.shouldRefresh()) {
             todayWidgetBridge.requestRefresh()
         }

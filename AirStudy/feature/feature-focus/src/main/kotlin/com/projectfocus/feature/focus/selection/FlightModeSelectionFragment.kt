@@ -8,7 +8,7 @@ import androidx.fragment.app.Fragment
 import androidx.navigation.fragment.findNavController
 import androidx.viewpager2.widget.ViewPager2
 import com.projectfocus.feature.focus.R
-import com.projectfocus.core.ui.nav.FlightPreparationNavigator
+import com.projectfocus.core.ui.nav.OrdinaryFlightPreparationHost
 import dagger.hilt.android.AndroidEntryPoint
 
 
@@ -97,7 +97,10 @@ class FlightModeSelectionFragment : Fragment(R.layout.fragment_flight_mode_selec
     }
 
     private fun startCountdown() {
-        FlightPreparationNavigator.open(findNavController(), origin, destination)
+        if ((activity as? OrdinaryFlightPreparationHost)?.openOrdinaryFlightPreparation() != true) {
+            Toast.makeText(requireContext(), getString(R.string.flight_mode_not_available,
+                getString(R.string.flight_mode_countdown)), Toast.LENGTH_SHORT).show()
+        }
     }
 
     companion object {

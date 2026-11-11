@@ -296,6 +296,39 @@ class SessionRepositoryTest {
         )
     }
 
+    @Test fun aPreparedAccountCannotStartAfterItsGenerationChangesWhileWaitingForTheCommandLock() = runTest {
+        setUp()
+        TokenStore.set("prepared-countdown-account")
+        val expected = TokenStore.snapshot()
+        val repository = repo(this)
+        val plan = repository.preparePlan("PKX", "KIX").copy(flightNumber = "CA1234")
+        val oldRoute = repository.currentRoute()
+        val mutex = SessionRepository::class.java.getDeclaredField("commandMutex").apply { isAccessible = true }
+            .get(repository) as kotlinx.coroutines.sync.Mutex
+        mutex.lock()
+        val start = async { repository.startPlannedFlight(plan, "guarded-start", expected) }
+        runCurrent()
+        assertThat(start.isCompleted).isFalse()
+        TokenStore.set("prepared-countdown-account")
+        mutex.unlock()
+        assertThat(start.await()).isFalse()
+        assertThat(repository.state.value).isEqualTo(SessionState.Idle)
+        assertThat(repository.currentRoute()).isEqualTo(oldRoute)
+        assertThat(historyDao.store).isEmpty()
+    }
+
+    @Test fun theMatchingPreparedAccountStartsWithItsFrozenNumberAndOriginalOwner() = runTest {
+        setUp()
+        TokenStore.set("matching-countdown-account")
+        val expected = TokenStore.snapshot()
+        val repository = repo(this)
+        val plan = repository.preparePlan("PKX", "KIX").copy(flightNumber = "CA1234", seat = "1A")
+        assertThat(repository.startPlannedFlight(plan, "matching-start", expected)).isTrue()
+        assertThat(repository.currentRoute().flightNumber).isEqualTo("CA1234")
+        assertThat(historyDao.store.values.single().flightNumber).isEqualTo("CA1234")
+        assertThat(historyDao.store.values.single().ownerScope).isEqualTo(TokenStore.storageScope(expected))
+    }
+
     private suspend fun advanceWithTicks(repository: SessionRepository, seconds: Int) {
         repeat(seconds) {
             mono.advance(1_000L)

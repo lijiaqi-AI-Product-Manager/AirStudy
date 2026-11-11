@@ -23,11 +23,13 @@ internal class HomePreparationPresentation(
 ) : Closeable {
     private val menu = root.findViewById<View>(R.id.right_menu_container)
     private val button = root.findViewById<View>(R.id.btnStartFlight)
+    private val planButton = root.findViewById<View>(R.id.btnFlightPlan)
     private val ground = root.findViewById<View>(R.id.groundHomeContent)
     private val status = root.findViewById<View>(R.id.tvHomeStatus)
     private val map = root.findViewById<SourceMapHostView>(R.id.sourceMap)
     private val menuVisibility = menu.visibility
     private val buttonVisibility = button.visibility
+    private val planVisibility = planButton.visibility
     private val statusVisibility = status.visibility
     private val accessibility = ground.importantForAccessibility
     private var menuAnimator: ObjectAnimator? = null
@@ -38,6 +40,8 @@ internal class HomePreparationPresentation(
         ground.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
         status.visibility = View.GONE
         button.isEnabled = false
+        planButton.visibility = View.GONE
+        planButton.isEnabled = false
         map.setStatusControlsVisible(false)
         menuAnimator = ObjectAnimator.ofFloat(menu, View.ALPHA, menu.alpha, 0f).apply {
             duration = 500L
@@ -78,6 +82,7 @@ internal class HomePreparationPresentation(
         button.alpha = 1f;button.scaleX = 1f;button.scaleY = 1f
         button.translationX = 0f;button.translationY = 0f
         button.visibility = buttonVisibility
+        planButton.visibility = planVisibility
         status.visibility = statusVisibility
         ground.importantForAccessibility = accessibility
         map.setStatusControlsVisible(true)

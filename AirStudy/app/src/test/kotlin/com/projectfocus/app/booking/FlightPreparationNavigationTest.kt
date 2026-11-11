@@ -205,7 +205,7 @@ class FlightPreparationNavigationTest {
     }
 
     @Test
-    fun `source Home select airport action opens origin picker then preparation keeps that selection`() {
+    fun `source Home origin selection is retained when ordinary departure asks for a destination`() {
         onActivity { currentPage(it).requireView().findViewById<View>(R.id.btnStartFlight).performClick() }
         awaitAirportSearch(RouteArgs.MODE_PICK_ORIGIN)
         pickAirport(DEPARTURE)
@@ -217,14 +217,15 @@ class FlightPreparationNavigationTest {
         }
         assertAirportResultConsumed()
         onActivity { currentPage(it).requireView().findViewById<View>(R.id.btnStartFlight).performClick() }
-        await("prepare opens with real departure") {
-            currentPage() is FlightPreparationFragment && preparationState().origin?.code == DEPARTURE.icaoCode
-        }
-        assertThat(preparationState().destination).isNull()
+        awaitAirportSearch(RouteArgs.MODE_PICK_DESTINATION)
+        assertThat(activityValue { it.getSharedPreferences("projectfocus_home", android.content.Context.MODE_PRIVATE)
+            .getString("origin_code", null).orEmpty() }).isEqualTo(DEPARTURE.icaoCode)
+        assertThat(sessions.state.value).isEqualTo(SessionState.Idle)
+        assertThat(runBlocking(Dispatchers.IO) { history.ongoing() }).isNull()
     }
 
     @Test
-    fun homeArrivalAdvancesNextPreparationWithoutRecreation() {
+    fun homeArrivalAdvancesTheNextOrdinaryOriginWithoutRecreation() {
         chooseHomeOriginThroughSourceControls()
         onActivity { activity ->
             val preferences = activity.getSharedPreferences("projectfocus_home", android.content.Context.MODE_PRIVATE)
@@ -233,11 +234,9 @@ class FlightPreparationNavigationTest {
         }
         idle()
         onActivity { currentPage(it).requireView().findViewById<View>(R.id.btnStartFlight).performClick() }
-        await("next real preparation has loaded") {
-            currentPage() is FlightPreparationFragment && !preparationState().loading
-        }
-        assertThat(preparationState().origin?.code).isEqualTo(ARRIVAL.icaoCode)
-        assertThat(preparationState().destination).isNull()
+        awaitAirportSearch(RouteArgs.MODE_PICK_DESTINATION)
+        assertThat(activityValue { it.getSharedPreferences("projectfocus_home", android.content.Context.MODE_PRIVATE)
+            .getString("origin_code", null).orEmpty() }).isEqualTo(ARRIVAL.icaoCode)
         assertThat(sessions.state.value).isEqualTo(SessionState.Idle)
     }
 

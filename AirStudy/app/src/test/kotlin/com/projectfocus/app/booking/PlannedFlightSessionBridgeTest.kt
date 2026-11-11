@@ -597,6 +597,31 @@ class PlannedFlightSessionBridgeTest {
         assertThat(h.receipts.all).isEmpty()
     }
 
+    @Test fun anOrdinaryStartNeverAdoptsAnOtherwiseMatchingDailyPlan() = runTest {
+        val h = harness(backgroundScope)
+        val route = h.plan.copy(flightNumber = "CA1234")
+        h.enable(route)
+        val selected = h.global.current().activeSelection
+        assertThat(h.bridge.startOrdinary(route, TokenStore.snapshot())).isTrue(); runCurrent()
+        assertThat(h.handle().selection).isNull()
+        assertThat(h.sessions.currentRoute().flightNumber).isEqualTo("CA1234")
+        assertThat(h.global.current().activeSelection).isEqualTo(selected)
+        assertThat(h.gateway.requests).isEmpty()
+        assertThat(h.sessions.abandon()).isTrue(); runCurrent()
+        assertThat(h.gateway.requests).isEmpty()
+    }
+
+    @Test fun anOrdinaryStartRejectsAnIdentityChangedByTheInitialRestoreWait() = runTest {
+        val h = harness(backgroundScope)
+        val before = TokenStore.snapshot()
+        h.recreate { TokenStore.set(TOKEN); null }
+        assertThat(h.bridge.startOrdinary(h.plan.copy(flightNumber = "CA1234"), before)).isFalse(); runCurrent()
+        assertThat(h.sessions.state.value).isEqualTo(SessionState.Idle)
+        assertThat(h.handles.all).isEmpty()
+        assertThat(h.database.flightHistoryDao().getAll()).isEmpty()
+        assertThat(h.gateway.requests).isEmpty()
+    }
+
     private fun harness(scope: CoroutineScope) = Harness(scope).also { harnesses += it }
 
     private inner class Harness(private val parent: CoroutineScope) {

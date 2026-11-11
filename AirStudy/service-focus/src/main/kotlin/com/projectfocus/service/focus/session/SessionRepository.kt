@@ -168,12 +168,14 @@ class SessionRepository @Inject constructor(
     }
 
     /** 确认后的机场、Float精度里程、分钟、座位作为一个快照提交。 */
-    suspend fun startPlannedFlight(plan: FlightLegPlan, requestedSessionId: String? = null): Boolean = command {
+    suspend fun startPlannedFlight(plan: FlightLegPlan, requestedSessionId: String? = null,
+                                   expectedAccount: TokenStore.Snapshot? = null): Boolean = command {
         startResolved(
             plan.categoryId ?: NO_CATEGORY, plan.durationMinutes * 60_000L,
             RouteInfo(plan.departure.code, plan.destination.code, plan.departure, plan.destination,
                 plan.distanceKm, plan.seat, plan.scene, plan.plannedDeparture, plan.flightNumber),
             requestedSessionId,
+            expectedAccount,
         )
     }
 
@@ -182,6 +184,7 @@ class SessionRepository @Inject constructor(
         plannedDurationMs: Long,
         resolved: RouteInfo,
         requestedSessionId: String? = null,
+        expectedAccount: TokenStore.Snapshot? = null,
     ): Boolean {
         if (freeFlightReservation != null) return false
         if (state.value !is SessionState.Idle) return false
@@ -189,12 +192,12 @@ class SessionRepository @Inject constructor(
         savedHistory = null
         checkpointAttemptMinute = 0
         notifiedTerminalId = null
-        // 先冻结完整路线，再发布Running；观察者不会读到上一趟的机场/里程。
-        route = resolved
-
         //   它拒绝时后面的步骤全部不执行，不会出现「多写一条 ONGOING」。
         val started = synchronized(TokenStore) {
             val account = TokenStore.snapshot()
+            if (expectedAccount != null && account != expectedAccount) return@synchronized false
+            // Freeze under the same account guard before publishing Running.
+            route = resolved
             controller.start(categoryId, plannedDurationMs, requestedSessionId).also { accepted ->
                 if (accepted) sessionOwnerScope = TokenStore.storageScope(account)
             }
