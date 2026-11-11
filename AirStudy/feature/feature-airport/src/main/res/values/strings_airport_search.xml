@@ -28,9 +28,9 @@
 <resources>
 
     <!-- ==================== 搜索框 ==================== -->
-    <string name="airport_search_hint">城市、机场名或三字码</string>
+    <string name="airport_search_hint">城市或机场</string>
     <string name="airport_search_hint_origin">搜索出发机场</string>
-    <string name="airport_search_hint_destination">搜索目的地机场</string>
+    <string name="airport_search_hint_destination">搜索目的地</string>
     <string name="airport_search_clear">清空搜索</string>
     <string name="airport_search_back">返回</string>
 

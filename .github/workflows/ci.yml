@@ -74,6 +74,7 @@ jobs:
           bash ./gradlew
           :feature:feature-airport:testDebugUnitTest --tests com.projectfocus.feature.airport.search.SearchRankingDocTest
           --tests com.projectfocus.feature.airport.ui.ArrivalMarkNativeTest
+          --tests com.projectfocus.feature.airport.ui.AirportSearchFragmentRenderTest
           :server:test --tests com.projectfocus.server.ApiContractDocTest
           --tests com.projectfocus.server.FlightRoutesTest
           --tests com.projectfocus.server.FlightRecordRoutesTest
@@ -95,4 +96,7 @@ jobs:
             AirStudy/**/build/reports/statistics/
             AirStudy/**/build/reports/ordinary-countdown/
             AirStudy/**/build/reports/ui-redesign/
+            AirStudy/**/build/reports/ui-airport/
+            AirStudy/**/build/reports/ui-focus/
+            AirStudy/**/build/reports/flight-hud-preview/
           retention-days: 7

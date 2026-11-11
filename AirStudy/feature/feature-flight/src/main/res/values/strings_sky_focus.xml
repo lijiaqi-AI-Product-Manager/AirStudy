@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sky_focus_flying">正在专注飞行</string>
+    <string name="sky_focus_remaining">距离抵达还有</string>
+    <string name="sky_focus_elapsed">已专注</string>
+    <string name="sky_focus_map_unavailable">实时地图暂未连接</string>
+    <string name="sky_focus_map_loading">正在连接实时地图</string>
+    <string name="sky_focus_map_retry">重试地图</string>
+    <string name="sky_focus_choose_airport">正在选择降落机场</string>
+</resources>

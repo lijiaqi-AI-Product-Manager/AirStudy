@@ -1133,7 +1133,9 @@ class FlightPreparationNavigationTest {
             assertThat(root.findViewById<View>(R.id.bottomStack).isShown).isFalse()
             assertThat(root.findViewById<View>(R.id.groundHomeContent).visibility).isEqualTo(View.GONE)
             assertThat(root.findViewById<View>(R.id.sourceMap).visibility).isEqualTo(View.VISIBLE)
-            assertThat(root.findViewById<View>(FlightR.id.pf_flight_pause_overlay).visibility).isEqualTo(View.VISIBLE)
+            assertThat(root.findViewById<View>(FlightR.id.pf_flight_focus_scroll).isShown).isTrue()
+            assertThat(root.findViewById<TextView>(FlightR.id.pf_flight_focus_status).text.toString())
+                .isEqualTo(root.context.getString(FlightR.string.pf_flight_paused))
             assertThat(root.findViewById<View>(FlightR.id.pf_flight_right_controls).visibility).isEqualTo(View.GONE)
             assertThat(root.findViewById<View>(FlightR.id.pf_flight_cancel).visibility).isEqualTo(View.VISIBLE)
         }
@@ -1181,7 +1183,9 @@ class FlightPreparationNavigationTest {
                 .isNotEqualTo(android.content.res.Configuration.UI_MODE_NIGHT_YES)
             assertThat(root.findViewById<com.projectfocus.feature.home.map.SourceMapHostView>(R.id.sourceMap).state.value.phase)
                 .isEqualTo(com.projectfocus.feature.home.map.MapPhase.MISSING_CONFIGURATION)
-            val expected = root.context.getColor(com.projectfocus.core.ui.R.color.pf_flight_icon_on_light)
+            val expected = root.context.getColor(com.projectfocus.core.ui.R.color.sky_ink)
+            assertThat(androidx.core.graphics.ColorUtils.calculateContrast(expected,
+                root.context.getColor(com.projectfocus.core.ui.R.color.sky_card_solid))).isAtLeast(4.5)
             for (id in listOf(FlightR.id.pf_flight_pause, FlightR.id.pf_flight_audio,
                     FlightR.id.pf_flight_map_style, FlightR.id.pf_flight_window_toggle))
                 assertThat(root.findViewById<android.widget.ImageView>(id).imageTintList?.defaultColor).isEqualTo(expected)

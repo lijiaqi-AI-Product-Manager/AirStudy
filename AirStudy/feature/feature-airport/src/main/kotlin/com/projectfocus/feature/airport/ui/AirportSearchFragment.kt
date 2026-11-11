@@ -140,6 +140,12 @@ open class AirportSearchFragment : Fragment() {
         setupSearchInput()
         setupActions()
         applyModeHint()
+        com.projectfocus.core.ui.sky.SkySurfaces.card(binding.skyAirportSearchField, radius = 24f, elevation = 3f)
+        com.projectfocus.core.ui.sky.SkySurfaces.action(binding.btnRetry)
+        binding.btnRetry.setTextColor(requireContext().getColor(android.R.color.white))
+        listOf(binding.btnBack, binding.btnClear, binding.btnRetry).forEach {
+            com.projectfocus.core.ui.sky.SkyPressFeedback.install(it)
+        }
 
         //   见 onChipSelected 的注释（漏了收键盘）。
         binding.idlePanel.onAirportClick = ::onChipSelected
@@ -170,6 +176,17 @@ open class AirportSearchFragment : Fragment() {
             else -> R.string.airport_search_hint
         }
         binding.searchInput.setHint(hintRes)
+        val mode = arguments?.getString("arg_mode")
+        binding.airportPageTitle.setText(when (mode) {
+            "pick_origin" -> R.string.sky_airport_origin_title
+            "pick_destination" -> R.string.sky_airport_destination_title
+            else -> R.string.sky_airport_explore_title
+        })
+        binding.airportPageSubtitle.setText(when (mode) {
+            "pick_origin" -> R.string.sky_airport_origin_intro
+            "pick_destination" -> R.string.sky_airport_destination_intro
+            else -> R.string.sky_airport_explore_intro
+        })
     }
 
     private fun setupList() {
@@ -352,6 +369,8 @@ open class AirportSearchFragment : Fragment() {
 
     private fun render(state: AirportSearchState) {
         val isContent = state is AirportSearchState.Content
+        binding.stateIllustration.isVisible = !isContent && !(state is AirportSearchState.Idle && !state.isBare)
+        binding.stateIllustration.setLoading(state === AirportSearchState.Loading)
         binding.resultList.isVisible = isContent
         binding.resultCount.isVisible = isContent
 

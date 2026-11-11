@@ -26,6 +26,8 @@ data class FlightHudUiState(
     val remainingKmText: String = "", val traveledKmText: String = "", val progress: Float = 0f,
     val counters: FlightHudCounters? = null,
     val freeFlightLandControl: FreeFlightLandControl = FreeFlightLandControl.HIDDEN,
+    val mapAvailable: Boolean = true, val mapRetryEnabled: Boolean = false,
+    val mapStatusText: String = "", val elapsed: Boolean = false,
 )
 
 enum class FreeFlightLandControl { HIDDEN, LAND, RETURN_TO_CRUISE }
@@ -34,6 +36,7 @@ data class FlightHudCallbacks(
     val onPauseResume: () -> Unit = {}, val onAbandon: () -> Unit = {},
     val onToggleWindow: () -> Unit = {}, val onMapStyle: () -> Unit = {},
     val onLandOrReturn: () -> Unit = {},
+    val onRetryMap: () -> Unit = {},
 )
 
 /** Visible flight controls follow activity_main; app state mapping is explicit, not recovered DEX. */
@@ -49,6 +52,8 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
     private val audio: ImageView
     private val volumePanel: View
     private val counterWidths = SourceHudWidthAnimator()
+    private var focusCompact = false
+    private var currentState = FlightHudUiState()
 
     init {
         LayoutInflater.from(context).inflate(R.layout.pf_flight_hud, this, true)
@@ -68,10 +73,21 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
         window.setOnClickListener { callbacks.onToggleWindow() }
         findViewById<View>(R.id.pf_flight_map_style).setOnClickListener { callbacks.onMapStyle() }
         audio.setOnClickListener { volumePanel.visibility = if (volumePanel.visibility == VISIBLE) GONE else VISIBLE }
+        findViewById<View>(R.id.pf_flight_focus_retry).setOnClickListener { callbacks.onRetryMap() }
+        listOf(R.id.pf_flight_left_controls, R.id.pf_flight_right_controls, R.id.pf_flight_volume_panel,
+            R.id.pf_flight_distance_container, R.id.pf_flight_time_container).forEach {
+            com.projectfocus.core.ui.sky.SkySurfaces.card(findViewById(it), radius = 24f, elevation = 4f, solid = true)
+        }
+        listOf(pause, land, window, audio, cancel, findViewById(R.id.pf_flight_map_style),
+            findViewById<View>(R.id.pf_flight_focus_retry)).forEach {
+            com.projectfocus.core.ui.sky.SkyPressFeedback.install(it)
+        }
+        com.projectfocus.core.ui.sky.SkySurfaces.secondary(cancel)
         render(FlightHudUiState())
     }
 
     fun render(state: FlightHudUiState) {
+        currentState = state
         visibility = if (state.active) VISIBLE else GONE
         if (!state.active) { volumePanel.visibility = GONE; return }
         val selecting = state.freeFlightLandControl == FreeFlightLandControl.RETURN_TO_CRUISE
@@ -84,12 +100,12 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
         pause.contentDescription = context.getString(if (state.paused) R.string.pf_flight_resume else R.string.pf_flight_pause)
         cancel.visibility = if (state.paused) VISIBLE else GONE
         findViewById<View>(R.id.pf_flight_right_controls).visibility = if (state.paused || selecting) GONE else VISIBLE
-        findViewById<View>(R.id.pf_flight_pause_overlay).visibility = if (state.paused) VISIBLE else GONE
+        val focus = !state.mapAvailable && !state.windowVisible
+        renderFocus(state, focus)
+        findViewById<View>(R.id.pf_flight_pause_overlay).visibility = if (state.paused && !focus) VISIBLE else GONE
         window.contentDescription = context.getString(if (state.windowVisible) R.string.pf_flight_show_map else R.string.pf_flight_show_window)
         val night = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-        val tint = ContextCompat.getColor(context,
-            if (state.windowVisible || night || state.lightIcons) com.projectfocus.core.ui.R.color.pf_flight_icon_on_dark
-            else com.projectfocus.core.ui.R.color.pf_flight_icon_on_light)
+        val tint = ContextCompat.getColor(context, com.projectfocus.core.ui.R.color.sky_ink)
         listOf(pause, land, window, audio, findViewById<ImageView>(R.id.pf_flight_map_style)).forEach {
             it.imageTintList = ColorStateList.valueOf(tint)
         }
@@ -100,6 +116,52 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
             state.traveledKmText, state.remainingKmText, state.remainingTimeText)
     }
 
+    private fun renderFocus(state: FlightHudUiState, visible: Boolean) {
+        findViewById<View>(R.id.pf_flight_focus_backdrop).visibility = if (visible) VISIBLE else GONE
+        val scroll = findViewById<View>(R.id.pf_flight_focus_scroll)
+        scroll.visibility = if (visible) VISIBLE else GONE
+        if (!visible) return
+        val selecting = state.freeFlightLandControl == FreeFlightLandControl.RETURN_TO_CRUISE
+        findViewById<View>(R.id.pf_flight_focus_status).visibility = if (focusCompact) GONE else VISIBLE
+        findViewById<TextView>(R.id.pf_flight_focus_status).setText(
+            when { selecting -> R.string.sky_focus_choose_airport
+                state.paused -> R.string.pf_flight_paused
+                else -> R.string.sky_focus_flying })
+        findViewById<TextView>(R.id.pf_flight_focus_label).setText(
+            when { focusCompact && selecting -> R.string.sky_focus_choose_airport
+                focusCompact && state.paused -> R.string.pf_flight_paused
+                state.elapsed -> R.string.sky_focus_elapsed
+                focusCompact -> R.string.pf_hud_source_time_remaining
+                else -> R.string.sky_focus_remaining })
+        findViewById<TextView>(R.id.pf_flight_focus_clock).text = state.remainingTimeText
+        findViewById<TextView>(R.id.pf_flight_focus_route).text = state.routeText
+        findViewById<TextView>(R.id.pf_flight_focus_map_status).text = state.mapStatusText
+        findViewById<View>(R.id.pf_flight_focus_retry).visibility = if (state.mapRetryEnabled) VISIBLE else GONE
+        findViewById<SkyFocusDialView>(R.id.pf_flight_focus_dial).setProgress(if (state.elapsed) null else state.progress)
+    }
+
+    private fun updateFocusGeometry(compact: Boolean) {
+        if (compact == focusCompact) return
+        focusCompact = compact
+        val size = com.projectfocus.core.ui.sky.SkySurfaces.dp(context, if (compact) 160f else 240f)
+        findViewById<View>(R.id.pf_flight_focus_dial_frame).let {
+            it.layoutParams = it.layoutParams.apply { width = size; height = size }
+        }
+        val horizontal = com.projectfocus.core.ui.sky.SkySurfaces.dp(context, if (compact) 20f else 28f)
+        findViewById<View>(R.id.pf_flight_focus_clock_content).setPadding(horizontal, 0, horizontal, 0)
+        findViewById<View>(R.id.pf_flight_focus_content).let {
+            val vertical = com.projectfocus.core.ui.sky.SkySurfaces.dp(context, if (compact) 4f else 12f)
+            it.setPadding(it.paddingLeft, vertical, it.paddingRight, vertical)
+        }
+        findViewById<View>(R.id.pf_flight_focus_route).let {
+            it.layoutParams = (it.layoutParams as android.widget.LinearLayout.LayoutParams).apply {
+                topMargin = com.projectfocus.core.ui.sky.SkySurfaces.dp(context, if (compact) 4f else 14f)
+                bottomMargin = com.projectfocus.core.ui.sky.SkySurfaces.dp(context, if (compact) 4f else 16f)
+            }
+        }
+        renderFocus(currentState, currentState.active && !currentState.mapAvailable && !currentState.windowVisible)
+    }
+
     private fun renderCounters(state: FlightHudUiState, night: Boolean) {
         val distance = findViewById<SourceNumberScrollView>(R.id.pf_flight_distance_value)
         val time = findViewById<SourceNumberScrollView>(R.id.pf_flight_time_value)
@@ -107,7 +169,7 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
         distance.visibility = if (counters == null) INVISIBLE else VISIBLE
         time.visibility = if (counters == null) INVISIBLE else VISIBLE
         if (counters == null) return
-        val textColor = if (night) Color.WHITE else Color.BLACK
+        val textColor = context.getColor(com.projectfocus.core.ui.R.color.sky_ink)
         listOf(distance, time).forEach { it.setTextSize(24);it.setTextColor(textColor) }
         require(counters.metrics.distance.value in 0L..Int.MAX_VALUE.toLong())
         require(counters.metrics.time.value in 0L..Int.MAX_VALUE.toLong())
@@ -153,6 +215,9 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        val availableHeight = MeasureSpec.getSize(heightMeasureSpec)
+        updateFocusGeometry(MeasureSpec.getMode(heightMeasureSpec) != MeasureSpec.UNSPECIFIED &&
+            availableHeight > 0 && availableHeight / resources.displayMetrics.density < 640f)
         if (MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED)
             fitCounterCards(MeasureSpec.getSize(widthMeasureSpec))
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)

@@ -96,6 +96,26 @@ class HomeSkyWindowTest {
         capture("home-day-empty")
         activity.findViewById<View>(R.id.homeOrigin).performClick()
         await("Actual airport picker") { host().navController.currentDestination?.id == R.id.airportSearchFragment }
+        val input = activity.findViewById<android.widget.EditText>(com.projectfocus.feature.airport.R.id.searchInput)
+        input.setText("PEK")
+        await("PEK from the packaged airport catalogue") {
+            activity.findViewById<androidx.recyclerview.widget.RecyclerView>(com.projectfocus.feature.airport.R.id.resultList)?.let { list ->
+                walk(list).filterIsInstance<TextView>().any {
+                    it.id == com.projectfocus.feature.airport.R.id.pf_airport_airport_code && it.text.toString() == "PEK"
+                }
+            } == true
+        }
+        capture("airport-actual-catalogue-day", "ui-airport")
+        val list = activity.findViewById<androidx.recyclerview.widget.RecyclerView>(com.projectfocus.feature.airport.R.id.resultList)
+        val row = walk(list).filterIsInstance<com.projectfocus.feature.airport.ui.AirportRowView>().first {
+            it.findViewById<TextView>(com.projectfocus.feature.airport.R.id.pf_airport_airport_code).text.toString() == "PEK"
+        }
+        assertTrue(row.performClick())
+        await("Actual airport selection returned to Home") {
+            host().navController.currentDestination?.id == R.id.homeFragment &&
+                activity.findViewById<TextView>(R.id.homeOriginCode)?.text?.toString() == "PEK"
+        }
+        assertEquals(SessionState.Idle, activity.sessionRepository.state.value)
     }
 
     @Test fun mapPreviewReturnsToTheSamePreparationWithoutStartingAFlight() {
@@ -194,12 +214,12 @@ class HomeSkyWindowTest {
         while (!condition()) { check(System.nanoTime() < until) { "Timed out: $label" }; advance(16); Thread.sleep(3) }
         advance(32)
     }
-    private fun capture(name: String) {
+    private fun capture(name: String, folder: String = "ui-redesign") {
         advance(32)
         val root = activity.window.decorView
         val bitmap = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
         root.draw(Canvas(bitmap))
-        val file = File("build/reports/ui-redesign/$name.png")
+        val file = File("build/reports/$folder/$name.png")
         file.parentFile!!.mkdirs()
         file.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
         bitmap.recycle()

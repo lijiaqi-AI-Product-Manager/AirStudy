@@ -262,14 +262,14 @@ class AirportChipView @JvmOverloads constructor(
     private fun loadColorsIfNeeded() {
         if (colorsLoaded) return
         val ctx = context
-        cBgDefault = androidx.core.content.ContextCompat.getColor(ctx, UiR.color.bg_elevated)
-        cBgPress = androidx.core.content.ContextCompat.getColor(ctx, UiR.color.accent_container)
-        cStrokeDefault = androidx.core.content.ContextCompat.getColor(ctx, UiR.color.stroke_subtle)
-        cStrokePress = androidx.core.content.ContextCompat.getColor(ctx, UiR.color.accent_primary)
-        cTextDefault = androidx.core.content.ContextCompat.getColor(ctx, UiR.color.text_primary)
-        cTextPress = androidx.core.content.ContextCompat.getColor(ctx, UiR.color.text_primary)
-        cCodeDefault = androidx.core.content.ContextCompat.getColor(ctx, UiR.color.text_tertiary)
-        cCodePress = androidx.core.content.ContextCompat.getColor(ctx, UiR.color.accent_primary)
+        cBgDefault = ctx.getColor(UiR.color.sky_card_solid)
+        cBgPress = ctx.getColor(UiR.color.sky_selected)
+        cStrokeDefault = ctx.getColor(UiR.color.sky_divider)
+        cStrokePress = ctx.getColor(UiR.color.sky_primary)
+        cTextDefault = ctx.getColor(UiR.color.sky_ink)
+        cTextPress = ctx.getColor(UiR.color.sky_ink)
+        cCodeDefault = ctx.getColor(UiR.color.sky_ink_secondary)
+        cCodePress = ctx.getColor(UiR.color.sky_primary)
         colorsLoaded = true
     }
 
@@ -305,6 +305,12 @@ class AirportChipView @JvmOverloads constructor(
 
         pressAnimator?.cancel()
         val target = if (pressed) 1f else 0f
+        if (!android.animation.ValueAnimator.areAnimatorsEnabled()) {
+            pressProgress = target
+            pressAnimator = null
+            invalidate()
+            return
+        }
 
         //   用户在动画中途松手时，从"当前进度"回弹，而不是先从 1 跳到 0 再动。
         val animator = android.animation.ValueAnimator.ofFloat(pressProgress, target)

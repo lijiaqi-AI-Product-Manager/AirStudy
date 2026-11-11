@@ -573,6 +573,7 @@ class HomeFragment : Fragment() {
                 flightWindowVisible = !flightWindowVisible
                 renderFlightHud(view, sessionRepository.state.value)
             },
+            onRetryMap = { view.findViewById<SourceMapHostView>(R.id.sourceMap).retry() },
             onMapStyle = { toggleMapStylePanel(view) },
             onLandOrReturn = { freeFlightLanding?.landOrReturn() },
         )
@@ -722,7 +723,7 @@ class HomeFragment : Fragment() {
         view.findViewById<View>(R.id.homeMapClose).visibility =
             if (!active && mapPreviewVisible && freeFlightPresentation == null) View.VISIBLE else View.GONE
         view.findViewById<SourceMapHostView>(R.id.sourceMap).setWindowMode(active && flightWindowVisible)
-        view.findViewById<SourceMapHostView>(R.id.sourceMap).setStatusControlsVisible(freeFlightPresentation == null && (active || mapPreviewVisible))
+        view.findViewById<SourceMapHostView>(R.id.sourceMap).setStatusControlsVisible(freeFlightPresentation == null && !active && mapPreviewVisible)
         if (!active && !mapPreviewVisible) {
             mapStylePanelVisible = false
             view.findViewById<View>(R.id.mapStyleSelectorContainer).visibility = View.GONE
@@ -783,6 +784,9 @@ class HomeFragment : Fragment() {
                 map.phase == MapPhase.LOADED && map.styleStatus == MapStyleStatus.APPLIED &&
                     map.requestedStyleIndex == selectedMapStyle && selectedMapStyle != 6
             },
+            mapAvailable = view.findViewById<SourceMapHostView>(R.id.sourceMap).state.value.phase == MapPhase.LOADED,
+            mapRetryEnabled = view.findViewById<SourceMapHostView>(R.id.sourceMap).state.value.phase in setOf(MapPhase.MISSING_CONFIGURATION, MapPhase.FAILED),
+            mapStatusText = focusMapStatus(view.findViewById<SourceMapHostView>(R.id.sourceMap).state.value.phase),
             routeText = getString(R.string.flight_hud_route, origin, destination),
             remainingTimeText = formatHudTime(remainingMs), remainingMinutesText = remainingMinutes(remainingMs).toString(),
             remainingKmText = snapshot?.remainingKmText ?: "—", traveledKmText = snapshot?.traveledKmText ?: "—",
@@ -802,7 +806,7 @@ class HomeFragment : Fragment() {
         mapPreviewVisible = false
         mapPreviewBack?.isEnabled = false
         view.findViewById<View>(R.id.homeMapClose).visibility = View.GONE
-        map.setStatusControlsVisible(freeFlightPresentation == null)
+        map.setStatusControlsVisible(false)
         map.setWindowMode(flightWindowVisible)
         val selecting = archive.phase == com.projectfocus.core.model.flight.freeflight.FreeFlightPhase.LANDING_SELECTION
         val paused = archive.clock.pause != null && !selecting && archive.clock.pause != com.projectfocus.core.model.flight.freeflight.FreeFlightPause.RETURN_CAMERA
@@ -819,6 +823,9 @@ class HomeFragment : Fragment() {
         overlay.render(FlightHudUiState(
             active = true, paused = paused, windowVisible = flightWindowVisible,
             lightIcons = map.state.value.let { it.phase == MapPhase.LOADED && it.styleStatus == MapStyleStatus.APPLIED && it.requestedStyleIndex == selectedMapStyle && selectedMapStyle != 6 },
+            mapAvailable = map.state.value.phase == MapPhase.LOADED,
+            mapRetryEnabled = map.state.value.phase in setOf(MapPhase.MISSING_CONFIGURATION, MapPhase.FAILED),
+            mapStatusText = focusMapStatus(map.state.value.phase), elapsed = leg == null,
             routeText = getString(R.string.flight_hud_route, archive.departure.code, archive.landingAirport?.code ?: getString(R.string.pf_ff_free_flight_mode_name)),
             remainingTimeText = formatHudTime(remaining ?: elapsed), remainingMinutesText = remainingMinutes(remaining ?: elapsed).toString(),
             traveledKmText = String.format(Locale.US, "%.1f", archive.cumulativeDistanceKm),
@@ -831,6 +838,11 @@ class HomeFragment : Fragment() {
             },
         ))
     }
+
+    private fun focusMapStatus(phase: MapPhase): String = getString(
+        if (phase in setOf(MapPhase.MISSING_CONFIGURATION, MapPhase.FAILED, MapPhase.DESTROYED))
+            com.projectfocus.feature.flight.R.string.sky_focus_map_unavailable
+        else com.projectfocus.feature.flight.R.string.sky_focus_map_loading)
 
     private fun startHudTicker(view: View) {
         if (hudTickerJob?.isActive == true) return

@@ -2,6 +2,9 @@ package com.projectfocus.feature.airport.ui
 
 import android.os.Looper
 import android.os.Bundle
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Rect
 import android.view.View
 import android.widget.EditText
 import android.widget.TextView
@@ -23,6 +26,10 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
+import org.robolectric.RuntimeEnvironment
+import java.io.File
+import kotlinx.coroutines.CompletableDeferred
 
 
 @RunWith(RobolectricTestRunner::class)
@@ -481,6 +488,130 @@ class AirportSearchFragmentRenderTest {
         launch(listOf(target), Bundle().apply { putDouble(AirportSearchReferenceArgs.LATITUDE, 0.0) })
         type("DUR")
         assertRenderedDuration("--")
+    }
+
+    @Test
+    @Config(qualifiers = "zh-rCN-w432dp-h960dp-mdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun nativeOriginSearchAndResultSelectionKeepTheActualAirport() {
+        val activity = launch(args = Bundle().apply { putString("arg_mode", "pick_origin") })
+        settle()
+        assertThat(text(R.id.airportPageTitle)).isEqualTo("从哪里出发")
+        captureNative(activity, "airport-origin-day")
+        type("PEK")
+        awaitNative("Indexed PEK result") { isVisible(R.id.resultList) }
+        captureNative(activity, "airport-results-day")
+        var selected: Long? = null
+        scenario!!.onActivity {
+            fragment().onAirportSelected = { selected = it.id }
+            val list = view(R.id.resultList) as RecyclerView
+            assertThat(list.childCount).isGreaterThan(0)
+            list.getChildAt(0).performClick()
+        }
+        assertThat(selected).isEqualTo(1L)
+        assertThat(isVisible(R.id.statePanel)).isFalse()
+    }
+
+    @Test
+    @Config(qualifiers = "zh-rCN-w432dp-h960dp-night-mdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun nativeNightSearchSeparatesNoResultFromInputGuidance() {
+        val activity = launch(args = Bundle().apply { putString("arg_mode", "pick_destination") })
+        type("A")
+        assertThat(text(R.id.stateTitle)).contains("再输入")
+        captureNative(activity, "airport-short-input-night")
+        type("NoSuchAirport999")
+        awaitNative("No result") { text(R.id.stateTitle).contains("没找到") }
+        assertThat(isVisible(R.id.btnRetry)).isFalse()
+        captureNative(activity, "airport-no-result-night")
+    }
+
+    @Test
+    @Config(qualifiers = "zh-rCN-w320dp-h640dp-mdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun nativeLargeTextEmptyStateCanScrollToItsRealRetryAction() {
+        RuntimeEnvironment.setFontScale(1.6f)
+        val activity = launch(rows = emptyList())
+        awaitNative("Empty catalogue") { isVisible(R.id.btnRetry) }
+        captureNative(activity, "airport-empty-small-top")
+        scenario!!.onActivity {
+            val retry = view(R.id.btnRetry)
+            retry.requestRectangleOnScreen(Rect(0, 0, retry.width, retry.height), true)
+        }
+        settle()
+        captureNative(activity, "airport-empty-small-action")
+        val rect = Rect()
+        assertThat(view(R.id.btnRetry).getGlobalVisibleRect(rect)).isTrue()
+        assertThat(rect.height()).isAtLeast(48)
+        var retries = 0
+        scenario!!.onActivity {
+            fragment().onRetry = { retries++ }
+            view(R.id.btnRetry).performClick()
+        }
+        assertThat(retries).isEqualTo(1)
+    }
+
+    @Test
+    @Config(qualifiers = "zh-rCN-w432dp-h960dp-mdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
+    fun nativeLoadingFollowsTheActualIndexWorkAndStopsWhenResultsArrive() {
+        val release = CompletableDeferred<Unit>()
+        val entered = java.util.concurrent.atomic.AtomicBoolean(false)
+        val dao = object : FakeAirportDao(sampleRows()) {
+            override suspend fun getAll(hasPremium: Boolean): List<AirportEntity> {
+                entered.set(true)
+                release.await()
+                return super.getAll(hasPremium)
+            }
+        }
+        var activity: AirportHostActivity? = null
+        try {
+            scenario = ActivityScenario.launch(AirportHostActivity::class.java)
+            scenario!!.onActivity {
+                it.install(TestableAirportFragment(dao, settings.repository))
+                activity = it
+            }
+            awaitNative("Index read started") { entered.get() }
+            assertThat(text(R.id.stateTitle)).isEqualTo("正在准备机场数据")
+            assertThat(isVisible(R.id.stateIllustration)).isTrue()
+            captureNative(requireNotNull(activity), "airport-loading-day")
+            release.complete(Unit)
+            type("PEK")
+            awaitNative("Indexed content") { isVisible(R.id.resultList) }
+            assertThat(isVisible(R.id.stateIllustration)).isFalse()
+            assertThat((view(R.id.stateIllustration) as AirportSkyStateView).isAnimating).isFalse()
+        } finally {
+            release.complete(Unit)
+        }
+    }
+
+    private fun awaitNative(label: String, condition: () -> Boolean) {
+        val deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5)
+        while (!condition()) {
+            check(System.nanoTime() < deadline) { "Timed out: $label" }
+            settle(); Thread.sleep(4)
+        }
+        settle()
+    }
+
+    private fun captureNative(activity: AirportHostActivity, name: String) {
+        settle()
+        scenario!!.onActivity {
+            val root = activity.window.decorView
+            val metrics = activity.resources.displayMetrics
+            val config = activity.resources.configuration
+            val width = (config.screenWidthDp * metrics.density).toInt()
+            val height = (config.screenHeightDp * metrics.density).toInt()
+            root.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
+            root.layout(0, 0, width, height)
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            root.draw(Canvas(bitmap))
+            val target = File("build/reports/ui-airport/$name.png")
+            target.parentFile!!.mkdirs()
+            target.outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+            bitmap.recycle()
+        }
     }
 
     private fun assertRenderedDuration(expected: String) {

@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.map
 
 
 
-class FakeAirportDao(rows: List<AirportEntity> = emptyList()) : AirportDao() {
+open class FakeAirportDao(rows: List<AirportEntity> = emptyList()) : AirportDao() {
 
     val rows = MutableStateFlow(rows)
 

@@ -125,6 +125,20 @@ class OrdinaryFlightWindowTest {
         assertEquals(opened.departure.name, ongoing.departureAirportName)
         assertEquals(opened.destination.name, ongoing.destinationAirportName)
         capture("ordinary-running-day")
+        val clock = activity.findViewById<TextView>(com.projectfocus.feature.flight.R.id.pf_flight_focus_clock)
+        assertTrue(activity.findViewById<View>(com.projectfocus.feature.flight.R.id.pf_flight_focus_scroll).isShown)
+        assertTrue(clock.text.toString().matches(Regex("[0-9]+:[0-9]{2}")))
+        activity.findViewById<View>(com.projectfocus.feature.flight.R.id.pf_flight_pause).performClick()
+        await("Actual paused flight") { activity.sessionRepository.state.value is SessionState.Paused }
+        await("Actual pause shown") { activity.findViewById<TextView>(com.projectfocus.feature.flight.R.id.pf_flight_focus_status).text.toString() ==
+            activity.getString(com.projectfocus.feature.flight.R.string.pf_flight_paused) }
+        val pausedClock = clock.text.toString()
+        advance(2_000)
+        assertEquals(pausedClock, clock.text.toString())
+        capture("focus-actual-paused-day", "ui-focus")
+        activity.findViewById<View>(com.projectfocus.feature.flight.R.id.pf_flight_pause).performClick()
+        await("Actual resumed flight") { activity.sessionRepository.state.value is SessionState.Running }
+        capture("focus-actual-running-day", "ui-focus")
         runBlocking(Dispatchers.IO) { assertTrue(activity.sessionRepository.abandon()); assertNotNull(activity.sessionRepository.settle()) }
         val row = runBlocking(Dispatchers.IO) { app.database.flightHistoryDao().findById(ongoing.id) }!!
         assertEquals(number, row.flightNumber)
@@ -344,13 +358,13 @@ class OrdinaryFlightWindowTest {
         }
         advance(16)
     }
-    private fun capture(name: String) {
+    private fun capture(name: String, folder: String = "ordinary-countdown") {
         advance(32)
         val root = activity.window.decorView
         assertTrue(root.width > 0 && root.height > 0)
         val bitmap = Bitmap.createBitmap(root.width, root.height, Bitmap.Config.ARGB_8888)
         root.draw(Canvas(bitmap))
-        val file = File("build/reports/ordinary-countdown/$name.png")
+        val file = File("build/reports/$folder/$name.png")
         file.parentFile!!.mkdirs()
         file.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)) }
         bitmap.recycle()

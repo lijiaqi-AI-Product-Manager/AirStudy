@@ -12,6 +12,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import android.widget.FrameLayout
+import android.widget.ImageView
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
 import com.projectfocus.feature.flight.R
@@ -34,16 +35,16 @@ class FlightHudViewTest {
         counters = FlightHudCounters.remaining(1234.5, 77 * 60 + 9))
 
     @Test
-    fun `source corner geometry and active controls stay separate at phone widths and large fonts`() {
+    fun `flight controls keep full touch targets and remain separate at phone widths and large fonts`() {
         for (night in listOf(false, true)) for (width in listOf(320, 390)) for (font in listOf(1f, 1.6f)) {
             val view = newView(night, font)
             view.render(running)
             layout(view, width, if (width == 320) 568 else 844)
             val pause = bounds(view, R.id.pf_flight_pause)
-            assertThat(pause.left).isEqualTo(dp(view, 24))
-            assertThat(pause.top).isEqualTo(dp(view, 68))
-            assertThat(pause.width()).isEqualTo(dp(view, 40))
-            assertThat(pause.height()).isEqualTo(dp(view, 40))
+            assertThat(pause.left).isEqualTo(dp(view, 20))
+            assertThat(pause.top).isEqualTo(dp(view, 20))
+            assertThat(pause.width()).isEqualTo(dp(view, 48))
+            assertThat(pause.height()).isEqualTo(dp(view, 48))
             assertThat(view.findViewById<View>(R.id.pf_flight_cancel).visibility).isEqualTo(View.GONE)
             assertThat(view.findViewById<SourceNumberScrollView>(R.id.pf_flight_distance_value).getValue()).isEqualTo(1235)
             assertThat(view.findViewById<SourceNumberScrollView>(R.id.pf_flight_time_value).contentDescription.toString()).isEqualTo("77:09")
@@ -58,10 +59,46 @@ class FlightHudViewTest {
             assertThat(view.findViewById<View>(R.id.pf_flight_stats).visibility).isEqualTo(View.GONE)
             assertThat(view.findViewById<View>(R.id.pf_flight_right_controls).visibility).isEqualTo(View.GONE)
             val cancel = bounds(view, R.id.pf_flight_cancel)
-            assertThat(cancel.width()).isEqualTo(dp(view, 120))
-            assertThat(cancel.height()).isEqualTo(dp(view, 40))
+            assertThat(cancel.width()).isEqualTo(dp(view, 140))
+            assertThat(cancel.height()).isEqualTo(dp(view, 48))
             assertSeparate(view, listOf(R.id.pf_flight_pause, R.id.pf_flight_audio, R.id.pf_flight_cancel))
         }
+    }
+
+    @Test
+    fun `unavailable map preserves the clock pause retry and elapsed meaning without covering a real window`() {
+        val view = newView()
+        var retries = 0
+        view.callbacks = FlightHudCallbacks(onRetryMap = { retries++ })
+        val fallback = running.copy(mapAvailable = false, mapRetryEnabled = true,
+            mapStatusText = view.context.getString(R.string.sky_focus_map_unavailable))
+        view.render(fallback)
+        layout(view)
+        assertThat(view.findViewById<TextView>(R.id.pf_flight_focus_clock).text.toString()).isEqualTo("77:09")
+        assertThat(view.findViewById<View>(R.id.pf_flight_focus_scroll).visibility).isEqualTo(View.VISIBLE)
+        view.findViewById<View>(R.id.pf_flight_focus_retry).performClick()
+        assertThat(retries).isEqualTo(1)
+        view.render(fallback.copy(paused = true))
+        assertThat(view.findViewById<TextView>(R.id.pf_flight_focus_status).text.toString()).isEqualTo(view.context.getString(R.string.pf_flight_paused))
+        assertThat(view.findViewById<View>(R.id.pf_flight_cancel).visibility).isEqualTo(View.VISIBLE)
+        view.render(fallback.copy(elapsed = true, remainingTimeText = "00:42", counters = null,
+            freeFlightLandControl = FreeFlightLandControl.LAND))
+        layout(view, 320, 568)
+        assertThat(view.findViewById<TextView>(R.id.pf_flight_focus_label).text.toString()).isEqualTo(view.context.getString(R.string.sky_focus_elapsed))
+        assertThat(view.findViewById<TextView>(R.id.pf_flight_focus_clock).text.toString()).isEqualTo("00:42")
+        assertSeparate(view, listOf(R.id.pf_flight_pause, R.id.pf_flight_land, R.id.pf_flight_audio,
+            R.id.pf_flight_map_style, R.id.pf_flight_window_toggle))
+        view.render(fallback.copy(freeFlightLandControl = FreeFlightLandControl.RETURN_TO_CRUISE))
+        assertThat(view.findViewById<View>(R.id.pf_flight_focus_scroll).visibility).isEqualTo(View.VISIBLE)
+        assertThat(view.findViewById<View>(R.id.pf_flight_focus_retry).visibility).isEqualTo(View.VISIBLE)
+        assertThat(view.findViewById<ImageView>(R.id.pf_flight_land).contentDescription.toString())
+            .isEqualTo(view.context.getString(R.string.pf_flight_return_cruise))
+        view.render(fallback.copy(windowVisible = true))
+        assertThat(view.findViewById<View>(R.id.pf_flight_focus_scroll).visibility).isEqualTo(View.GONE)
+        view.render(fallback.copy(mapAvailable = true))
+        assertThat(view.findViewById<View>(R.id.pf_flight_focus_backdrop).visibility).isEqualTo(View.GONE)
+        view.render(FlightHudUiState())
+        assertThat(view.visibility).isEqualTo(View.GONE)
     }
 
     @Test
@@ -134,13 +171,27 @@ class FlightHudViewTest {
             shadowOf(Looper.getMainLooper()).idle()
             assertThat(windowRoot.isAttachedToWindow).isTrue()
             ShadowChoreographer.setPaused(true)
-            for (night in listOf(false, true)) for (paused in listOf(false, true)) for (width in listOf(320, 390)) {
+            for (focus in listOf(false, true)) for (night in listOf(false, true)) for (paused in listOf(false, true)) for (width in listOf(320, 390))
+                for (variant in if (focus && !paused && width == 390) listOf("countdown", "elapsed", "selecting") else listOf("countdown")) {
                 val view = newView(night, if (width == 320) 1.6f else 1f, controller.get())
                 // The capture has no map/window backdrop. Match Home's real fallback icon state.
-                view.render(running.copy(paused = paused, lightIcons = night))
+                val elapsed = variant != "countdown"
+                view.render(running.copy(paused = paused, lightIcons = night, mapAvailable = !focus,
+                    mapRetryEnabled = focus, mapStatusText = view.context.getString(R.string.sky_focus_map_unavailable),
+                    elapsed = elapsed, remainingTimeText = if (elapsed) "42:09" else running.remainingTimeText,
+                    counters = if (elapsed) FlightHudCounters.coreElapsed(25.5, 2529) else running.counters,
+                    freeFlightLandControl = when (variant) { "selecting" -> FreeFlightLandControl.RETURN_TO_CRUISE
+                        "elapsed" -> FreeFlightLandControl.LAND
+                        else -> FreeFlightLandControl.HIDDEN }))
                 windowRoot.removeAllViews()
                 windowRoot.addView(view, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
                 layout(windowRoot, width, if (width == 320) 568 else 844)
+                if (focus && width == 320) {
+                    val viewport = bounds(view, R.id.pf_flight_focus_scroll)
+                    for (id in listOf(R.id.pf_flight_focus_clock, R.id.pf_flight_focus_route, R.id.pf_flight_focus_retry))
+                        com.google.common.truth.Truth.assertWithMessage("Compact focus ${resourcesName(view, id)}=${bounds(view, id)} must stay inside $viewport")
+                            .that(viewport.contains(bounds(view, id))).isTrue()
+                }
                 com.google.common.truth.Truth.assertWithMessage("night=$night paused=$paused width=$width decorAttached=${controller.get().window.decorView.isAttachedToWindow} rootAttached=${windowRoot.isAttachedToWindow}")
                     .that(view.isAttachedToWindow).isTrue()
                 view.viewTreeObserver.dispatchOnPreDraw()
@@ -149,11 +200,13 @@ class FlightHudViewTest {
                     val canvas = Canvas(bitmap)
                     canvas.drawColor(view.context.getColor(com.projectfocus.core.ui.R.color.bg_base))
                     view.draw(canvas)
-                    val name = "${if (night) "night" else "day"}-${if (paused) "paused" else "running"}-$width"
-                    File(output, "$name.png").outputStream().use {
+                    val name = "${if (night) "night" else "day"}-${if (paused) "paused" else "running"}-$width" +
+                        if (variant == "countdown") "" else "-$variant"
+                    val folder = if (focus) File("build/reports/ui-focus").apply { mkdirs() } else output
+                    File(folder, "$name.png").outputStream().use {
                         assertThat(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)).isTrue()
                     }
-                    File(output, "$name.json").writeText(actualHudPreviewMetadata(view).toString(2))
+                    File(folder, "$name.json").writeText(actualHudPreviewMetadata(view).toString(2))
                 } finally { bitmap.recycle() }
             }
         } finally {
