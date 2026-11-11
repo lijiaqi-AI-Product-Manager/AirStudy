@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.view.doOnAttach
 import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
@@ -181,6 +182,12 @@ class HomeFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupSkyHome(view)
+        view.doOnAttach { attached ->
+            androidx.core.view.ViewCompat.getRootWindowInsets(attached)?.let { insets ->
+                HomeWindowInsets.apply(attached, insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars() or
+                    androidx.core.view.WindowInsetsCompat.Type.displayCutout()))
+            }
+        }
         view.findViewById<FlightWindowView>(R.id.flightWindow).restorePosition(flightWindowPosition)
 
         view.findViewById<SourceMapHostView>(R.id.sourceMap).bindLifecycle(

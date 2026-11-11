@@ -162,6 +162,16 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
         renderFocus(currentState, currentState.active && !currentState.mapAvailable && !currentState.windowVisible)
     }
 
+    fun applySafeInsets(left: Int, top: Int, right: Int, bottom: Int) {
+        require(left >= 0 && top >= 0 && right >= 0 && bottom >= 0)
+        if (paddingLeft == left && paddingTop == top && paddingRight == right && paddingBottom == bottom) return
+        clipToPadding = false
+        setPadding(left, top, right, bottom)
+        findViewById<View>(R.id.pf_flight_focus_backdrop).let {
+            it.layoutParams = (it.layoutParams as android.view.ViewGroup.MarginLayoutParams).apply { setMargins(-left, -top, -right, -bottom) }
+        }
+    }
+
     private fun renderCounters(state: FlightHudUiState, night: Boolean) {
         val distance = findViewById<SourceNumberScrollView>(R.id.pf_flight_distance_value)
         val time = findViewById<SourceNumberScrollView>(R.id.pf_flight_time_value)
@@ -186,7 +196,7 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
             R.id.pf_flight_distance_label, R.id.pf_flight_time_label).forEach {
             findViewById<TextView>(it).setTextColor(textColor)
         }
-        fitCounterCards(width)
+        fitCounterCards(width - paddingLeft - paddingRight)
         counterWidths.fit(findViewById(R.id.pf_flight_distance_content), findViewById(R.id.pf_flight_distance_container))
         counterWidths.fit(findViewById(R.id.pf_flight_time_content), findViewById(R.id.pf_flight_time_container))
     }
@@ -215,11 +225,11 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        val availableHeight = MeasureSpec.getSize(heightMeasureSpec)
+        val availableHeight = MeasureSpec.getSize(heightMeasureSpec) - paddingTop - paddingBottom
         updateFocusGeometry(MeasureSpec.getMode(heightMeasureSpec) != MeasureSpec.UNSPECIFIED &&
             availableHeight > 0 && availableHeight / resources.displayMetrics.density < 640f)
         if (MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED)
-            fitCounterCards(MeasureSpec.getSize(widthMeasureSpec))
+            fitCounterCards(MeasureSpec.getSize(widthMeasureSpec) - paddingLeft - paddingRight)
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     }
 

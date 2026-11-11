@@ -203,6 +203,46 @@ class HomeSkyWindowTest {
             walk(activity.window.decorView).filterIsInstance<PrefRowView>().any { it.tag == PrefKey.WhiteNoiseEnabled } }
         advance(150)
     }
+
+    @Test fun systemAreasProtectHomeMapCloseAndSettingsWithoutAccumulatingOffsets() {
+        val container = activity.findViewById<View>(R.id.nav_host_container)
+        val insets = androidx.core.view.WindowInsetsCompat.Builder()
+            .setInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars(), androidx.core.graphics.Insets.of(0, 36, 0, 28))
+            .setInsets(androidx.core.view.WindowInsetsCompat.Type.displayCutout(), androidx.core.graphics.Insets.of(48, 0, 0, 0))
+            .build()
+        repeat(3) { androidx.core.view.ViewCompat.dispatchApplyWindowInsets(container, insets); advance(32) }
+        assertEquals(0, container.paddingTop)
+        val action = Rect()
+        assertTrue(activity.findViewById<View>(R.id.btnFlightPlan).getGlobalVisibleRect(action))
+        assertTrue(action.top >= 36 && action.left >= 48)
+        val dock = Rect()
+        assertTrue(activity.findViewById<View>(R.id.right_menu_container).getGlobalVisibleRect(dock))
+        assertTrue(dock.left >= 48 && dock.bottom <= container.height - 28)
+        val backdrop = activity.findViewById<View>(R.id.homeSkyBackdrop)
+        assertEquals(container.width, backdrop.width)
+        assertEquals(container.height, backdrop.height)
+        assertEquals(0, backdrop.left + (backdrop.parent as View).left)
+        capture("home-system-areas", "ui-insets")
+        activity.findViewById<View>(R.id.menuMap).performClick()
+        advance(50)
+        val close = Rect()
+        assertTrue(activity.findViewById<View>(R.id.homeMapClose).getGlobalVisibleRect(close))
+        assertTrue(close.top >= 36 && close.left >= 48)
+        activity.findViewById<View>(R.id.homeMapClose).performClick()
+        openSettings()
+        androidx.core.view.ViewCompat.dispatchApplyWindowInsets(container, insets)
+        advance(32)
+        assertEquals(36, container.paddingTop)
+        assertEquals(28, container.paddingBottom)
+        capture("settings-system-areas", "ui-insets")
+        activity.findViewById<View>(ProfileR.id.btn_back).performClick()
+        await("Home after protected settings") { activity.findViewById<View>(R.id.homeOrigin)?.isShown == true }
+        androidx.core.view.ViewCompat.dispatchApplyWindowInsets(container, insets)
+        advance(32)
+        assertTrue(activity.findViewById<View>(R.id.btnFlightPlan).getGlobalVisibleRect(action))
+        assertTrue(action.top >= 36 && action.left >= 48)
+        assertEquals(SessionState.Idle, activity.sessionRepository.state.value)
+    }
     private fun host() = activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
     private fun walk(view: View): Sequence<View> = sequence {
         yield(view)

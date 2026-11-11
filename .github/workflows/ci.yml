@@ -98,5 +98,6 @@ jobs:
             AirStudy/**/build/reports/ui-redesign/
             AirStudy/**/build/reports/ui-airport/
             AirStudy/**/build/reports/ui-focus/
+            AirStudy/**/build/reports/ui-insets/
             AirStudy/**/build/reports/flight-hud-preview/
           retention-days: 7

@@ -7,7 +7,7 @@
         android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
     <FrameLayout android:id="@+id/groundHomeContent"
         android:layout_width="match_parent" android:layout_height="match_parent">
-        <com.projectfocus.core.ui.sky.SkyBackdropView android:layout_width="match_parent" android:layout_height="match_parent" />
+        <com.projectfocus.core.ui.sky.SkyBackdropView android:id="@+id/homeSkyBackdrop" android:layout_width="match_parent" android:layout_height="match_parent" />
         <androidx.core.widget.NestedScrollView android:id="@+id/homeScroll"
             android:layout_width="match_parent" android:layout_height="match_parent"
             android:fillViewport="true" android:clipToPadding="false" android:paddingBottom="108dp" android:scrollbars="none">

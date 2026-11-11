@@ -303,6 +303,10 @@ class MainActivity : AppCompatActivity(), SeatSceneChoicesHost, com.projectfocus
 
             if (host.navController.currentDestination?.id in setOf(R.id.homeFragment, R.id.flightPreparationFragment)) {
                 view.setPadding(0, 0, 0, 0)
+                if (host.navController.currentDestination?.id == R.id.homeFragment) {
+                    val safe = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
+                    com.projectfocus.app.home.HomeWindowInsets.apply(host.childFragmentManager.primaryNavigationFragment?.view, safe)
+                }
             } else {
                 val safe = insets.getInsets(WindowInsetsCompat.Type.systemBars() or
                     WindowInsetsCompat.Type.displayCutout() or WindowInsetsCompat.Type.ime())
