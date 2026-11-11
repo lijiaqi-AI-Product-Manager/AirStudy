@@ -31,6 +31,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
 import dagger.hilt.android.testing.HiltTestApplication
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +55,7 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.util.ReflectionHelpers
 
 /** Uses the real SettingsFragment and FragmentNavigator, rather than a fake controller. */
 @RunWith(RobolectricTestRunner::class)
@@ -69,9 +71,9 @@ class SettingsNavigationTest {
 
     @Before
     fun bindCurrentMainLooper() {
-        // Each Robolectric sandbox owns its Looper; the default Main dispatcher can
-        // retain a Handler from an earlier sandbox in the same test worker.
-        Dispatchers.setMain(Handler(Looper.getMainLooper()).asCoroutineDispatcher())
+        // Match Android Main's asynchronous dispatch on the current sandbox Looper.
+        // A view traversal barrier must not hold DataStore's write continuation.
+        Dispatchers.setMain(Handler.createAsync(Looper.getMainLooper()).asCoroutineDispatcher())
     }
 
     @After
@@ -131,54 +133,77 @@ class SettingsNavigationTest {
             scenario.onActivity { activity -> measureAt320dp(showSettings(activity).requireView()) }
             // The initial DataStore emission must reach the actual UI before the gesture starts.
             awaitRenderedPreference(scenario, PrefKey.MaterialAlpha, "slider initialization") { it == 0.15f }
-            scenario.onActivity { activity ->
-                val settings = activity.host.childFragmentManager.primaryNavigationFragment as SettingsFragment
-                val root = settings.requireView()
-                measureAt320dp(root)
-                val row = root.descendants().filterIsInstance<PrefRowView>()
-                    .single { it.tag == PrefKey.MaterialAlpha }
-                val seek = row.descendants().filterIsInstance<SeekBar>().single()
-                // This is measured from the actual Fragment hierarchy, not a standalone control.
-                assertThat(seek.width).isAtLeast(dp(root, 240))
-                assertThat(seek.height).isGreaterThan(0)
-                assertThat(seek.isEnabled).isTrue()
-                seek.requestRectangleOnScreen(Rect(0, 0, seek.width, seek.height), true)
-                shadowOf(Looper.getMainLooper()).idle()
-                val bounds = Rect(0, 0, seek.width, seek.height)
-                (root as ViewGroup).offsetDescendantRectToMyCoords(seek, bounds)
-                assertThat(bounds.top).isAtLeast(0)
-                assertThat(bounds.bottom).isAtMost(root.height)
-                val startX = bounds.left + seek.paddingLeft + dp(root, 4).toFloat()
-                val midpointX = bounds.left + (seek.paddingLeft + seek.width - seek.paddingRight) / 2f
-                val y = bounds.exactCenterY()
-                val now = SystemClock.uptimeMillis()
-                // Dispatch through the visible root so NestedScrollView and SeekBar both receive
-                // the real drag. MOVE exceeds horizontal touch slop before releasing at midpoint.
-                listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP).forEachIndexed { index, action ->
-                    val x = if (action == MotionEvent.ACTION_DOWN) startX else midpointX
-                    val event = MotionEvent.obtain(now, now + index * 16L, action, x, y, 0)
-                    try {
-                        assertThat(root.dispatchTouchEvent(event)).isTrue()
-                    } finally {
-                        event.recycle()
-                    }
+            val syncProbe = AtomicBoolean(false)
+            val asyncProbe = AtomicBoolean(false)
+            var barrierToken: Int? = null
+            try {
+                scenario.onActivity {
+                    val looper = Looper.getMainLooper()
+                    barrierToken = ReflectionHelpers.callInstanceMethod<Int>(looper.queue, "postSyncBarrier")
+                    Handler(looper).post { syncProbe.set(true) }
+                    Handler.createAsync(looper).post { asyncProbe.set(true) }
                 }
-                assertWithMessage("midpoint gesture: progress=${seek.progress}/${seek.max}, " +
-                    "tag=${seek.tag}, bounds=$bounds, x=$midpointX, initializedRepository=0.15")
-                    .that(seek.progress.toFloat() / seek.max).isWithin(0.02f).of(0.5f)
-                shadowOf(Looper.getMainLooper()).idle()
+                scenario.onActivity { activity ->
+                    val settings = activity.host.childFragmentManager.primaryNavigationFragment as SettingsFragment
+                    val root = settings.requireView()
+                    measureAt320dp(root)
+                    val row = root.descendants().filterIsInstance<PrefRowView>()
+                        .single { it.tag == PrefKey.MaterialAlpha }
+                    val seek = row.descendants().filterIsInstance<SeekBar>().single()
+                    // This is measured from the actual Fragment hierarchy, not a standalone control.
+                    assertThat(seek.width).isAtLeast(dp(root, 240))
+                    assertThat(seek.height).isGreaterThan(0)
+                    assertThat(seek.isEnabled).isTrue()
+                    seek.requestRectangleOnScreen(Rect(0, 0, seek.width, seek.height), true)
+                    shadowOf(Looper.getMainLooper()).idle()
+                    val bounds = Rect(0, 0, seek.width, seek.height)
+                    (root as ViewGroup).offsetDescendantRectToMyCoords(seek, bounds)
+                    assertThat(bounds.top).isAtLeast(0)
+                    assertThat(bounds.bottom).isAtMost(root.height)
+                    val startX = bounds.left + seek.paddingLeft + dp(root, 4).toFloat()
+                    val midpointX = bounds.left + (seek.paddingLeft + seek.width - seek.paddingRight) / 2f
+                    val y = bounds.exactCenterY()
+                    val now = SystemClock.uptimeMillis()
+                    // Dispatch through the visible root so NestedScrollView and SeekBar both receive
+                    // the real drag. MOVE exceeds horizontal touch slop before releasing at midpoint.
+                    listOf(MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE, MotionEvent.ACTION_UP).forEachIndexed { index, action ->
+                        val x = if (action == MotionEvent.ACTION_DOWN) startX else midpointX
+                        val event = MotionEvent.obtain(now, now + index * 16L, action, x, y, 0)
+                        try {
+                            assertThat(root.dispatchTouchEvent(event)).isTrue()
+                        } finally {
+                            event.recycle()
+                        }
+                    }
+                    assertWithMessage("midpoint gesture: progress=${seek.progress}/${seek.max}, " +
+                        "tag=${seek.tag}, bounds=$bounds, x=$midpointX, initializedRepository=0.15")
+                        .that(seek.progress.toFloat() / seek.max).isWithin(0.02f).of(0.5f)
+                    shadowOf(Looper.getMainLooper()).idle()
+                }
+                assertThat(asyncProbe.get()).isTrue()
+                assertThat(syncProbe.get()).isFalse()
+                // Keep the drawing barrier present until the actual value is stored.
+                // Integer division in the old binding saved 0.15f here.
+                val saved = awaitRenderedPreference(scenario, PrefKey.MaterialAlpha, "slider midpoint gesture (async=${asyncProbe.get()}, sync=${syncProbe.get()})") {
+                    it > 0.48f && it < 0.52f
+                }
+                assertThat(saved).isWithin(0.01f).of(0.50f)
+                scenario.onActivity { activity ->
+                    shadowOf(Looper.getMainLooper()).idle()
+                    val settings = activity.host.childFragmentManager.primaryNavigationFragment as SettingsFragment
+                    val viewModel = ViewModelProvider(settings)[SettingsViewModel::class.java]
+                    assertThat(viewModel.valueOf(PrefKey.MaterialAlpha)).isWithin(0.01f).of(0.50f)
+                }
+            } finally {
+                scenario.onActivity {
+                    barrierToken?.let { token ->
+                        ReflectionHelpers.callInstanceMethod<Any?>(Looper.getMainLooper().queue, "removeSyncBarrier",
+                            ReflectionHelpers.ClassParameter.from(Int::class.javaPrimitiveType!!, token))
+                    }
+                    shadowOf(Looper.getMainLooper()).idle()
+                }
             }
-            // Wait for the actual write. Integer division in the old binding saved 0.15f here.
-            val saved = awaitRenderedPreference(scenario, PrefKey.MaterialAlpha, "slider midpoint gesture") {
-                it > 0.48f && it < 0.52f
-            }
-            assertThat(saved).isWithin(0.01f).of(0.50f)
-            scenario.onActivity { activity ->
-                shadowOf(Looper.getMainLooper()).idle()
-                val settings = activity.host.childFragmentManager.primaryNavigationFragment as SettingsFragment
-                val viewModel = ViewModelProvider(settings)[SettingsViewModel::class.java]
-                assertThat(viewModel.valueOf(PrefKey.MaterialAlpha)).isWithin(0.01f).of(0.50f)
-            }
+            assertThat(syncProbe.get()).isTrue()
         }
     }
 
