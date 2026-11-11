@@ -1,6 +1,7 @@
 package com.projectfocus.app.countdown
 
 import android.Manifest
+import android.animation.ValueAnimator
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.os.Bundle
@@ -35,12 +36,15 @@ import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.Robolectric
+import org.robolectric.RuntimeEnvironment
+import org.robolectric.util.ReflectionHelpers
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows.shadowOf
 import org.robolectric.android.controller.ActivityController
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
+import org.robolectric.shadows.ShadowChoreographer
 import com.projectfocus.feature.completion.R as PassR
 import com.projectfocus.feature.focus.R as ModeR
 
@@ -56,6 +60,7 @@ class OrdinaryFlightWindowTest {
 
     @Before fun open() {
         app = ApplicationProvider.getApplicationContext()
+        if (app.resources.configuration.screenWidthDp <= 320) RuntimeEnvironment.setFontScale(1.6f)
         runBlocking(Dispatchers.IO) { withTimeout(20_000) { app.awaitInitialAccountRestore(); app.awaitInitialAirportSeed() } }
         records = RecordCloudHttpFixture(app.recordCloudMutations, app.recordCloudSync)
         shadowOf(app).grantPermissions(Manifest.permission.POST_NOTIFICATIONS)
@@ -232,6 +237,15 @@ class OrdinaryFlightWindowTest {
         await("Compact seats") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
         chooseAndConfirmSeat()
         assertPaperTransparency()
+        val surface = activity.findViewById<View>(R.id.ordinaryBoarding)
+        val background = Bitmap.createBitmap(8, 8, Bitmap.Config.ARGB_8888)
+        try {
+            surface.draw(Canvas(background))
+            assertTrue("The night paper uses its matching dark ambient canvas",
+                android.graphics.Color.luminance(background.getPixel(4, 4)) < .12f)
+        } finally { background.recycle() }
+        assertTrue("The night status remains readable on the dark canvas",
+            android.graphics.Color.luminance(activity.findViewById<TextView>(R.id.ordinaryPrintStatus).currentTextColor) > .35f)
         capture("ordinary-boarding-night-landscape")
         val checkIn = activity.findViewById<View>(R.id.ordinaryCheckIn)
         assertOnScreen(checkIn)
@@ -298,7 +312,159 @@ class OrdinaryFlightWindowTest {
         assertTrue(coordinator().cancel())
     }
 
-    private fun chooseAndConfirmSeat(checkSystemAreas: Boolean = false) {
+    @Test fun actualPrintingHoldsInspectionAndKeepsTheFrozenFlightUntilPaperIsReady() {
+        withAnimationScale(1f) {
+            assertTrue(ValueAnimator.areAnimatorsEnabled())
+            activity.findViewById<View>(R.id.btnStartFlight).performClick()
+            await("Ordinary seat choice") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+            chooseAndConfirmSeat(waitForPrinting = false)
+            val frozen = requireNotNull(coordinator().state.value.route)
+            val action = activity.findViewById<View>(R.id.ordinaryCheckIn)
+            val feed = activity.findViewById<View>(R.id.ordinaryBoardingFeed)
+            assertFalse(action.isEnabled)
+            assertFalse(action.isShown)
+            action.performClick()
+            assertEquals(OrdinaryPreparationStep.BOARDING, coordinator().state.value.step)
+            assertIdleAndNoRecord()
+            capture("ordinary-print-start-day")
+            val feedingAt = SystemClock.uptimeMillis()
+            advance(800)
+            assertEquals(800L, SystemClock.uptimeMillis() - feedingAt)
+            assertTrue(feed.isShown)
+            assertFalse(action.isEnabled)
+            capture("ordinary-print-feeding-day")
+            advance(950)
+            assertTrue(feed.isShown)
+            capture("ordinary-print-fold-day")
+            advance(2_300)
+            await("Actual paper and inspection action") { action.isShown && action.isEnabled }
+            assertFalse(feed.isShown)
+            assertTrue(activity.findViewById<View>(PassR.id.boarding_pass_root).isShown)
+            assertEquals(frozen, coordinator().state.value.route)
+            assertIdleAndNoRecord()
+            capture("ordinary-print-complete-day")
+            action.performClick()
+            await("Explicit inspection") { coordinator().state.value.step == OrdinaryPreparationStep.INSPECTION }
+            assertIdleAndNoRecord()
+        }
+    }
+
+    @Test fun reducedMotionShowsTheRealPaperAndActionWithoutStartingAFlight() {
+        withAnimationScale(0f) {
+            assertFalse(ValueAnimator.areAnimatorsEnabled())
+            activity.findViewById<View>(R.id.btnStartFlight).performClick()
+            await("Ordinary seats without motion") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+            chooseAndConfirmSeat()
+            assertEquals(OrdinaryPreparationStep.BOARDING, coordinator().state.value.step)
+            assertFalse(activity.findViewById<View>(R.id.ordinaryBoardingFeed).isShown)
+            assertTrue(activity.findViewById<View>(PassR.id.boarding_pass_root).isShown)
+            val route = requireNotNull(coordinator().state.value.route)
+            assertEquals(route.flightNumber, activity.findViewById<TextView>(PassR.id.tv_flight_code).text.toString())
+            assertIdleAndNoRecord()
+            capture("ordinary-print-reduced-motion")
+            activity.findViewById<View>(R.id.ordinaryCheckIn).performClick()
+            await("Reduced-motion inspection") { coordinator().state.value.step == OrdinaryPreparationStep.INSPECTION }
+            assertIdleAndNoRecord()
+        }
+    }
+
+    @Test fun hiddenWindowFinishesTheVisualPaperWithoutInspectingOrDeparting() {
+        withAnimationScale(1f) {
+            activity.findViewById<View>(R.id.btnStartFlight).performClick()
+            await("Seats before hiding") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+            chooseAndConfirmSeat(waitForPrinting = false)
+            val frozen = requireNotNull(coordinator().state.value.route)
+            val surface = activity.findViewById<View>(R.id.ordinaryBoarding)
+            advance(400)
+            surface.dispatchWindowVisibilityChanged(View.GONE)
+            assertFalse(activity.findViewById<View>(R.id.ordinaryBoardingFeed).isShown)
+            assertTrue(activity.findViewById<View>(R.id.ordinaryCheckIn).isEnabled)
+            surface.dispatchWindowVisibilityChanged(View.VISIBLE)
+            advance(4_000)
+            assertEquals(OrdinaryPreparationStep.BOARDING, coordinator().state.value.step)
+            assertEquals(frozen, coordinator().state.value.route)
+            assertIdleAndNoRecord()
+            capture("ordinary-print-after-hidden-window")
+        }
+    }
+
+    @Test
+    @Config(qualifiers = "zh-rCN-w320dp-h568dp-mdpi")
+    fun printedPaperAndActionRespectRepeatedSystemAreasWithLargeText() {
+        activity.findViewById<View>(R.id.btnStartFlight).performClick()
+        await("Compact ordinary seats") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
+        chooseAndConfirmSeat()
+        val surface = activity.findViewById<View>(R.id.ordinaryBoarding)
+        val action = activity.findViewById<View>(R.id.ordinaryCheckIn)
+        val paper = activity.findViewById<View>(PassR.id.boarding_pass_root)
+        val bars = androidx.core.view.WindowInsetsCompat.Type.systemBars() or androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+        val insets = androidx.core.view.WindowInsetsCompat.Builder()
+            .setInsets(bars, androidx.core.graphics.Insets.of(48, 36, 0, 28)).build()
+        val first = IntArray(2)
+        repeat(3) { index ->
+            androidx.core.view.ViewCompat.dispatchApplyWindowInsets(surface, insets)
+            advance(40)
+            val point = IntArray(2);action.getLocationOnScreen(point)
+            assertTrue(point[0] >= 48 && point[1] >= 36)
+            assertTrue(point[0] + action.width <= surface.width)
+            assertTrue(point[1] + action.height <= surface.height - 28)
+            assertTrue(action.height >= 48)
+            if (index == 0) point.copyInto(first) else assertArrayEquals(first, point)
+            val bounds = android.graphics.Rect()
+            assertTrue(paper.getGlobalVisibleRect(bounds))
+            assertTrue(bounds.left >= 48 && bounds.top >= 36)
+            assertTrue(bounds.right <= surface.width && bounds.bottom <= surface.height - 28)
+        }
+        assertIdleAndNoRecord()
+        capture("ordinary-print-small-large-text-system-areas")
+        val route = requireNotNull(coordinator().state.value.route)
+        assertEquals(1f, paper.resources.configuration.fontScale)
+        assertEquals(1.6f, action.resources.configuration.fontScale)
+        for (printed in walk(paper).filterIsInstance<TextView>().filter { it.isShown && it.text.isNotEmpty() }) {
+            val layout = requireNotNull(printed.layout)
+            assertEquals("Printed field ${printed.text}", 1, layout.lineCount)
+            assertEquals(0, layout.getEllipsisCount(0))
+            assertTrue("Printed field width ${printed.text}", layout.getLineWidth(0) <= printed.width + 1f)
+            assertTrue("Printed field height ${printed.text}", layout.height <= printed.height)
+        }
+        assertTrue(paper.contentDescription.contains(requireNotNull(route.flightNumber)))
+        assertTrue(paper.contentDescription.contains(requireNotNull(route.seat)))
+        assertTrue(paper.contentDescription.contains(route.departure.code))
+        assertTrue(paper.contentDescription.contains(route.destination.code))
+        action.performClick()
+        await("Compact explicit inspection") { coordinator().state.value.step == OrdinaryPreparationStep.INSPECTION }
+        tearActualBand()
+        await("Compact preparation") { coordinator().state.value.step == OrdinaryPreparationStep.PREPARE }
+        (surface as OrdinaryBoardingPassSurface).updateBlocking(true, 8)
+        advance(40)
+        val status = activity.findViewById<TextView>(R.id.ordinaryBlockingStatus)
+        assertTrue(status.text.contains("8"))
+        assertTrue(requireNotNull(status.layout).height <= status.height)
+        val prepare = activity.findViewById<View>(R.id.ordinaryPrepareBoarding)
+        val point = IntArray(2);prepare.getLocationOnScreen(point)
+        assertTrue(point[0] >= 48 && point[1] >= 36)
+        assertTrue(point[0] + prepare.width <= surface.width)
+        assertTrue(point[1] + prepare.height <= surface.height - 28)
+        assertTrue(prepare.height >= 48)
+        assertIdleAndNoRecord()
+        capture("ordinary-prepare-small-large-text-system-areas")
+    }
+
+    private fun withAnimationScale(scale: Float, action: () -> Unit) {
+        val original = ReflectionHelpers.getStaticField<Float>(ValueAnimator::class.java, "sDurationScale")
+        val paused = ShadowChoreographer.isPaused()
+        val frameDelay = ShadowChoreographer.getFrameDelay()
+        ShadowChoreographer.setPaused(true)
+        ShadowChoreographer.setFrameDelay(java.time.Duration.ofMillis(16))
+        ReflectionHelpers.setStaticField(ValueAnimator::class.java, "sDurationScale", scale)
+        try { action() } finally {
+            ReflectionHelpers.setStaticField(ValueAnimator::class.java, "sDurationScale", original)
+            ShadowChoreographer.setFrameDelay(frameDelay)
+            ShadowChoreographer.setPaused(paused)
+        }
+    }
+
+    private fun chooseAndConfirmSeat(checkSystemAreas: Boolean = false, waitForPrinting: Boolean = true) {
         await("Seat map laid out") { activity.findViewById<SeatSelectionMapView>(R.id.pf_ff_seat_map)?.width?.let { it > 0 } == true }
         advance(700)
         val chosen = (activity.seatSceneChoices(Bundle()) as SeatSceneChoices.Ready).values.first()
@@ -334,8 +500,9 @@ class OrdinaryFlightWindowTest {
         }
         confirm.performClick(); confirm.performClick()
         await("Printed boarding window") { coordinator().state.value.step == OrdinaryPreparationStep.BOARDING &&
-            activity.findViewById<View>(R.id.ordinaryCheckIn)?.let { it.isShown && it.isEnabled } == true &&
-            activity.findViewById<BoardingSequenceView>(R.id.ordinaryBoardingArtwork)?.renderedFrame == 0 }
+            activity.findViewById<BoardingSequenceView>(R.id.ordinaryBoardingArtwork)?.renderedFrame == 0 &&
+            (if (waitForPrinting) activity.findViewById<View>(R.id.ordinaryCheckIn)?.let { it.isShown && it.isEnabled } == true
+             else activity.findViewById<View>(R.id.ordinaryBoardingFeed)?.isShown == true) }
     }
 
     private fun assertPaperTransparency() {
@@ -386,15 +553,42 @@ class OrdinaryFlightWindowTest {
         yield(view)
         if (view is ViewGroup) for (index in 0 until view.childCount) yieldAll(walk(view.getChildAt(index)))
     }
-    private fun advance(millis: Long) = shadowOf(Looper.getMainLooper()).idleFor(millis, TimeUnit.MILLISECONDS)
+    private fun advance(millis: Long) {
+        val main = shadowOf(Looper.getMainLooper())
+        if (!ShadowChoreographer.isPaused()) {
+            main.idleFor(millis, TimeUnit.MILLISECONDS)
+            return
+        }
+        var remaining = millis
+        while (remaining > 0L) {
+            val frame = minOf(16L, remaining)
+            main.idleFor(frame, TimeUnit.MILLISECONDS)
+            remaining -= frame
+        }
+    }
     private fun await(label: String, condition: () -> Boolean) {
         val until = System.nanoTime() + TimeUnit.SECONDS.toNanos(20)
         while (!condition()) {
-            check(System.nanoTime() < until) { "Timed out: $label" }
+            check(System.nanoTime() < until) { "Timed out: $label; ${boardingDiagnostics()}" }
             advance(16); Thread.sleep(3)
         }
         advance(16)
     }
+    private fun boardingDiagnostics(): String {
+        val surface = activity.findViewById<OrdinaryBoardingPassSurface>(R.id.ordinaryBoarding)
+        val controller = surface?.let { ReflectionHelpers.getField<BoardingPrintController>(it, "printing") }
+        val animation = controller?.let { ReflectionHelpers.getField<ValueAnimator?>(it, "printAnimation") }
+        val action = activity.findViewById<View>(R.id.ordinaryCheckIn)
+        val feed = activity.findViewById<View>(R.id.ordinaryBoardingFeed)
+        return "step=${coordinator().state.value.step}, phase=${controller?.phase}, " +
+            "attached=${surface?.isAttachedToWindow}, window=${surface?.windowVisibility}, shown=${surface?.isShown}, " +
+            "frame=${activity.findViewById<BoardingSequenceView>(R.id.ordinaryBoardingArtwork)?.renderedFrame}, " +
+            "feed=${feed?.visibility}/${feed?.isShown}, action=${action?.visibility}/${action?.isEnabled}, " +
+            "status=${activity.findViewById<TextView>(R.id.ordinaryPrintStatus)?.text}, " +
+            "motion=${ValueAnimator.areAnimatorsEnabled()}, playTime=${animation?.currentPlayTime}, " +
+            "duration=${animation?.duration}, uptime=${SystemClock.uptimeMillis()}"
+    }
+
     private fun capture(name: String, folder: String = "ordinary-countdown") {
         advance(32)
         val root = activity.window.decorView
