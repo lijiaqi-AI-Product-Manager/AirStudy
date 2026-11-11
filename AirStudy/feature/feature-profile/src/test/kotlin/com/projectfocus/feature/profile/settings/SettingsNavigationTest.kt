@@ -237,7 +237,9 @@ class SettingsNavigationTest {
                         scenario.onActivity { activity ->
                             // DataStore transforms inherit the writer's Main context. Blocking
                             // this Looper while waiting on IO can starve a completely valid write.
-                            shadowOf(Looper.getMainLooper()).idle()
+                            // Progress the paused Android clock as well as due messages, so
+                            // asynchronous store continuations can run between UI samples.
+                            shadowOf(Looper.getMainLooper()).idleFor(10, java.util.concurrent.TimeUnit.MILLISECONDS)
                             val settings = activity.host.childFragmentManager.primaryNavigationFragment as SettingsFragment
                             val model = ViewModelProvider(settings)[SettingsViewModel::class.java]
                             val value = model.valueOf(key)

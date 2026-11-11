@@ -90,7 +90,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: test-reports
+          name: test-reports-${{ github.run_attempt }}
           path: |
             AirStudy/**/build/reports/tests/
             AirStudy/**/build/test-results/
