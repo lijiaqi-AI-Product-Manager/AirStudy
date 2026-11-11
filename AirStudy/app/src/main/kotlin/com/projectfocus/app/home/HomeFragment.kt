@@ -382,6 +382,9 @@ class HomeFragment : Fragment() {
     }
 
     private fun setupSkyHome(root: View) {
+        val heading = root.findViewById<TextView>(R.id.homeHeading)
+        // Keep Chinese title baselines readable as the system font scale changes.
+        androidx.core.widget.TextViewCompat.setLineHeight(heading, kotlin.math.ceil(heading.textSize * 1.32f).toInt())
         com.projectfocus.core.ui.sky.SkySurfaces.card(root.findViewById(R.id.homeRouteCard), elevation = 7f)
         com.projectfocus.core.ui.sky.SkySurfaces.card(root.findViewById(R.id.right_menu_container), radius = 30f, elevation = 12f)
         com.projectfocus.core.ui.sky.SkySurfaces.action(root.findViewById(R.id.btnStartFlight))

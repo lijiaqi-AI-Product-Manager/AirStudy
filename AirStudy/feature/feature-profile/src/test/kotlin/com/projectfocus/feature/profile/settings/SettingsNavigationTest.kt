@@ -2,6 +2,7 @@ package com.projectfocus.feature.profile.settings
 
 import android.graphics.Rect
 import android.os.Bundle
+import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.view.MotionEvent
@@ -33,13 +34,19 @@ import dagger.hilt.android.testing.HiltTestApplication
 import java.util.concurrent.atomic.AtomicReference
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -52,12 +59,25 @@ import org.robolectric.annotation.GraphicsMode
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [35], qualifiers = "notnight", application = HiltTestApplication::class)
 @HiltAndroidTest
+@OptIn(ExperimentalCoroutinesApi::class)
 class SettingsNavigationTest {
     @get:Rule
     val hilt = HiltAndroidRule(this)
 
     @Inject
     lateinit var repository: SettingsRepository
+
+    @Before
+    fun bindCurrentMainLooper() {
+        // Each Robolectric sandbox owns its Looper; the default Main dispatcher can
+        // retain a Handler from an earlier sandbox in the same test worker.
+        Dispatchers.setMain(Handler(Looper.getMainLooper()).asCoroutineDispatcher())
+    }
+
+    @After
+    fun resetMainDispatcher() {
+        Dispatchers.resetMain()
+    }
 
     @Test
     @Config(qualifiers = "w320dp-h640dp-notnight")

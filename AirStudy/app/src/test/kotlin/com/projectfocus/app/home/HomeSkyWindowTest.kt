@@ -86,6 +86,7 @@ class HomeSkyWindowTest {
         assertTrue(activity.findViewById<View>(R.id.homeOrigin).contentDescription.contains("PEK"))
         assertTrue(activity.findViewById<View>(R.id.homeDestination).contentDescription.contains("TSN"))
         assertEquals(View.IMPORTANT_FOR_ACCESSIBILITY_NO, activity.findViewById<View>(R.id.homeFlightHero).importantForAccessibility)
+        assertReadableHeading()
         capture("home-day-selected")
         app.getSharedPreferences(HomeMapStyleSelection.FILE_NAME, android.content.Context.MODE_PRIVATE).edit().clear().commit()
         await("Selection cleared") { activity.findViewById<TextView>(R.id.homeOriginCode).text.toString() == "—" }
@@ -162,6 +163,7 @@ class HomeSkyWindowTest {
         advance(250)
         val scroll = activity.findViewById<NestedScrollView>(R.id.homeScroll)
         val action = activity.findViewById<View>(R.id.btnStartFlight)
+        assertReadableHeading()
         capture("home-small-large-text-top")
         scroll.scrollTo(0, scroll.getChildAt(0).height)
         advance(50)
@@ -195,6 +197,17 @@ class HomeSkyWindowTest {
         advance(50)
         assertTrue(activity.findViewById<View>(R.id.btnStartFlight).getGlobalVisibleRect(Rect()))
         capture("home-wide-action")
+    }
+
+    private fun assertReadableHeading() {
+        val heading = activity.findViewById<TextView>(R.id.homeHeading)
+        val layout = requireNotNull(heading.layout)
+        assertTrue(layout.lineCount >= 2)
+        for (line in 0 until layout.lineCount - 1) {
+            val spacing = layout.getLineBaseline(line + 1) - layout.getLineBaseline(line)
+            assertTrue("Title lines overlap at font size ${heading.textSize}: $spacing", spacing >= heading.textSize * 1.25f)
+        }
+        assertTrue(heading.height >= layout.height)
     }
 
     private fun openSettings() {
