@@ -5,7 +5,6 @@ import android.animation.AnimatorListenerAdapter
 import android.animation.ValueAnimator
 import android.app.Dialog
 import android.content.Context
-import android.content.res.ColorStateList
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -26,11 +25,16 @@ import android.widget.Space
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.graphics.Insets
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.button.MaterialButton
 import com.projectfocus.app.MainActivity
 import com.projectfocus.app.R
 import com.projectfocus.core.ui.scene.AnchoredScenePickerDialog
 import com.projectfocus.core.ui.scene.ScenePickerOption
+import com.projectfocus.core.ui.sky.SkyPressFeedback
+import com.projectfocus.core.ui.sky.SkySurfaces
 import com.projectfocus.feature.booking.seat.SeatSceneChoice
 import com.projectfocus.feature.booking.seat.SeatSceneChoices
 import com.projectfocus.feature.booking.seat.SeatSceneChoicesHost
@@ -130,7 +134,7 @@ internal class FreeFlightSeatSurface(
         id = R.id.pf_ff_seat_confirm;setText(BookingR.string.pf_seat_confirm_selection);setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
         typeface = ResourcesCompat.getFont(activity, CoreUiR.font.harmonyos_sans_sc_medium);isAllCaps = false
         insetTop = 0;insetBottom = 0;cornerRadius = (28f * resources.displayMetrics.density).toInt();strokeWidth = 0;elevation = 15f * resources.displayMetrics.density
-        backgroundTintList = ColorStateList.valueOf(if (night) Color.WHITE else Color.BLACK);setTextColor(if (night) Color.BLACK else Color.WHITE)
+        backgroundTintList = null;SkySurfaces.action(this);setTextColor(Color.WHITE);SkyPressFeedback.install(this)
     }
     private val arguments = Bundle(sceneArguments)
     private var selected: FreeFlightSeatChoice? = initial
@@ -140,12 +144,17 @@ internal class FreeFlightSeatSurface(
     private var lastTap = 0L
     private var exit: ValueAnimator? = null
     private var entry = true
+    private var safeInsets = Insets.NONE
     init {
         addView(map, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
         val density = resources.displayMetrics.density
         addView(confirm, LayoutParams((300f * density).toInt(), (56f * density).toInt(), Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply {
             bottomMargin = (40f * density).toInt();leftMargin = (16f * density).toInt();rightMargin = (16f * density).toInt()
         })
+        ViewCompat.setOnApplyWindowInsetsListener(this) { _, insets ->
+            applySafeInsets(insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()))
+            insets
+        }
         selected?.let { map.select(it.seat, it.scene) };updateConfirm()
         map.onSeatTapped = { seat, anchor ->
             val now = System.currentTimeMillis()
@@ -164,6 +173,32 @@ internal class FreeFlightSeatSurface(
                     if (confirming) { confirm.visibility = GONE;exitShip(value) }
                 }.start()
             }
+        }
+    }
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        ViewCompat.getRootWindowInsets(this)?.let {
+            applySafeInsets(it.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()))
+        }
+        ViewCompat.requestApplyInsets(this)
+    }
+
+    override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
+        super.onSizeChanged(w, h, oldw, oldh)
+        applySafeInsets(safeInsets)
+    }
+
+    private fun applySafeInsets(safe: Insets) {
+        safeInsets = safe;map.applySafeInsets(safe)
+        val available = (width.takeIf { it > 0 } ?: resources.displayMetrics.widthPixels) - safe.left - safe.right - activity.ffDp(32f)
+        val params = confirm.layoutParams as? LayoutParams ?: return
+        val targetWidth = min(activity.ffDp(300f), available.coerceAtLeast(0))
+        val bottom = activity.ffDp(40f) + safe.bottom
+        val left = activity.ffDp(16f) + safe.left;val right = activity.ffDp(16f) + safe.right
+        if (params.width != targetWidth || params.bottomMargin != bottom || params.leftMargin != left || params.rightMargin != right) {
+            params.width = targetWidth;params.bottomMargin = bottom;params.leftMargin = left;params.rightMargin = right
+            confirm.layoutParams = params
         }
     }
 

@@ -15,6 +15,8 @@ import android.widget.ImageView
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.descendants
+import androidx.core.graphics.Insets
 import com.google.common.truth.Truth.assertThat
 import com.projectfocus.core.common.seat.SeatMapGeometry
 import com.projectfocus.feature.booking.R
@@ -87,8 +89,8 @@ class SeatSelectionMapViewTest {
                 SeatMapGeometry.COLUMNS.indices.forEach { column ->
                     val seat = view.findViewWithTag<TextView>(SeatMapGeometry.label(row, column))
                     assertThat(seat).isNotNull()
-                    assertThat(seat.width).isEqualTo(dp(35))
-                    assertThat(seat.height).isEqualTo(dp(35))
+                    assertThat(seat.width).isEqualTo(dp(48))
+                    assertThat(seat.height).isEqualTo(dp(48))
                 }
             }
 
@@ -142,5 +144,90 @@ class SeatSelectionMapViewTest {
         } finally {
             controller.pause().stop().destroy()
         }
+    }
+
+    @Test
+    @Config(qualifiers = "w320dp-h568dp-mdpi")
+    fun `small cabin keeps real selection and occupied seats with large text and safe areas`() {
+        val controller = Robolectric.buildActivity(Activity::class.java).setup()
+        try {
+            val context = ContextThemeWrapper(controller.get(), CoreUiR.style.Theme_Pf)
+            val configuration = android.content.res.Configuration(controller.get().resources.configuration).apply { fontScale = 1.6f }
+            context.applyOverrideConfiguration(configuration)
+            val view = SeatSelectionMapView(context)
+            controller.get().setContentView(view)
+            view.setLightCabin(true)
+            view.applySafeInsets(Insets.of(0, 30, 0, 24))
+            view.setOccupied(setOf("1C", "30F"))
+            val callbacks = mutableListOf<String>()
+            view.onSeatSelected = { callbacks += it }
+            view.findViewWithTag<TextView>("01C").performClick()
+            assertThat(callbacks).isEmpty()
+            assertThat(view.selectedSeat).isNull()
+            val scene = SeatSceneChoice("actual-custom-scene", "reading", "阅读与思考", 0,
+                R.drawable.pf_seat_ic_focus_reading, Color.rgb(51, 118, 193))
+            view.select("1A", scene)
+            layoutCabin(view, 320, 568)
+            assertThat(view.selectedSeat).isEqualTo("01A")
+            assertThat(view.findViewWithTag<TextView>("01C").isEnabled).isFalse()
+            assertThat(view.findViewWithTag<TextView>("01A").createAccessibilityNodeInfo().isChecked).isTrue()
+            val hint = view.descendants.filterIsInstance<TextView>().single { it.text.contains("阅读与思考") }
+            assertThat(hint.text.toString()).isEqualTo("已选 01A · 阅读与思考")
+            val first = view.findViewWithTag<TextView>("01A")
+            val firstBounds = Rect(0, 0, first.width, first.height)
+            view.offsetDescendantRectToMyCoords(first, firstBounds)
+            val hintBounds = Rect(0, 0, hint.width, hint.height)
+            view.offsetDescendantRectToMyCoords(hint, hintBounds)
+            assertThat(firstBounds.top).isAtLeast(hintBounds.bottom)
+            assertThat(firstBounds.left).isAtLeast(0)
+            assertThat(firstBounds.right).isAtMost(view.width)
+            captureCabin(view, "seats-small-large-text-selected.png")
+            view.clearSelection()
+            assertThat(view.selectedSeat).isNull()
+            assertThat(view.descendants.filterIsInstance<TextView>().any { it.text.toString() == context.getString(R.string.seat_sky_hint) }).isTrue()
+            assertThat(view.findViewWithTag<TextView>("01C").isEnabled).isFalse()
+        } finally { controller.pause().stop().destroy() }
+    }
+
+    @Test
+    @Config(qualifiers = "w390dp-h844dp-night-mdpi")
+    fun `night cabin preserves custom scenes with the same icon and draws a raised selection`() {
+        val controller = Robolectric.buildActivity(Activity::class.java).setup()
+        try {
+            val view = SeatSelectionMapView(ContextThemeWrapper(controller.get(), CoreUiR.style.Theme_Pf))
+            controller.get().setContentView(view)
+            view.setLightCabin(false)
+            view.setOccupied(setOf("01F"))
+            val first = SeatSceneChoice("scene-first", "reading", "读书", 0,
+                R.drawable.pf_seat_ic_focus_reading, Color.rgb(62, 115, 194))
+            val second = first.copy(optionId = "scene-second", title = "写作", color = Color.rgb(134, 85, 190))
+            view.select("01C", first);view.select("01D", second)
+            layoutCabin(view, 390, 844)
+            assertThat(view.selectedSeat).isEqualTo("01D")
+            assertThat(view.findViewWithTag<TextView>("01C").isSelected).isFalse()
+            assertThat(view.findViewWithTag<TextView>("01D").isSelected).isTrue()
+            assertThat(view.descendants.filterIsInstance<TextView>().any { it.text.toString() == "已选 01D · 写作" }).isTrue()
+            captureCabin(view, "seats-night-selected.png")
+            view.setLightCabin(true)
+            // The exact same selection survives a material change; no scene callback is emitted.
+            assertThat(view.selectedSeat).isEqualTo("01D")
+        } finally { controller.pause().stop().destroy() }
+    }
+
+    private fun layoutCabin(view: View, width: Int, height: Int) {
+        repeat(2) {
+            view.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY))
+            view.layout(0, 0, view.measuredWidth, view.measuredHeight)
+            shadowOf(Looper.getMainLooper()).idle()
+        }
+    }
+
+    private fun captureCabin(view: View, name: String) {
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap);view.draw(canvas)
+        val output = File("build/reports/ui-seats").apply { mkdirs() }
+        File(output, name).outputStream().use { assertThat(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)).isTrue() }
+        bitmap.recycle()
     }
 }

@@ -88,7 +88,7 @@ class OrdinaryFlightWindowTest {
         assertEquals(R.id.homeFragment, navHost().navController.currentDestination!!.id)
         assertIdleAndNoRecord()
         capture("ordinary-seats-day")
-        chooseAndConfirmSeat()
+        chooseAndConfirmSeat(checkSystemAreas = true)
         val opened = requireNotNull(coordinator().state.value.route)
         val number = requireNotNull(opened.flightNumber)
         assertEquals("1A", opened.seat)
@@ -298,7 +298,7 @@ class OrdinaryFlightWindowTest {
         assertTrue(coordinator().cancel())
     }
 
-    private fun chooseAndConfirmSeat() {
+    private fun chooseAndConfirmSeat(checkSystemAreas: Boolean = false) {
         await("Seat map laid out") { activity.findViewById<SeatSelectionMapView>(R.id.pf_ff_seat_map)?.width?.let { it > 0 } == true }
         advance(700)
         val chosen = (activity.seatSceneChoices(Bundle()) as SeatSceneChoices.Ready).values.first()
@@ -311,6 +311,27 @@ class OrdinaryFlightWindowTest {
         await("Confirmed scene available") { coordinator().state.value.selection?.scene?.optionId == chosen.optionId }
         val confirm = activity.findViewById<View>(R.id.pf_ff_seat_confirm)
         assertTrue(confirm.isShown)
+        if (checkSystemAreas) {
+            val surface = map.parent as View
+            val bars = androidx.core.view.WindowInsetsCompat.Type.systemBars() or androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+            val insets = androidx.core.view.WindowInsetsCompat.Builder()
+                .setInsets(bars, androidx.core.graphics.Insets.of(48, 36, 0, 28)).build()
+            val before = IntArray(2)
+            repeat(3) { index ->
+                androidx.core.view.ViewCompat.dispatchApplyWindowInsets(surface, insets)
+                advance(40)
+                val point = IntArray(2);confirm.getLocationOnScreen(point)
+                assertTrue(point[0] >= 48)
+                assertTrue(point[1] >= 36)
+                assertTrue(point[0] + confirm.width <= activity.window.decorView.width)
+                assertTrue(point[1] + confirm.height <= activity.window.decorView.height - 28)
+                if (index == 0) point.copyInto(before) else assertArrayEquals(before, point)
+            }
+            capture("seats-selected-system-areas", "ui-seats")
+            androidx.core.view.ViewCompat.dispatchApplyWindowInsets(surface,
+                androidx.core.view.WindowInsetsCompat.Builder().setInsets(bars, androidx.core.graphics.Insets.NONE).build())
+            advance(40)
+        }
         confirm.performClick(); confirm.performClick()
         await("Printed boarding window") { coordinator().state.value.step == OrdinaryPreparationStep.BOARDING &&
             activity.findViewById<View>(R.id.ordinaryCheckIn)?.let { it.isShown && it.isEnabled } == true &&

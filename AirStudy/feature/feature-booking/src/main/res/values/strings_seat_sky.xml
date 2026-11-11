@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="seat_sky_title">选择你的座位</string>
+    <string name="seat_sky_hint">轻点座位，再选一个专注场景。</string>
+    <string name="seat_sky_selection">已选 %1$s · %2$s</string>
+    <string name="seat_sky_selection_without_scene">已选 %1$s，继续选择专注场景。</string>
+    <string name="seat_sky_legend">可选　·　彩色为已选　·　× 为不可选</string>
+</resources>

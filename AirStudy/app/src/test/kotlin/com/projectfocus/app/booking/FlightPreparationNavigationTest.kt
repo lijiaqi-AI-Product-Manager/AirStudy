@@ -509,6 +509,7 @@ class FlightPreparationNavigationTest {
 
     @Test
     @Config(qualifiers = "w390dp-h844dp-notnight-mdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun `scene cancellation keeps the old chair and recreation restores the second same icon custom choice`() {
         val ids = seedSeatScenes(seatSceneFixtures())
         assertThat(ids).hasSize(2)
@@ -548,6 +549,7 @@ class FlightPreparationNavigationTest {
 
     @Test
     @Config(qualifiers = "w390dp-h844dp-notnight-mdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun `legitimate empty scenes stay empty while an actual typed preference failure can retry`() {
         seedSeatScenes(emptyList())
         val emptyScenePlan = openEditorSeatPicker()
@@ -596,6 +598,7 @@ class FlightPreparationNavigationTest {
 
     @Test
     @Config(qualifiers = "w390dp-h844dp-notnight-mdpi")
+    @GraphicsMode(GraphicsMode.Mode.NATIVE)
     fun `missing record confirmation retains the seat page and does not publish a confirmed draft`() {
         seedSeatScenes(seatSceneFixtures())
         val missingRecord = "seat-nav-r160-missing-record"
@@ -944,9 +947,23 @@ class FlightPreparationNavigationTest {
     private fun assertSeatSceneFill(seat: String, expected: Int) = onActivity { activity ->
         val chair = seatMap(activity).findViewWithTag<TextView>(seat)
         assertThat(chair.text.toString()).isEmpty()
-        val actualLayers = chair.background as android.graphics.drawable.LayerDrawable
-        val actualBackground = actualLayers.getDrawable(0) as android.graphics.drawable.GradientDrawable
-        assertThat(actualBackground.color!!.defaultColor).isEqualTo(expected)
+        assertThat(chair.isSelected).isTrue()
+        assertThat(chair.width).isGreaterThan(0)
+        val rendered = Bitmap.createBitmap(chair.width, chair.height, Bitmap.Config.ARGB_8888)
+        try {
+            chair.draw(Canvas(rendered))
+            // Sample the raised back away from its icon, seam and highlight. Lighting
+            // may change brightness; a different same-icon scene must keep its hue.
+            val actual = rendered.getPixel(chair.width / 4, (chair.height * .38f).toInt())
+            val expectedHsv = FloatArray(3);val actualHsv = FloatArray(3)
+            Color.colorToHSV(expected, expectedHsv);Color.colorToHSV(actual, actualHsv)
+            val difference = kotlin.math.abs(expectedHsv[0] - actualHsv[0])
+            val hueDistance = kotlin.math.min(difference, 360f - difference)
+            // Native gradients can round an opaque sample down by one alpha level.
+            assertThat(Color.alpha(actual)).isAtLeast(250)
+            assertThat(actualHsv[1]).isGreaterThan(.25f)
+            assertThat(hueDistance).isLessThan(6f)
+        } finally { rendered.recycle() }
     }
 
     private fun descendants(view: View): List<View> = listOf(view) + if (view is ViewGroup) {

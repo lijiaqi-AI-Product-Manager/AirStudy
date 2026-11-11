@@ -45,6 +45,8 @@ jobs:
       - name: Verify arrival and preparation handoff
         run: >-
           bash ./gradlew :feature:feature-flight:testDebugUnitTest
+          :feature:feature-booking:testDebugUnitTest
+          --tests com.projectfocus.feature.booking.seat.SeatSelectionMapViewTest
           :feature:feature-completion:testDebugUnitTest
           :feature:feature-profile:testDebugUnitTest
           :feature:feature-stats:testDebugUnitTest :app:testDebugUnitTest
@@ -57,6 +59,8 @@ jobs:
           --tests 'com.projectfocus.app.booking.SourcePendingFlightInputsTest'
           --tests 'com.projectfocus.app.booking.PlannedFlightSessionBridgeTest'
           --tests 'com.projectfocus.app.booking.PlanOriginReconciliationIntegrationTest'
+          --tests 'com.projectfocus.app.booking.SeatSceneEditorNavigationTest'
+          --tests 'com.projectfocus.app.booking.PendingSeatNavigationTest'
           --tests 'com.projectfocus.app.route.NavGraphTest'
           --tests 'com.projectfocus.app.route.RecordBrowserFlowTest'
           --tests 'com.projectfocus.app.route.StatisticsDateFlowTest'
@@ -99,5 +103,6 @@ jobs:
             AirStudy/**/build/reports/ui-airport/
             AirStudy/**/build/reports/ui-focus/
             AirStudy/**/build/reports/ui-insets/
+            AirStudy/**/build/reports/ui-seats/
             AirStudy/**/build/reports/flight-hud-preview/
           retention-days: 7

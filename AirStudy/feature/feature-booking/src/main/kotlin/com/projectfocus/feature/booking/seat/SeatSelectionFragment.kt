@@ -1,7 +1,6 @@
 package com.projectfocus.feature.booking.seat
 
 import android.app.Dialog
-import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
@@ -18,6 +17,8 @@ import com.projectfocus.core.common.nav.SeatSceneResult
 import com.projectfocus.core.database.dao.FlightHistoryDao
 import com.projectfocus.core.ui.scene.AnchoredScenePickerDialog
 import com.projectfocus.core.ui.scene.ScenePickerOption
+import com.projectfocus.core.ui.sky.SkyPressFeedback
+import com.projectfocus.core.ui.sky.SkySurfaces
 import com.projectfocus.feature.booking.R
 import com.projectfocus.feature.booking.draft.BookingDraft
 import com.projectfocus.feature.booking.draft.BookingDraftStore
@@ -44,8 +45,10 @@ class SeatSelectionFragment : Fragment(R.layout.fragment_seat_selection) {
         val dark = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         seatMap.setLightCabin(!dark)
 
-        confirmButton.backgroundTintList = ColorStateList.valueOf(if (dark) Color.WHITE else Color.BLACK)
-        confirmButton.setTextColor(if (dark) Color.BLACK else Color.WHITE)
+        confirmButton.backgroundTintList = null
+        SkySurfaces.action(confirmButton)
+        SkyPressFeedback.install(confirmButton)
+        confirmButton.setTextColor(Color.WHITE)
         val args = arguments ?: Bundle.EMPTY
         val flightNo = args.getString(ARG_FLIGHT_NO).orEmpty()
         val fromCode = args.getString(ARG_FROM).orEmpty()
