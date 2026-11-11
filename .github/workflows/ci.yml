@@ -46,10 +46,12 @@ jobs:
         run: >-
           bash ./gradlew :feature:feature-flight:testDebugUnitTest
           :feature:feature-completion:testDebugUnitTest
+          :feature:feature-profile:testDebugUnitTest
           :feature:feature-stats:testDebugUnitTest :app:testDebugUnitTest
           --tests 'com.projectfocus.app.freeflight.*'
           --tests 'com.projectfocus.app.admission.freeflight.*'
           --tests 'com.projectfocus.app.countdown.*'
+          --tests 'com.projectfocus.app.home.HomeSkyWindowTest'
           --tests 'com.projectfocus.app.booking.FlightPreparation*'
           --tests 'com.projectfocus.app.booking.DailyFlightPreparationViewModelTest'
           --tests 'com.projectfocus.app.booking.SourcePendingFlightInputsTest'
@@ -92,4 +94,5 @@ jobs:
             AirStudy/**/build/reports/airport-mark/
             AirStudy/**/build/reports/statistics/
             AirStudy/**/build/reports/ordinary-countdown/
+            AirStudy/**/build/reports/ui-redesign/
           retention-days: 7

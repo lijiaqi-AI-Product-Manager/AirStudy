@@ -13,6 +13,7 @@ import androidx.core.view.isVisible
 import androidx.appcompat.content.res.AppCompatResources
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.navigation.fragment.findNavController
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -185,6 +186,8 @@ class SettingsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.btnBack.setOnClickListener { onBack() }
         binding.btnReset.setOnClickListener { confirmReset() }
+        com.projectfocus.core.ui.sky.SkyPressFeedback.install(binding.btnBack)
+        com.projectfocus.core.ui.sky.SkyPressFeedback.install(binding.btnReset)
         buildRows()
         observe()
     }
@@ -197,7 +200,7 @@ class SettingsFragment : Fragment() {
 
 
     open fun onBack() {
-        parentFragmentManager.popBackStack()
+        if (!findNavController().navigateUp()) requireActivity().onBackPressedDispatcher.onBackPressed()
     }
 
     // ==================================================================
@@ -319,7 +322,7 @@ class SettingsFragment : Fragment() {
             onSegmentSelected = { value -> viewModel.set(key, value) }
         }
         row.setTrailing(null)
-        row.setBelow(view, resources.getDimensionPixelSize(R.dimen.pref_control_height))
+        row.setBelow(view, view.preferredHeight())
         row.setSubtitle(item.subtitleRes?.let { getString(it) })
 
         row.setRowClickable(null)

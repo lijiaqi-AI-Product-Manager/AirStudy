@@ -9,10 +9,16 @@
         <item name="colorPrimaryContainer">@color/pref_source_primary_container</item>
         <item name="colorOnPrimaryContainer">@color/pref_source_on_primary_container</item>
         <item name="android:colorAccent">@color/pref_source_primary</item>
+        <item name="colorSurface">@color/sky_canvas</item>
+        <item name="colorOnSurface">@color/sky_ink</item>
+        <item name="colorOnSurfaceVariant">@color/sky_ink_secondary</item>
+        <item name="colorOutlineVariant">@color/sky_divider</item>
+        <item name="android:colorBackground">@color/sky_canvas</item>
     </style>
     <style name="TextAppearance.Pf.SettingsTitle" parent="TextAppearance.Material3.BodyLarge">
         <item name="android:fontFamily">@font/pf_apk2_harmonyos_sans</item>
         <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
         <item name="android:textColor">?attr/colorOnSurface</item>
         <item name="android:includeFontPadding">false</item>
     </style>

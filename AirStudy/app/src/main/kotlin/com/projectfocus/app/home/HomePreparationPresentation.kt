@@ -32,12 +32,14 @@ internal class HomePreparationPresentation(
     private val planVisibility = planButton.visibility
     private val statusVisibility = status.visibility
     private val accessibility = ground.importantForAccessibility
+    private val groundVisibility = ground.visibility
     private var menuAnimator: ObjectAnimator? = null
     private var closed = false
 
     fun show() {
         check(isCurrent(this))
         ground.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        ground.visibility = View.GONE
         status.visibility = View.GONE
         button.isEnabled = false
         planButton.visibility = View.GONE
@@ -85,6 +87,7 @@ internal class HomePreparationPresentation(
         planButton.visibility = planVisibility
         status.visibility = statusVisibility
         ground.importantForAccessibility = accessibility
+        ground.visibility = groundVisibility
         map.setStatusControlsVisible(true)
         restoreHome(this)
     }

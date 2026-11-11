@@ -6,18 +6,18 @@
     
     <dimen name="pref_row_min_height">56dp</dimen>
     <dimen name="pref_row_padding_h">16dp</dimen>
-    <dimen name="pref_row_padding_v">10dp</dimen>
+    <dimen name="pref_row_padding_v">16dp</dimen>
     <!-- 副标题与标题之间 2dp，不是 4dp：它们属于同一个信息块，
          拉开 4dp 会让"标题+副标题"看起来像两个独立行。 -->
     <dimen name="pref_row_subtitle_gap">2dp</dimen>
 
     <!-- ===================== 分组 ===================== -->
-    <dimen name="pref_section_gap">18dp</dimen>
+    <dimen name="pref_section_gap">24dp</dimen>
     <dimen name="pref_section_title_padding_h">16dp</dimen>
-    <dimen name="pref_section_title_padding_bottom">6dp</dimen>
+    <dimen name="pref_section_title_padding_bottom">10dp</dimen>
     <dimen name="pref_divider_height">0.5dp</dimen>
     <dimen name="pref_control_gap">8dp</dimen>
-    <dimen name="pref_control_height">44dp</dimen>
+    <dimen name="pref_control_height">48dp</dimen>
     <dimen name="pref_slider_height">48dp</dimen>
     <dimen name="pref_inline_value_max_width">104dp</dimen>
     <dimen name="pref_toolbar_height">56dp</dimen>

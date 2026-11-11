@@ -48,6 +48,18 @@
             android:textColor="?attr/colorPrimary" />
     </LinearLayout>
 
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="22dp"
+        android:paddingEnd="22dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="22dp"
+        android:text="@string/pref_sky_intro"
+        android:textColor="@color/sky_ink_secondary"
+        android:textSize="13sp"
+        android:fontFamily="@font/pf_apk2_harmonyos_sans" />
+
     <!-- ==================== 内容 ==================== -->
     <!--
       clipToPadding=false + 底部 padding：滑到底时最后一行不会贴着导航栏
@@ -59,13 +71,17 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:clipToPadding="false"
-        android:paddingBottom="12dp"
+        android:paddingStart="18dp"
+        android:paddingEnd="18dp"
+        android:paddingBottom="32dp"
         android:scrollbars="none">
 
         <LinearLayout
             android:id="@+id/settings_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:orientation="vertical" />
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

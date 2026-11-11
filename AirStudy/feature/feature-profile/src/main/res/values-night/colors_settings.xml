@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <color name="pref_source_primary">#FF317AF7</color>
+    <color name="pref_source_primary">@color/sky_primary</color>
     <color name="pref_source_on_primary">@android:color/black</color>
-    <color name="pref_source_primary_container">#FF23314A</color>
+    <color name="pref_source_primary_container">@color/sky_selected</color>
     <color name="pref_source_on_primary_container">#FF79A9FA</color>
-    <color name="pref_source_segment_track">#FF2B2B2D</color>
+    <color name="pref_source_segment_track">@color/sky_canvas</color>
 </resources>

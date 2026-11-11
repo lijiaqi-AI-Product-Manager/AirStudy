@@ -111,6 +111,8 @@ class HomeFragment : Fragment() {
     private var flightWindowPosition = 0L
     private var savedMapState: Bundle? = null
     private var freeFlightPresentation: HomePreparationPresentation? = null
+    private var mapPreviewVisible = false
+    private var mapPreviewBack: OnBackPressedCallback? = null
 
     /** View-only lease. It grants no account, quota, reservation or flight ownership. */
     internal fun beginFreeFlightPreparationPresentation(): java.io.Closeable? {
@@ -126,6 +128,9 @@ class HomeFragment : Fragment() {
                 }
             })
         freeFlightPresentation = lease
+        mapPreviewVisible = false
+        mapPreviewBack?.isEnabled = false
+        currentView.findViewById<View>(R.id.homeMapClose).visibility = View.GONE
         mapStylePanelVisible = false
         currentView.findViewById<View>(R.id.mapStyleSelectorContainer).visibility = View.GONE
         lease.show()
@@ -175,6 +180,7 @@ class HomeFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        setupSkyHome(view)
         view.findViewById<FlightWindowView>(R.id.flightWindow).restorePosition(flightWindowPosition)
 
         view.findViewById<SourceMapHostView>(R.id.sourceMap).bindLifecycle(
@@ -204,7 +210,7 @@ class HomeFragment : Fragment() {
             findNavController().navigate(R.id.action_home_to_record)
         }
         view.findViewById<View>(R.id.menuMap).setOnClickListener {
-            toggleMapStylePanel(view)
+            setMapPreview(view, true)
         }
         view.findViewById<View>(R.id.menuSettings).setOnClickListener {
             findNavController().navigate(R.id.action_home_to_settings)
@@ -349,6 +355,78 @@ class HomeFragment : Fragment() {
         view.findViewById<TextView>(R.id.btnStartFlight).setText(
             if (pickedOrigin == null) R.string.home_action_search_airport else R.string.home_prepare_takeoff,
         )
+        val origin = pickedOrigin
+        val destination = pickedAirport
+        val originCode = origin?.code ?: getString(R.string.sky_home_airport_unknown)
+        val destinationCode = destination?.let { it.iataCode.ifBlank { it.icaoCode } }
+            ?: getString(R.string.sky_home_airport_unknown)
+        val originCity = origin?.let { it.displayCity.ifBlank { it.city.ifBlank { it.displayName } } }
+            ?: getString(R.string.sky_home_pick_origin)
+        val destinationCity = destination?.let { it.cityZh?.takeIf(String::isNotBlank) ?: it.city.ifBlank { it.name } }
+            ?: getString(R.string.sky_home_pick_destination)
+        view.findViewById<TextView>(R.id.homeOriginCode).text = originCode
+        view.findViewById<TextView>(R.id.homeOriginCity).text = originCity
+        view.findViewById<TextView>(R.id.homeDestinationCode).text = destinationCode
+        view.findViewById<TextView>(R.id.homeDestinationCity).text = destinationCity
+        view.findViewById<View>(R.id.homeOrigin).contentDescription =
+            getString(R.string.sky_home_origin_accessibility, originCode, originCity)
+        view.findViewById<View>(R.id.homeDestination).contentDescription =
+            getString(R.string.sky_home_destination_accessibility, destinationCode, destinationCity)
+    }
+
+    private fun setupSkyHome(root: View) {
+        com.projectfocus.core.ui.sky.SkySurfaces.card(root.findViewById(R.id.homeRouteCard), elevation = 7f)
+        com.projectfocus.core.ui.sky.SkySurfaces.card(root.findViewById(R.id.right_menu_container), radius = 30f, elevation = 12f)
+        com.projectfocus.core.ui.sky.SkySurfaces.action(root.findViewById(R.id.btnStartFlight))
+        com.projectfocus.core.ui.sky.SkySurfaces.secondary(root.findViewById(R.id.homeMapClose), radius = 24f)
+        root.findViewById<View>(R.id.menuTakeOff).apply {
+            background = android.graphics.drawable.GradientDrawable().apply {
+                cornerRadius = com.projectfocus.core.ui.sky.SkySurfaces.dp(context, 22f).toFloat()
+                setColor(context.getColor(com.projectfocus.core.ui.R.color.sky_selected))
+            }
+            isSelected = true
+        }
+        listOf(R.id.homeOrigin, R.id.homeDestination, R.id.btnStartFlight, R.id.btnFlightPlan,
+            R.id.menuTakeOff, R.id.menuRecord, R.id.menuMap, R.id.menuSettings, R.id.homeMapClose).forEach { id ->
+            com.projectfocus.core.ui.sky.SkyPressFeedback.install(root.findViewById(id))
+        }
+        fun choose(origin: Boolean) {
+            if (sessionRepository.state.value !is SessionState.Idle || freeFlightPresentation != null ||
+                completionVisible || freeFlightCompletionCoordinator.blocksPreparation()) return
+            val args = bundleOf(RouteArgs.ARG_MODE to
+                if (origin) RouteArgs.MODE_PICK_ORIGIN else RouteArgs.MODE_PICK_DESTINATION)
+            if (!origin) com.projectfocus.feature.airport.ui.AirportSearchReferenceArgs.writeTo(args, ordinaryOriginReference())
+            safeNavigate(R.id.action_home_to_airport, args)
+        }
+        root.findViewById<View>(R.id.homeOrigin).setOnClickListener { choose(true) }
+        root.findViewById<View>(R.id.homeDestination).setOnClickListener { choose(false) }
+        root.findViewById<View>(R.id.homeMapClose).setOnClickListener { setMapPreview(root, false) }
+        root.findViewById<View>(R.id.right_menu_container).addOnLayoutChangeListener { dock, _, _, _, _, _, _, _, _ ->
+            val scroll = root.findViewById<View>(R.id.homeScroll)
+            val bottom = dock.height + com.projectfocus.core.ui.sky.SkySurfaces.dp(requireContext(), 36f)
+            if (scroll.paddingBottom != bottom) scroll.setPadding(scroll.paddingLeft, scroll.paddingTop, scroll.paddingRight, bottom)
+        }
+        mapPreviewBack = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() { setMapPreview(root, false) }
+        }.also { requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, it) }
+        // Keep the page and floating controls comfortable on wider windows.
+        if (resources.configuration.screenWidthDp > 600) {
+            val width = com.projectfocus.core.ui.sky.SkySurfaces.dp(requireContext(), 560f)
+            root.findViewById<View>(R.id.homePageContent).layoutParams.width = width
+            root.findViewById<View>(R.id.right_menu_container).layoutParams.width =
+                width - com.projectfocus.core.ui.sky.SkySurfaces.dp(requireContext(), 44f)
+        }
+    }
+
+    private fun setMapPreview(root: View, visible: Boolean) {
+        if (visible && (sessionRepository.state.value !is SessionState.Idle || freeFlightFrame != null ||
+            freeFlightPresentation != null || completionVisible)) return
+        mapPreviewVisible = visible
+        mapPreviewBack?.isEnabled = visible
+        root.findViewById<View>(R.id.homeMapClose).visibility = if (visible) View.VISIBLE else View.GONE
+        mapStylePanelVisible = visible
+        renderSessionState(root, sessionRepository.state.value)
+        root.findViewById<View>(R.id.mapStyleSelectorContainer).visibility = if (visible) View.VISIBLE else View.GONE
     }
 
     private fun persistSelection(key: String, code: String) {
@@ -476,6 +554,9 @@ class HomeFragment : Fragment() {
             !completionVisible && !freeFlightCompletionCoordinator.blocksPreparation()
         view.findViewById<View>(R.id.btnFlightPlan).isEnabled = idle && freeFlightPresentation == null &&
             !completionVisible && !freeFlightCompletionCoordinator.blocksPreparation()
+        for (id in listOf(R.id.homeOrigin, R.id.homeDestination)) {
+            view.findViewById<View>(id).isEnabled = idle && freeFlightPresentation == null && !completionVisible
+        }
         if (idle && freeFlightFrame == null) {
             view.findViewById<SourceMapHostView>(R.id.sourceMap).setFlightProgress(0f)
             renderAirportSelection(view)
@@ -635,9 +716,14 @@ class HomeFragment : Fragment() {
             return
         }
         val active = state is SessionState.Running || state is SessionState.Paused
-        view.findViewById<View>(R.id.groundHomeContent).visibility = if (active) View.GONE else View.VISIBLE
+        if (active) { mapPreviewVisible = false; mapPreviewBack?.isEnabled = false }
+        view.findViewById<View>(R.id.groundHomeContent).visibility =
+            if (active || mapPreviewVisible || freeFlightPresentation != null) View.GONE else View.VISIBLE
+        view.findViewById<View>(R.id.homeMapClose).visibility =
+            if (!active && mapPreviewVisible && freeFlightPresentation == null) View.VISIBLE else View.GONE
         view.findViewById<SourceMapHostView>(R.id.sourceMap).setWindowMode(active && flightWindowVisible)
-        if (!active) {
+        view.findViewById<SourceMapHostView>(R.id.sourceMap).setStatusControlsVisible(freeFlightPresentation == null && (active || mapPreviewVisible))
+        if (!active && !mapPreviewVisible) {
             mapStylePanelVisible = false
             view.findViewById<View>(R.id.mapStyleSelectorContainer).visibility = View.GONE
         }
@@ -713,6 +799,10 @@ class HomeFragment : Fragment() {
         stopHudTicker()
         view.findViewById<View>(R.id.groundHomeContent).visibility = View.GONE
         val map = view.findViewById<SourceMapHostView>(R.id.sourceMap)
+        mapPreviewVisible = false
+        mapPreviewBack?.isEnabled = false
+        view.findViewById<View>(R.id.homeMapClose).visibility = View.GONE
+        map.setStatusControlsVisible(freeFlightPresentation == null)
         map.setWindowMode(flightWindowVisible)
         val selecting = archive.phase == com.projectfocus.core.model.flight.freeflight.FreeFlightPhase.LANDING_SELECTION
         val paused = archive.clock.pause != null && !selecting && archive.clock.pause != com.projectfocus.core.model.flight.freeflight.FreeFlightPause.RETURN_CAMERA
@@ -831,6 +921,8 @@ class HomeFragment : Fragment() {
     }
 
     override fun onDestroyView() {
+        mapPreviewBack = null
+        mapPreviewVisible = false
         freeFlightCompletion?.close(); freeFlightCompletion = null
         completionVisible = false
         freeFlightLanding?.close(); freeFlightLanding = null

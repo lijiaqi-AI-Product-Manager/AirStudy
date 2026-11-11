@@ -17,11 +17,11 @@ class PrefRowView @JvmOverloads constructor(
 ) : LinearLayout(context, attrs, defStyleAttr) {
     private val titleView = TextView(context).apply {
         setTextAppearance(R.style.TextAppearance_Pf_SettingsTitle)
-        maxLines = 2
+        setTextColor(context.getColor(com.projectfocus.core.ui.R.color.sky_ink))
     }
     private val subtitleView = TextView(context).apply {
         setTextAppearance(R.style.TextAppearance_Pf_SettingsDescription)
-        maxLines = 3
+        setTextColor(context.getColor(com.projectfocus.core.ui.R.color.sky_ink_secondary))
         isVisible = false
         setPadding(0, resources.getDimensionPixelSize(R.dimen.pref_row_subtitle_gap), 0, 0)
     }

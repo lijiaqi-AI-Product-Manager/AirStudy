@@ -45,14 +45,17 @@ class SegmentedControlView @JvmOverloads constructor(
                 setTextAppearance(R.style.TextAppearance_Pf_SettingsSegment)
                 setTextColor(AppCompatResources.getColorStateList(context, R.color.pref_segment_text))
                 setBackgroundResource(R.drawable.pref_segment_item)
-                isSingleLine = true
-                ellipsize = TextUtils.TruncateAt.END
+                isSingleLine = false
+                maxLines = 2
+                ellipsize = null
+                breakStrategy = android.text.Layout.BREAK_STRATEGY_BALANCED
                 minWidth = 0
                 minimumWidth = 0
                 minHeight = 0
-                val horizontal = resources.getDimensionPixelSize(R.dimen.segment_padding_h)
+                val horizontal = com.projectfocus.core.ui.sky.SkySurfaces.dp(context, 8f)
                 setPadding(horizontal, 0, horizontal, 0)
                 isEnabled = this@SegmentedControlView.isEnabled
+                com.projectfocus.core.ui.sky.SkyPressFeedback.install(this)
             }
             choices[button.id] = segment
             addView(button, LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
@@ -71,6 +74,16 @@ class SegmentedControlView @JvmOverloads constructor(
     }
 
     fun selectedValue(): String? = choices[checkedRadioButtonId]?.value
+
+    fun preferredHeight(): Int {
+        val lines = if (resources.configuration.fontScale > 1.25f) 2 else 1
+        var lineHeight = 0
+        for (index in 0 until childCount) {
+            lineHeight = maxOf(lineHeight, (getChildAt(index) as android.widget.TextView).lineHeight)
+        }
+        return maxOf(resources.getDimensionPixelSize(R.dimen.pref_control_height),
+            lineHeight * lines + paddingTop + paddingBottom + com.projectfocus.core.ui.sky.SkySurfaces.dp(context, 12f))
+    }
 
     override fun setEnabled(enabled: Boolean) {
         super.setEnabled(enabled)

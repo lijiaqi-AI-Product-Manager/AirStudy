@@ -18,11 +18,18 @@ class PrefSectionView @JvmOverloads constructor(
         setPadding(inset, 0, inset, resources.getDimensionPixelSize(R.dimen.pref_section_title_padding_bottom))
         isVisible = false
     }
-    private val body = LinearLayout(context).apply { orientation = VERTICAL }
+    private val body = LinearLayout(context).apply {
+        orientation = VERTICAL
+        com.projectfocus.core.ui.sky.SkySurfaces.card(this, radius = 24f, elevation = 4f, solid = true)
+        val inset = com.projectfocus.core.ui.sky.SkySurfaces.dp(context, 2f)
+        setPadding(inset, inset, inset, inset)
+    }
     private val items = mutableListOf<PrefRowView>()
 
     init {
         orientation = VERTICAL
+        clipChildren = false
+        clipToPadding = false
         addView(titleView, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         addView(body, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
     }

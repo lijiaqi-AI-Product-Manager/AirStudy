@@ -229,7 +229,12 @@ class FreeFlightPreparationWindowTest {
         assertThat(menu.visibility).isEqualTo(View.VISIBLE);assertThat(menu.alpha).isEqualTo(1f)
         assertThat(button.visibility).isEqualTo(View.VISIBLE);assertThat(button.isEnabled).isTrue()
         assertThat(button.alpha).isEqualTo(1f);assertThat(button.scaleX).isEqualTo(1f)
+        assertThat(activity.findViewById<View>(R.id.groundHomeContent).visibility).isEqualTo(View.VISIBLE)
+        assertThat(activity.findViewById<View>(com.projectfocus.feature.home.R.id.pf_map_status_panel).visibility).isEqualTo(View.GONE)
+        activity.findViewById<View>(R.id.menuMap).performClick();advance(100)
         assertThat(activity.findViewById<View>(com.projectfocus.feature.home.R.id.pf_map_status_panel).visibility).isEqualTo(View.VISIBLE)
+        activity.findViewById<View>(R.id.homeMapClose).performClick();advance(100)
+        assertThat(activity.findViewById<View>(R.id.groundHomeContent).visibility).isEqualTo(View.VISIBLE)
         assertThat(map.state.value.phase).isEqualTo(MapPhase.MISSING_CONFIGURATION)
         assertThat(actions.requests).isEmpty();assertRealCountdownUntouched()
     }
