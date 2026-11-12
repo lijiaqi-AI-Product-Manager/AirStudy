@@ -60,6 +60,7 @@ jobs:
           --tests 'com.projectfocus.app.booking.SourcePendingFlightInputsTest'
           --tests 'com.projectfocus.app.booking.PlannedFlightSessionBridgeTest'
           --tests 'com.projectfocus.app.booking.PlanOriginReconciliationIntegrationTest'
+          --tests 'com.projectfocus.app.booking.PlanCompletionDispatchTest'
           --tests 'com.projectfocus.app.booking.SeatSceneEditorNavigationTest'
           --tests 'com.projectfocus.app.booking.PendingSeatNavigationTest'
           --tests 'com.projectfocus.app.route.NavGraphTest'
@@ -108,4 +109,5 @@ jobs:
             AirStudy/**/build/reports/flight-hud-preview/
             AirStudy/**/build/reports/freeflight-landing-surface/
             AirStudy/**/build/reports/freeflight-home/
+            AirStudy/**/build/reports/ui-arrival/
           retention-days: 7

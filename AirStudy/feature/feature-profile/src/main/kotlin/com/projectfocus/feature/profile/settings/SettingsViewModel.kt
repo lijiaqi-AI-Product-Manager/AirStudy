@@ -8,6 +8,9 @@ import com.projectfocus.feature.profile.spec.PrefItemSpec
 import com.projectfocus.feature.profile.spec.PrefSpecs
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,6 +20,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
@@ -92,11 +96,13 @@ class SettingsViewModel @Inject constructor(
         }
 
     /** 乐观更新的暂存区。key = PrefKey.name */
-    private val pending = MutableStateFlow<Map<String, Any?>>(emptyMap())
+    private data class PendingValue(val version: Long, val value: Any?)
+    private val writeVersion = AtomicLong()
+    private val pending = MutableStateFlow<Map<String, PendingValue>>(emptyMap())
 
     /** 界面读这个：stored 上叠 pending */
     val values: StateFlow<Map<String, Any?>> = combine(stored, pending) { s, p ->
-        if (p.isEmpty()) s else s + p
+        if (p.isEmpty()) s else s + p.mapValues { it.value.value }
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -151,8 +157,9 @@ class SettingsViewModel @Inject constructor(
     // ==================================================================
 
     fun <T> set(key: PrefKey<T>, value: T) {
-        pending.value = pending.value + (key.name to value)
-        viewModelScope.launch {
+        val version = writeVersion.incrementAndGet()
+        pending.update { it + (key.name to PendingValue(version, value)) }
+        viewModelScope.launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
             try {
                 settings.write(key, value)
                 Timber.v("设置已保存：%s = %s", key.id, value)
@@ -166,7 +173,9 @@ class SettingsViewModel @Inject constructor(
                 _message.value = SettingsMessage.SaveFailed
             } finally {
 
-                pending.value = pending.value - key.name
+                pending.update { current ->
+                    if (current[key.name]?.version == version) current - key.name else current
+                }
             }
         }
     }
@@ -179,11 +188,12 @@ class SettingsViewModel @Inject constructor(
 
 
     fun resetToDefaults() {
-        viewModelScope.launch {
+        val version = writeVersion.incrementAndGet()
+        viewModelScope.launch(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
             try {
                 settings.resetToDefaults()
 
-                pending.value = emptyMap()
+                pending.update { current -> current.filterValues { it.version > version } }
                 _message.value = SettingsMessage.ResetDone
             } catch (e: CancellationException) {
                 throw e

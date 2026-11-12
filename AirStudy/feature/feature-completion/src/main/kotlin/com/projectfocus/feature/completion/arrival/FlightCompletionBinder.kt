@@ -26,6 +26,8 @@ class FlightCompletionBinder(root: View) {
     private val reportButton: View = root.findViewById(R.id.report_airport_button)
     private val completeButton: View = root.findViewById(R.id.complete_flight_button)
 
+    private val presentation: ArrivalSkyPresentation
+
     var onShare: (() -> Unit)? = null
     var onReport: (() -> Unit)? = null
     var onComplete: (() -> Unit)? = null
@@ -44,6 +46,7 @@ class FlightCompletionBinder(root: View) {
         completeButton.setOnClickListener { onComplete?.invoke() }
         airportLink.isClickable=true;airportLink.isFocusable=true
         airportLink.setOnClickListener { onAirport?.invoke() }
+        presentation = ArrivalSkyPresentation(root)
     }
 
     fun bindFreeFlight(result:CompletedFreeFlight) {
@@ -58,6 +61,7 @@ class FlightCompletionBinder(root: View) {
         subtitle.text=""
         statsContainer.visibility=View.GONE
         setCompleteEnabled(true)
+        presentation.showArrival()
     }
 
     fun bindTotals(distanceKm:Double,focusMinutes:Int) {
@@ -96,6 +100,7 @@ class FlightCompletionBinder(root: View) {
         airportLink.isClickable = true
         airportLink.isFocusable = true
         airportLink.setOnClickListener { onAirport?.invoke() }
+        presentation.showArrival()
     }
 
 
