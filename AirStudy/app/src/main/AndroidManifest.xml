@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    
+    <application
+        android:name=".ProjectFocusApp"
+        android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.ProjectFocus">
+
+        
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- R7：落地页深链 projectfocus://completion/{recordId} -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="completion"
+                    android:scheme="projectfocus" />
+            </intent-filter>
+
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:host="airport"
+                    android:scheme="projectfocus" />
+            </intent-filter>
+
+
+
+
+
+
+
+
+
+
+
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="projectfocus" />
+                <data android:host="home" />
+                <data android:host="achievements" />
+                <data android:host="sound" />
+                <data android:host="stats" />
+                <data android:host="seat" />
+                <data android:host="prepare" />
+            </intent-filter>
+        </activity>
+
+        <activity android:name=".auth.AuthLoginActivity" android:exported="false"
+            android:theme="@style/pf_auth_source_theme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".auth.AuthEmailLoginActivity" android:exported="false"
+            android:theme="@style/pf_auth_source_theme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".auth.AuthRegisterActivity" android:exported="false"
+            android:theme="@style/pf_auth_source_theme" android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".auth.AuthForgotPasswordActivity" android:exported="false"
+            android:theme="@style/pf_auth_source_theme" android:windowSoftInputMode="adjustResize" />
+
+        <activity android:name=".auth.AuthCapabilityActivity" android:exported="false" />
+
+
+
+
+
+
+
+
+
+
+    </application>
+</manifest>

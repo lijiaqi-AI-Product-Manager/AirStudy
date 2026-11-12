@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="pf_record_page_airports_reached_zero">도착한 공항 0/0</string>
+    <string name="pf_record_page_all">전체</string>
+    <string name="pf_record_page_cities_reached_zero">도착한 도시 0/0</string>
+    <string name="pf_record_page_common_back">뒤로</string>
+    <string name="pf_record_page_day">일</string>
+    <string name="pf_record_page_month">월</string>
+    <string name="pf_record_page_next_page">다음 페이지</string>
+    <string name="pf_record_page_no_records">기록 없음</string>
+    <string name="pf_record_page_page_1">1페이지</string>
+    <string name="pf_record_page_previous_page">이전 페이지</string>
+    <string name="pf_record_page_record">기록</string>
+    <string name="pf_record_page_record_tab_records">기록</string>
+    <string name="pf_record_page_record_tab_statistics">통계</string>
+    <string name="pf_record_page_share_card">카드 공유</string>
+    <string name="pf_record_page_total_flown_zero">총 비행 거리 0km</string>
+    <string name="pf_record_page_week">주</string>
+</resources>

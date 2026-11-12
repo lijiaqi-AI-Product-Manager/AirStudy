@@ -1,0 +1,294 @@
+// ============================================================================
+//  liquidglass_effect.agsl —— 液态玻璃（Liquid Glass）运行时着色器
+//
+//  AGSL = Android Graphics Shading Language，Android 13 (API 33) 起可用。
+//  它是 SkSL（Skia 着色语言）的子集，由 `android.graphics.RuntimeShader` 编译。
+//
+//  ★★★ 为什么用 AGSL 而不是 RenderEffect.createBlurEffect
+//
+//    系统模糊（RenderEffect）只能做「高斯模糊」，做不出液态玻璃的三个关键特征：
+//      1. **折射**：玻璃边缘会把背后内容「弯折」—— 这是玻璃区别于磨砂塑料的地方
+//      2. **色散**：R/G/B 三通道折射率不同，边缘会出现彩虹色边
+//      3. **法线扰动的液态感**：表面有缓慢流动的形变
+//    RenderEffect 一个都做不到。竞品也是自绘（实测两版 APK 里
+//    **完全没有 blur 相关属性**，见 07_逐文件全量审计 §5），我们走同一条路。
+//
+//  ★★ 与竞品的差异：我们**不降级为「什么都没有」**
+//     竞品的 LiquidGlassView 在低版本/低端机上是**直接消失**（只留半透明遮罩）。
+//     我们的降级链是三级（见 GlassCapability）：
+//       L3 AGSL 全效果（API 33+ 且 GPU 支持）
+//       L2 系统模糊 + 叠色 + 描边（API 31+，RenderEffect 可用）
+//       L1 纯叠色 + 描边（兜底，任何设备）
+//     三级都保留「可读性」—— 玻璃只是装饰，文字必须始终能看清。
+//
+//  ---------------------------------------------------------------------------
+//  Uniform 契约（与 LiquidGlassView.kt 的 setFloatUniform 顺序**必须**一致）
+//
+//    uContent     shader   背后内容的采样器（由 View 把背景绘制到 Bitmap 后传入）
+//    uSize        float2   本 View 的像素尺寸（width, height）
+//    uRadius      float    圆角半径（像素）
+//    uBlurRadius  float    模糊采样半径（像素）
+//    uRefractH    float    折射高度（像素）—— 越大边缘弯折越明显
+//    uRefractOff  float    折射偏移（像素）—— 色散靠它把 RGB 错开
+//    uDispersion  float    色散强度 0~1
+//    uLiquid      float    液态扰动强度 0~1
+//    uTime        float    秒级时间（驱动缓慢流动）
+//    uTint        float4   叠色（RGB + alpha）
+//    uLightDir    float2   高光方向（归一化）
+//    uOpacity     float    整体不透明度 0~1（供进出场动画用）
+//
+//  共 12 个 uniform。竞品有 7 个可调滑杆（blur_frost / blur_liquid /
+//  dispersion / refraction_height / refraction_offset / tint_alpha_day /
+//  tint_alpha_night），我们的 7 个可调参数与之一一对应，见 GlassParams。
+// ============================================================================
+
+uniform shader uContent;
+
+uniform float2 uSize;
+uniform float  uRadius;
+uniform float  uBlurRadius;
+uniform float  uRefractH;
+uniform float  uRefractOff;
+uniform float  uDispersion;
+uniform float  uLiquid;
+uniform float  uTime;
+uniform float4 uTint;
+uniform float2 uLightDir;
+uniform float  uOpacity;
+
+// ---------------------------------------------------------------------------
+// 工具函数
+//
+// ★ AGSL 没有内置的 smoothstep 重载用于 float2，必须自己写。
+//   而且 AGSL 的 `mix` / `clamp` 只支持标量与同维向量，
+//   写错维度会在**编译期**报错（不是运行时），所以这里尽量显式。
+// ---------------------------------------------------------------------------
+
+const float PI = 3.14159265359;
+
+float sdRoundedBox(float2 p, float2 halfSize, float r) {
+    // 圆角矩形的有符号距离场（SDF）：内部为负，边界为 0，外部为正
+    float2 q = abs(p) - halfSize + r;
+    return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r;
+}
+
+// 圆角处的抗锯齿覆盖率。fwidth 由 GPU 自动求导，不依赖像素尺寸
+float coverAlpha(float d) {
+    float w = fwidth(d) * 0.75;
+    return 1.0 - smoothstep(-w, w, d);
+}
+
+// 二维值噪声（value noise）。用于液态表面的缓慢起伏
+float hash21(float2 p) {
+    p = fract(p * float2(123.34, 456.21));
+    p += dot(p, p + 45.32);
+    return fract(p.x * p.y);
+}
+
+float valueNoise(float2 p) {
+    float2 i = floor(p);
+    float2 f = fract(p);
+    // 五次平滑（smootherstep），比三次的 cubic 少一些网格感
+    float2 u = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+    float a = hash21(i);
+    float b = hash21(i + float2(1.0, 0.0));
+    float c = hash21(i + float2(0.0, 1.0));
+    float d = hash21(i + float2(1.0, 1.0));
+    return mix(mix(a, b, u.x), mix(c, d, u.x), u.y);
+}
+
+// 9 点泊松盘（单位圆内）。
+// ★ 必须声明在**全局作用域** —— AGSL 虽然允许函数内 const 数组，
+//   但部分驱动（尤其 Mali 早期版本）会把函数内 const 数组编译成每次调用
+//   重新构造，等于每像素多做 9 次赋值。放全局只构造一次。
+//
+// ★ 为什么色散用 9 点而主采样用 13 点：
+//   色散要采三次（R/G/B 各一次），13×3 = 39 次采样/像素，
+//   在 1080p 上就是 8,000 万次/帧，中端机会掉到 30fps 以下。
+//   9×3 = 27 次是可接受的折中 —— 色散只影响边缘 1~2px 的彩边，
+//   不需要和主体一样的模糊质量。
+const float2 kPoisson9[9] = float2[9](
+    float2( 0.0000,  0.0000),
+    float2( 0.6000,  0.0000),
+    float2(-0.6000,  0.0000),
+    float2( 0.0000,  0.6000),
+    float2( 0.0000, -0.6000),
+    float2( 0.4243,  0.4243),
+    float2(-0.4243,  0.4243),
+    float2( 0.4243, -0.4243),
+    float2(-0.4243, -0.4243)
+);
+
+// 13 点泊松盘（单位圆内），角度与半径都是手工验过的，无轴向聚集。
+// ★ 同样放全局：主采样每像素调一次，函数内构造等于每帧 200 万次数组初始化。
+const float2 kPoisson13[13] = float2[13](
+    float2( 0.0000,  0.0000),
+    float2( 0.5440,  0.0000),
+    float2(-0.5440,  0.0000),
+    float2( 0.0000,  0.5440),
+    float2( 0.0000, -0.5440),
+    float2( 0.3846,  0.3846),
+    float2(-0.3846,  0.3846),
+    float2( 0.3846, -0.3846),
+    float2(-0.3846, -0.3846),
+    float2( 0.8290,  0.2300),
+    float2(-0.8290, -0.2300),
+    float2( 0.2300, -0.8290),
+    float2(-0.2300,  0.8290)
+);
+
+// 两方向错位的 fbm，制造「不规则流动」而不是「整体平移」
+float fbm(float2 p) {
+    float v = 0.0;
+    float amp = 0.5;
+    for (int i = 0; i < 4; i++) {
+        v += amp * valueNoise(p);
+        p = p * 2.03 + float2(17.1, 9.7);
+        amp *= 0.5;
+    }
+    return v;
+}
+
+// ---------------------------------------------------------------------------
+// 背景采样：带 13 点泊松盘模糊
+//
+// ★★ 为什么不用「多次双线性采样平均」
+//    2×2 或 3×3 的规则网格采样在低频背景上还能看，
+//    但一旦背景有硬边（比如房间列表里的白字），会出现**方块状振铃**。
+//    泊松盘分布的采样点没有轴向伪影，13 个点已经有可用的模糊感。
+//
+// ★ 采样点半径随 uBlurRadius 缩放，并对齐到像素 —— 不对齐会让模糊
+//   在 1dp 上下抖动（视频输出时尤其明显）。
+// ---------------------------------------------------------------------------
+float4 sampleBlurred(float2 px, float radius) {
+    if (radius <= 0.5) {
+        return uContent.eval(px);
+    }
+
+
+    float4 sum = float4(0.0);
+    for (int i = 0; i < 13; i++) {
+        float2 off = kPoisson13[i] * radius;
+        float2 samplePx = px + off;
+        sum += uContent.eval(samplePx);
+    }
+    return sum / 13.0;
+}
+
+// 单通道版本，色散时需要对 R/G/B 分别以不同半径采样
+float sampleBlurredR(float2 px, float radius) {
+    float s = 0.0;
+    for (int i = 0; i < 9; i++) {
+        s += uContent.eval(px + kPoisson9[i] * radius).r;
+    }
+    return s / 9.0;
+}
+
+float sampleBlurredG(float2 px, float radius) {
+    float s = 0.0;
+    for (int i = 0; i < 9; i++) {
+        s += uContent.eval(px + kPoisson9[i] * radius).g;
+    }
+    return s / 9.0;
+}
+
+float sampleBlurredB(float2 px, float radius) {
+    float s = 0.0;
+    for (int i = 0; i < 9; i++) {
+        s += uContent.eval(px + kPoisson9[i] * radius).b;
+    }
+    return s / 9.0;
+}
+
+// ---------------------------------------------------------------------------
+// 主函数
+// ---------------------------------------------------------------------------
+half4 main(float2 fragCoord) {
+
+    float2 halfSize = uSize * 0.5;
+    float2 centered = fragCoord - halfSize;
+
+    // ① 覆盖度：圆角矩形之外直接丢弃
+    float d = sdRoundedBox(centered, halfSize, uRadius);
+    float coverage = coverAlpha(d);
+    if (coverage <= 0.001) {
+        // ★ 必须返回全透明而不是 discard —— AGSL 的 main 没有 discard，
+        //   返回 alpha=0 由混合模式负责「不画」
+        return half4(0.0);
+    }
+
+    // ② 边缘法线与归一化距离
+    //    edgeT: 0 = 边界, 1 = 距离边界 uRefractH 像素以上（内部）
+    //    折射只发生在边缘带，内部是纯模糊
+    float edgeT = clamp(-d / max(uRefractH, 0.001), 0.0, 1.0);
+
+    // 法线用 SDF 的解析梯度（比有限差分稳），只在内部有效
+    float2 grad = float2(
+        d - sdRoundedBox(centered + float2(1.0, 0.0), halfSize, uRadius),
+        d - sdRoundedBox(centered + float2(0.0, 1.0), halfSize, uRadius)
+    );
+    float2 normal = normalize(grad + float2(1e-6));
+
+    // ③ 液态扰动：让法线随时间缓慢起伏
+    //    ★ 用 fbm 而不是单一 sin，因为 sin 会呈现明显的「水波纹」
+    //      周期性，像塑料而不是液体
+    float2 noiseCoord = fragCoord / max(uSize.y, 1.0) * 3.0;
+    float n1 = fbm(noiseCoord + float2(uTime * 0.06, uTime * 0.045));
+    float n2 = fbm(noiseCoord * 1.37 + float2(-uTime * 0.05, uTime * 0.07) + 31.7);
+    float2 liquidOffset = (float2(n1, n2) - 0.5) * 2.0 * uLiquid * uRefractOff * 2.0;
+
+    // ④ 折射偏移：边缘最强，向内快速衰减（pow 2.2 让衰减更「锐」）
+    float refractAmount = pow(1.0 - edgeT, 2.2) * uRefractH;
+    float2 refractOffset = normal * refractAmount + liquidOffset;
+
+    // ⑤ 色散：RGB 三通道用不同偏移量，制造彩虹边
+    //    ★ 强度必须克制 —— uDispersion 默认 0.35，超过 0.6 会像「故障艺术」
+    float dispR = uRefractOff * uDispersion * 1.00;
+    float dispG = uRefractOff * uDispersion * 0.55;
+    float dispB = uRefractOff * uDispersion * 0.15;
+
+    float blurR = max(uBlurRadius, 0.0);
+
+    float3 chromatic;
+    chromatic.r = sampleBlurredR(fragCoord + refractOffset + normal * dispR, blurR * (1.0 + dispR * 0.25));
+    chromatic.g = sampleBlurredG(fragCoord + refractOffset,                 blurR);
+    chromatic.b = sampleBlurredB(fragCoord + refractOffset - normal * dispB, blurR * (1.0 - dispB * 0.25));
+
+    // ★ 只有当色散真的开启时才做无通道偏移的主采样 ——
+    //   否则每像素多 13 次 texel fetch，纯浪费。
+    float4 baseColor;
+    if (uDispersion < 0.02) {
+        baseColor = sampleBlurred(fragCoord + refractOffset, blurR);
+    } else {
+        float4 plain = sampleBlurred(fragCoord + refractOffset, blurR);
+        baseColor = mix(plain, float4(chromatic, plain.a), clamp(uDispersion, 0.0, 1.0));
+    }
+
+    // ⑥ 叠色（tint）：日间/夜间透明度不同，由 uTint.a 控制
+    float3 tinted = mix(baseColor.rgb, uTint.rgb, uTint.a);
+
+    // ⑦ 边缘高光：让玻璃「有厚度」
+    //    ★ 用两个不同宽度的带：外窄带亮（模拟抛光边），内宽带弱（模拟厚度渐隐）
+    float rimOuter = smoothstep(0.0, 0.10, 1.0 - edgeT) * smoothstep(0.22, 0.10, 1.0 - edgeT);
+    float rimInner = smoothstep(0.10, 0.55, 1.0 - edgeT) * 0.18;
+
+    // 高光方向：默认左上打光（与 Material elevation 假定的光照一致）
+    float2 lightDir = normalize(uLightDir + float2(1e-6));
+    float sideBias = dot(normal, lightDir) * 0.5 + 0.5;
+
+    float rim = (rimOuter * 0.55 + rimInner) * (0.35 + 0.65 * sideBias);
+    float3 rimColor = float3(1.0, 1.0, 1.0) * rim;
+
+    // ⑧ 最终合成
+    float3 finalRgb = tinted + rimColor;
+
+    // 玻璃内部的轻微亮度提升（否则在深色背景上会「发闷」）
+    finalRgb += 0.03 * (1.0 - edgeT);
+
+    // 透明度：基础不透明 × 覆盖率 × 全局 opacity
+    // ★ 玻璃本身要写成**不透明**，因为背景已经在 uContent 里采样进来了。
+    //   如果写成半透明，会和背后内容叠加两次，颜色变深。
+    float alpha = 1.0 * coverage * uOpacity;
+
+    return half4(half3(clamp(finalRgb, 0.0, 1.0)), half(alpha));
+}

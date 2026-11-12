@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_all_time_label">全部历史</string>
+    <string name="stats_all_time_scenario_subtitle">场景占比始终按全部历史成功飞行计算</string>
+    <string name="stats_all_time_scenario_title">全历史场景</string>
+    <string name="stats_clear_scenario_filter">清除场景筛选</string>
+    <string name="stats_current_period_label">当前周期</string>
+    <string name="stats_empty">暂无专注数据</string>
+    <string name="stats_percent_value_fmt">%1$d%%</string>
+    <string name="stats_scenario_chart_accessibility_hint">全历史场景占比图，可触摸查看场景时长</string>
+    <string name="stats_period_scenario_chart_accessibility_hint">当前周期场景占比图，可触摸查看场景时长</string>
+    <string name="stats_scenario_period_subtitle">按当前所选日期范围计算场景占比</string>
+    <string name="stats_scenario_period_title">专注场景</string>
+    <string name="stats_show_all_scenarios">显示全部场景</string>
+    <string name="stats_show_current_period">返回当前周期</string>
+    <string name="stats_scene_accessibility_fmt">%1$s，%2$s，点击筛选</string>
+    <string name="stats_scene_time_count_pct_fmt">%1$s · %2$d次 · %3$s</string>
+    <string name="stats_scene_label_study">学习</string>
+    <string name="stats_scene_label_work">工作</string>
+    <string name="stats_scene_label_reading">阅读</string>
+    <string name="stats_scene_label_meditation">睡眠</string>
+    <string name="stats_scene_label_creative">创作</string>
+    <string name="stats_scene_label_relax">放松</string>
+    <string name="stats_scene_label_exercise">运动</string>
+    <string name="stats_scene_label_music">音乐</string>
+    <string name="stats_scene_label_programming">编程</string>
+    <string name="stats_scene_label_gaming">游戏</string>
+    <string name="stats_scene_label_starchasing">追星</string>
+</resources>

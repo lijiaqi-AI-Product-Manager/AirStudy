@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_hour_of_day_title">專注時段分佈</string>
+    <string name="stats_peak_period_label">高峰時段</string>
+    <string name="stats_active_hours_label">活躍小時</string>
+    <string name="stats_hour_value_fmt">%1$02d:00</string>
+    <string name="stats_peak_hour_value_fmt">%1$02d:00–%2$02d:00</string>
+    <string name="stats_hours_count_fmt">%1$d 小時</string>
+    <string name="stats_hour_chart_accessibility_hint">24 小時專注分布圖，可觸控查看每小時資料</string>
+    <string name="stats_hour_chart_selected_fmt">%1$s，專注 %2$s</string>
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="flight_preparation_error_scenes">暂时无法读取场景，请重试</string>
+    <string name="flight_preparation_error_departure">请选择有效的起飞时间</string>
+    <string name="flight_preparation_error_preview">请先预览完整计划</string>
+    <string name="flight_preparation_error_not_due">尚未到计划起飞时间</string>
+    <string name="flight_preparation_waiting_departure">计划于 %1$s 起飞</string>
+    <string name="flight_preparation_error_operation">当前航段暂不支持此操作</string>
+</resources>

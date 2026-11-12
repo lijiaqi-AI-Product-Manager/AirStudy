@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="ordinaryPreparation" />
+    <item type="id" name="ordinaryBoarding" />
+    <item type="id" name="ordinaryCheckIn" />
+    <item type="id" name="ordinaryReady" />
+    <item type="id" name="ordinaryPrepareBoarding" />
+    <item type="id" name="ordinaryBoardingArtwork" />
+    <item type="id" name="ordinaryBlockingStatus" />
+    <string name="ordinary_check_in">开始检票</string>
+    <string name="ordinary_flight_plan">飞行计划</string>
+    <string name="ordinary_complete_inspection">完成检票</string>
+    <string name="ordinary_prepare_boarding">准备登机</string>
+    <string name="ordinary_focus_mode">飞行模式</string>
+    <string name="ordinary_focus_disabled">未启用</string>
+    <string name="ordinary_focus_apps">%1$d 个应用</string>
+    <string name="ordinary_route_unavailable">机场资料暂不可用，请重新选择航线</string>
+    <string name="ordinary_scene_unavailable">该场景已变化，请重新选择</string>
+    <string name="ordinary_request_changed">当前航线或账号已变化，请重新起飞</string>
+    <string name="ordinary_start_failed">暂时无法起飞，请重试</string>
+</resources>

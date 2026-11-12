@@ -1,0 +1,375 @@
+package com.projectfocus.feature.record.ui
+
+import android.graphics.Rect
+import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
+import android.widget.ArrayAdapter
+import android.widget.TextView
+import androidx.activity.OnBackPressedCallback
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.tabs.TabLayout
+import com.google.android.material.textfield.MaterialAutoCompleteTextView
+import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.feature.record.R
+import com.projectfocus.feature.record.list.RecordPageState
+import com.projectfocus.feature.record.list.RecordPageViewModel
+import com.projectfocus.feature.record.list.RecordPeriod
+import com.projectfocus.feature.record.list.RecordStatusFilter
+import com.projectfocus.feature.record.list.RecordItem
+import com.projectfocus.feature.record.list.FlightStatus
+import com.projectfocus.feature.record.list.RecordSceneSaveState
+import com.projectfocus.feature.record.list.RecordSceneFailure
+import com.projectfocus.feature.record.list.RecordRemovalViewModel
+import com.projectfocus.service.focus.history.HistoryAccount
+import com.projectfocus.feature.record.share.RecordSharePreview
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.yield
+
+@AndroidEntryPoint
+class RecordPageFragment : Fragment(R.layout.pf_record_page) {
+    private val viewModel: RecordPageViewModel by viewModels(ownerProducer = { parentFragment ?: this })
+    private val removalModel: RecordRemovalViewModel by viewModels(ownerProducer = { parentFragment ?: this })
+    private var adapter: RecordPageAdapter? = null
+    private var preview: RecordSharePreview? = null
+    private var removal: RecordRemovalPrompt? = null
+    private var recovery: RecordRecoveryFeedback? = null
+    private var summaryFeedback: RecordSummaryFeedback? = null
+    private var loginGate: RecordLoginGate? = null
+    private var loginJob: Job? = null
+    private var rendered: RecordPageState? = null
+    private var renderRevision = 0L
+    private var bindingFilters = false
+    private var scenePicker: AutoCloseable? = null
+    private var sceneTarget: Pair<HistoryAccount, RecordItem>? = null
+    private var sceneOpenRevision = 0L
+    private var sceneOpenJob: Job? = null
+    private var sceneNoticeJob: Job? = null
+
+    override fun onResume() {
+        super.onResume()
+        (requireContext().applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.requestRecordCloudSync()
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        RecordSkyPresentation.page(view)
+        val back = object : OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() {
+                if (loginGate?.isOpen == true) loginGate?.close() else preview?.close()
+            }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, back)
+        val content = requireActivity().findViewById<ViewGroup>(android.R.id.content)
+        loginGate = RecordLoginGate(requireContext(), content) { back.isEnabled = it }
+        removal = RecordRemovalPrompt(requireContext(), viewLifecycleOwner.lifecycleScope, removalModel,
+            page = { rendered }, canShow = { view === this.view &&
+                viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) })
+        recovery = RecordRecoveryFeedback(requireContext(), view, viewLifecycleOwner.lifecycleScope,
+            canShow = { view === this.view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
+            retry = { account ->
+                (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.retryRecordCloudSync(account)
+            },
+            login = { account -> if (account.isCurrent()) (parentFragment as? RecordLoginHost)?.openRecordLogin() })
+        summaryFeedback = RecordSummaryFeedback(requireContext(), viewLifecycleOwner.lifecycleScope, { rendered },
+            { view === this.view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
+            { account -> (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.retryRecordCloudSync(account) }, removalModel)
+        preview = RecordSharePreview(requireContext(), content, viewLifecycleOwner.lifecycleScope,
+            canShow = { view === this.view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
+            visibilityChanged = { back.isEnabled = it })
+        adapter = RecordPageAdapter(onOpen = { card, item ->
+            val state = rendered?.takeIf { it.ready && it.items.any { row -> row == item } } ?: return@RecordPageAdapter
+            closeScene()
+            if (TokenStore.snapshot().token.isNullOrBlank()) {
+                openLogin(item)
+            } else {
+                loginGate?.close()
+                if (item.cloudSummary != null) {
+                    preview?.close(); removal?.close(); summaryFeedback?.open(item)
+                } else when (item.status) {
+                    FlightStatus.CANCELLED -> { preview?.close(); removal?.open(item) }
+                    FlightStatus.ONGOING -> { preview?.close(); removal?.showProtected(item) }
+                    FlightStatus.COMPLETED -> {
+                        removal?.close()
+                        preview?.open(card, item, requireNotNull(state.account))
+                    }
+                    FlightStatus.UNKNOWN -> Unit
+                }
+            }
+        }, onSceneEdit = if (parentFragment is RecordScenePickerHost) ::openScene else null,
+            canEdit = { !viewModel.sceneSave.value.saving && !removalModel.state.value.saving })
+        val list = view.findViewById<RecyclerView>(R.id.pf_record_page_flight_records_list)
+        list.layoutManager = GridLayoutManager(requireContext(), maxOf(1, resources.configuration.screenWidthDp / 360))
+        list.isNestedScrollingEnabled = false
+        list.itemAnimator = null
+        list.addItemDecoration(object : RecyclerView.ItemDecoration() {
+            override fun getItemOffsets(outRect: Rect, child: View, parent: RecyclerView, state: RecyclerView.State) {
+                val spacing = (16 * resources.displayMetrics.density + 0.5f).toInt()
+                val position = parent.getChildAdapterPosition(child)
+                val span = (parent.layoutManager as GridLayoutManager).spanCount
+                if (position == RecyclerView.NO_POSITION) { outRect.setEmpty(); return }
+                val column = position % span
+                outRect.set(spacing - column * spacing / span, if (position < span) spacing else 0,
+                    (column + 1) * spacing / span, spacing)
+            }
+        })
+        list.adapter = adapter
+        val status = view.findViewById<MaterialAutoCompleteTextView>(R.id.pf_record_page_spinner_status)
+        val labels = listOf(R.string.pf_record_page_status_all, R.string.pf_record_page_status_arrived,
+            R.string.pf_record_page_status_in_progress, R.string.pf_record_page_status_cancelled).map(::getString)
+        status.setAdapter(ArrayAdapter(requireContext(), android.R.layout.simple_dropdown_item_1line, labels))
+        status.setOnItemClickListener { _, _, position, _ ->
+            RecordStatusFilter.entries.getOrNull(position)?.let(viewModel::selectStatus)
+        }
+        view.findViewById<TabLayout>(R.id.pf_record_page_record_tabs).addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab) {
+                if (!bindingFilters && rendered?.ready == true) RecordPeriod.entries.getOrNull(tab.position)?.let(viewModel::selectPeriod)
+            }
+            override fun onTabUnselected(tab: TabLayout.Tab) = Unit
+            override fun onTabReselected(tab: TabLayout.Tab) = Unit
+        })
+        view.findViewById<View>(R.id.pf_record_page_btn_prev_page).setOnClickListener { viewModel.previous() }
+        view.findViewById<View>(R.id.pf_record_page_btn_next_page).setOnClickListener { viewModel.next() }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                combine(viewModel.state, viewModel.sceneSave, removalModel.state, TokenStore.identities) { state, _, _, identity -> state to identity }
+                    .collect { (state, identity) ->
+                        if (identity != TokenStore.snapshot()) return@collect
+                        removalModel.discardObsoleteResult()
+                        if (rendered?.account?.isCurrent() != true) {
+                            preview?.close()
+                            loginGate?.close()
+                            removal?.close()
+                            closeScene()
+                        }
+                        render(state)
+                    }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                launch { viewModel.sceneSave.collect(::showSceneFailure) }
+                launch { removalModel.state.collect { removal?.showNotice(it); summaryFeedback?.showNotice(it) } }
+                launch { viewModel.recoveryStatus.collect { recovery?.render(it) } }
+            }
+        }
+    }
+
+    override fun onStart() { super.onStart(); viewModel.onVisible() }
+    override fun onPause() {
+        summaryFeedback?.close()
+        recovery?.close()
+        closeScene()
+        loginJob?.cancel()
+        loginGate?.close()
+        removal?.close()
+        sceneNoticeJob?.cancel()
+        preview?.close()
+        super.onPause()
+    }
+    override fun onStop() {
+        summaryFeedback?.close()
+        recovery?.close()
+        ++renderRevision
+        closeScene()
+        loginJob?.cancel()
+        loginGate?.close()
+        removal?.close()
+        preview?.close()
+        rendered = null
+        adapter?.replace(emptyList())
+        super.onStop()
+    }
+
+    private fun render(state: RecordPageState) {
+        val target = view ?: return
+        val revision = ++renderRevision
+        val expected = TokenStore.snapshot()
+        val current = state.account?.let { it.generation == expected.generation && it.scope == TokenStore.storageScope(expected) } == true
+        val actual = if (current) state else RecordPageState(query = state.query)
+        viewLifecycleOwner.lifecycleScope.launch {
+            yield()
+            while (isActive && view === target && renderRevision == revision) {
+                when (TokenStore.tryWithSnapshotLease(expected) { renderCurrent(target, actual) }) {
+                    is TokenStore.ImmediateSnapshot.Value -> return@launch
+                    TokenStore.ImmediateSnapshot.Obsolete -> return@launch
+                    TokenStore.ImmediateSnapshot.Busy -> delay(16)
+                }
+            }
+        }
+    }
+
+    private fun renderCurrent(root: View, state: RecordPageState) {
+        rendered = state
+        summaryFeedback?.keepFor(state)
+        removal?.keepFor(state)
+        if (!state.ready) loginGate?.close()
+        sceneTarget?.let { (account, item) ->
+            if (!state.ready || state.account != account || state.items.none { row ->
+                row.cloudSummary == item.cloudSummary && row.key == item.key && row.sceneRevision == item.sceneRevision &&
+                    row.recordedAtWallMs == item.recordedAtWallMs && row.status == FlightStatus.COMPLETED
+            }) closeScene()
+        }
+        preview?.keepFor(state.account, state.items)
+        adapter?.replace(if (state.ready) state.items else emptyList())
+        bindingFilters = true
+        try {
+            val labels = listOf(R.string.pf_record_page_status_all, R.string.pf_record_page_status_arrived,
+                R.string.pf_record_page_status_in_progress, R.string.pf_record_page_status_cancelled)
+            root.findViewById<MaterialAutoCompleteTextView>(R.id.pf_record_page_spinner_status).apply {
+                setText(getString(labels[state.query.status.ordinal]), false)
+                isEnabled = state.ready
+            }
+            root.findViewById<TabLayout>(R.id.pf_record_page_record_tabs).apply {
+                if (selectedTabPosition != state.query.period.ordinal) getTabAt(state.query.period.ordinal)?.select()
+                isEnabled = state.ready
+            }
+        } finally { bindingFilters = false }
+        val hint = root.findViewById<TextView>(R.id.pf_record_page_empty_records_hint)
+        hint.visibility = if (!state.ready || state.items.isEmpty()) View.VISIBLE else View.GONE
+        hint.setText(when {
+            state.failed -> R.string.pf_record_page_read_failed
+            !state.ready -> R.string.pf_record_page_loading
+            else -> R.string.pf_record_page_no_records
+        })
+        hint.setOnClickListener(if (state.failed) View.OnClickListener { viewModel.retry() } else null)
+        RecordSkyPresentation.state(root, state.ready, state.failed)
+        root.findViewById<View>(R.id.pf_record_page_stats_progress_container).visibility = View.GONE
+        root.findViewById<View>(R.id.pf_record_page_page_indicator_container).visibility = if (state.ready && state.matchedCount > 0) View.VISIBLE else View.GONE
+        root.findViewById<TextView>(R.id.pf_record_page_text_page_indicator).text = getString(R.string.pf_record_page_page_format, state.page)
+        root.findViewById<View>(R.id.pf_record_page_btn_prev_page).isEnabled = state.ready && state.page > 1
+        root.findViewById<View>(R.id.pf_record_page_btn_next_page).isEnabled = state.ready && state.page < state.pageCount
+    }
+
+    private fun openScene(anchor: View, item: RecordItem) {
+        val root = view ?: return
+        val host = parentFragment as? RecordScenePickerHost ?: return
+        val state = rendered?.takeIf { it.ready && it.items.any { row -> row == item } } ?: return
+        if (item.status != FlightStatus.COMPLETED || item.cloudSummary == null && item.recordedAtWallMs == null || viewModel.sceneSave.value.saving ||
+            removalModel.state.value.saving) return
+        val account = requireNotNull(state.account)
+        closeScene()
+        removal?.close()
+        loginGate?.close()
+        preview?.close()
+        sceneTarget = account to item
+        val revision = sceneOpenRevision
+        val identity = TokenStore.snapshot()
+        fun current(): Boolean = view === root && account.isCurrent() &&
+            viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+            sceneOpenRevision == revision && rendered?.let { displayed ->
+                displayed.ready && displayed.account == account && displayed.items.any { row ->
+                    row.cloudSummary == item.cloudSummary && row.key == item.key && row.sceneRevision == item.sceneRevision &&
+                        row.recordedAtWallMs == item.recordedAtWallMs && row.status == FlightStatus.COMPLETED
+                }
+            } == true
+        sceneOpenJob = viewLifecycleOwner.lifecycleScope.launch {
+            yield()
+            while (isActive && current()) {
+                when (TokenStore.tryWithSnapshotLease(identity) {
+                    if (current() && anchor.isAttachedToWindow) {
+                        scenePicker = host.showRecordScenePicker(anchor, item, ::current) { selected ->
+                            if (current()) viewModel.changeScene(item, selected)
+                        }
+                    }
+                }) {
+                    is TokenStore.ImmediateSnapshot.Value -> return@launch
+                    TokenStore.ImmediateSnapshot.Obsolete -> { closeScene(); return@launch }
+                    TokenStore.ImmediateSnapshot.Busy -> delay(16)
+                }
+            }
+        }
+    }
+
+    private fun closeScene() {
+        ++sceneOpenRevision
+        sceneOpenJob?.cancel()
+        sceneOpenJob = null
+        val previous = scenePicker
+        scenePicker = null
+        sceneTarget = null
+        previous?.close()
+    }
+
+    private fun openLogin(item: RecordItem) {
+        val root = view ?: return
+        val host = parentFragment as? RecordLoginHost ?: return
+        val state = rendered?.takeIf { it.ready && it.items.any { row -> row == item } } ?: return
+        val account = requireNotNull(state.account)
+        val identity = TokenStore.snapshot()
+        preview?.close()
+        removal?.close()
+        loginJob?.cancel()
+        fun current() = view === root && account.isCurrent() &&
+            viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+            rendered?.let { it.ready && it.account == account && it.items.any { row -> row == item } } == true
+        loginJob = viewLifecycleOwner.lifecycleScope.launch {
+            yield()
+            while (isActive && current()) {
+                when (TokenStore.tryWithSnapshotLease(identity) {
+                    if (current()) loginGate?.open(::current) { if (current()) host.openRecordLogin() }
+                }) {
+                    is TokenStore.ImmediateSnapshot.Value -> return@launch
+                    TokenStore.ImmediateSnapshot.Obsolete -> return@launch
+                    TokenStore.ImmediateSnapshot.Busy -> delay(16)
+                }
+            }
+        }
+    }
+
+    private fun showSceneFailure(save: RecordSceneSaveState) {
+        sceneNoticeJob?.cancel()
+        val failure = save.failure ?: return
+        val account = save.target?.account ?: save.summaryTarget?.account ?: return
+        val root = view ?: return
+        val identity = TokenStore.snapshot()
+        sceneNoticeJob = viewLifecycleOwner.lifecycleScope.launch {
+            yield()
+            while (isActive && view === root && viewModel.sceneSave.value == save && account.isCurrent() &&
+                viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
+                when (TokenStore.tryWithSnapshotLease(identity) {
+                    viewModel.acknowledgeSceneFailure(save.attempt)
+                    android.widget.Toast.makeText(requireContext(), when (failure) {
+                        RecordSceneFailure.WRITE -> R.string.pf_record_page_scene_save_failed
+                        RecordSceneFailure.CHANGED -> R.string.pf_record_page_scene_changed
+                        RecordSceneFailure.NOT_EDITABLE -> R.string.pf_record_page_scene_not_editable
+                        RecordSceneFailure.LOGIN_REQUIRED -> R.string.pf_record_cloud_login_required
+                        RecordSceneFailure.CLOUD -> R.string.pf_record_cloud_scene_failed
+                    }, android.widget.Toast.LENGTH_SHORT).show()
+                }) {
+                    is TokenStore.ImmediateSnapshot.Value -> return@launch
+                    TokenStore.ImmediateSnapshot.Obsolete -> return@launch
+                    TokenStore.ImmediateSnapshot.Busy -> delay(16)
+                }
+            }
+        }
+    }
+
+    override fun onDestroyView() {
+        summaryFeedback?.close(); summaryFeedback = null
+        recovery?.close(); recovery = null
+        ++renderRevision
+        closeScene()
+        loginJob?.cancel()
+        loginGate?.close(); loginGate = null
+        removal?.close(); removal = null
+        sceneNoticeJob?.cancel()
+        preview?.close()
+        preview = null
+        view?.findViewById<RecyclerView>(R.id.pf_record_page_flight_records_list)?.adapter = null
+        adapter = null
+        rendered = null
+        super.onDestroyView()
+    }
+}

@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><color name="pf_auth_background">#ffffffff</color>
+    <color name="pf_auth_btn_back_bg">#ffe0e0e0</color>
+    <color name="pf_auth_btn_back_tint">#e6000000</color>
+    <color name="pf_auth_btn_entry_secondary_bg">#ff000000</color>
+    <color name="pf_auth_btn_entry_secondary_text">#ffffffff</color>
+    <color name="pf_auth_btn_solid_bg">#ff000000</color>
+    <color name="pf_auth_btn_solid_text">#ffffffff</color>
+    <color name="pf_auth_btn_wechat_bg">#ff07c160</color>
+    <color name="pf_auth_btn_wechat_text">#ffffffff</color>
+    <color name="pf_auth_cursor">#ff000000</color>
+    <color name="pf_auth_input_bg">#fff7f7f7</color>
+    <color name="pf_auth_input_border">#ffc5c5c5</color>
+    <color name="pf_auth_input_hint">#80000000</color>
+    <color name="pf_auth_input_text">#ff000000</color>
+    <color name="pf_auth_text_copyright">#ffb0b0b0</color>
+    <color name="pf_auth_text_primary">#ff000000</color>
+    <color name="pf_auth_text_secondary">#80000000</color>
+    <color name="pf_auth_black">#ff000000</color>
+    <color name="pf_auth_brand_classic">#ff0a59f7</color>
+    <color name="pf_auth_huawei_blue">@color/pf_auth_brand_classic</color>
+    <color name="pf_auth_primary_color">#ff424242</color>
+    <color name="pf_auth_white">#ffffffff</color>
+    </resources>

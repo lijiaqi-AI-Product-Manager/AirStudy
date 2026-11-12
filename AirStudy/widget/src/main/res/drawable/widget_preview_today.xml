@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="250dp"
+    android:height="118dp"
+    android:viewportWidth="250"
+    android:viewportHeight="118">
+
+    <!-- 卡片底 -->
+    <path
+        android:fillColor="@color/widget_preview_bg"
+        android:pathData="M24,0 L226,0 A24,24 0 0 1 250,24 L250,94 A24,24 0 0 1 226,118 L24,118 A24,24 0 0 1 0,94 L0,24 A24,24 0 0 1 24,0 Z" />
+
+    <!-- 第一行左：小标题 -->
+    <path
+        android:fillColor="@color/widget_preview_text_secondary"
+        android:pathData="M18,18 L48,18 L48,23 L18,23 Z" />
+
+    <!-- 第一行右：连续天数 -->
+    <path
+        android:fillColor="@color/widget_preview_accent"
+        android:pathData="M186,18 L232,18 L232,23 L186,23 Z" />
+
+    <!-- 第二行：大字分钟数 -->
+    <path
+        android:fillColor="@color/widget_preview_text_primary"
+        android:pathData="M18,34 L86,34 L86,66 L18,66 Z" />
+
+    <!-- 第二行：单位 -->
+    <path
+        android:fillColor="@color/widget_preview_text_secondary"
+        android:pathData="M92,56 L116,56 L116,61 L92,61 Z" />
+
+    <!-- 第三行：副标题 -->
+    <path
+        android:fillColor="@color/widget_preview_text_secondary"
+        android:pathData="M18,78 L150,78 L150,83 L18,83 Z" />
+</vector>

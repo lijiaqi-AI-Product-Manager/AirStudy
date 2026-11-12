@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sound_title">声音</string>
+    <string name="sound_back">返回</string>
+    <string name="sound_enabled">白噪音总开关</string>
+    <string name="sound_enabled_hint">关闭后飞行 HUD 与环境音都不可用</string>
+    <string name="sound_volume">音量</string>
+    <string name="sound_volume_fmt">音量 %1$d%%</string>
+    <string name="sound_track_rain">雨声</string>
+    <string name="sound_track_bonfire">篝火</string>
+    <string name="sound_track_forest">森林</string>
+    <string name="sound_track_ocean">海浪</string>
+    <string name="sound_playing_fmt">正在播放：%1$s</string>
+    <string name="sound_stop">停止播放</string>
+    <string name="sound_disabled">白噪音已在设置中关闭</string>
+    <string name="sound_play_failed">播放失败</string>
+</resources>

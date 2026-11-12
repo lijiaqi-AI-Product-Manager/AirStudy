@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_dashboard_insights_title">專注洞察</string>
+    <string name="stats_insight_best_day">最佳日期</string>
+    <string name="stats_insight_top_scenario">主要情境</string>
+    <string name="stats_insight_top_period">高效時段</string>
+    <string name="stats_insight_day_value_fmt">%1$s · %2$s</string>
+    <string name="stats_insight_scenario_value_fmt">%1$s · %2$s</string>
+    <string name="stats_period_dawn">凌晨</string>
+    <string name="stats_period_morning">上午</string>
+    <string name="stats_period_afternoon">下午</string>
+    <string name="stats_period_evening">晚間</string>
+    <string name="stats_highlights_title">高光紀錄</string>
+    <string name="stats_highlight_rank_value_fmt">%1$d</string>
+    <string name="stats_insight_no_data_short">暫無資料</string>
+</resources>

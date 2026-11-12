@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.Pf.Settings" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="android:fontFamily">@font/pf_apk2_harmonyos_sans</item>
+        <item name="fontFamily">@font/pf_apk2_harmonyos_sans</item>
+        <item name="colorPrimary">@color/pref_source_primary</item>
+        <item name="colorOnPrimary">@color/pref_source_on_primary</item>
+        <item name="colorPrimaryContainer">@color/pref_source_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/pref_source_on_primary_container</item>
+        <item name="android:colorAccent">@color/pref_source_primary</item>
+        <item name="colorSurface">@color/sky_canvas</item>
+        <item name="colorOnSurface">@color/sky_ink</item>
+        <item name="colorOnSurfaceVariant">@color/sky_ink_secondary</item>
+        <item name="colorOutlineVariant">@color/sky_divider</item>
+        <item name="android:colorBackground">@color/sky_canvas</item>
+    </style>
+    <style name="TextAppearance.Pf.SettingsTitle" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:fontFamily">@font/pf_apk2_harmonyos_sans</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+    <style name="TextAppearance.Pf.SettingsDescription" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:fontFamily">@font/pf_apk2_harmonyos_sans</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:lineSpacingExtra">2dp</item>
+    </style>
+    <style name="TextAppearance.Pf.SettingsSection" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:fontFamily">@font/pf_apk2_harmonyos_sans</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/colorPrimary</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+    <style name="TextAppearance.Pf.SettingsSegment" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:fontFamily">@font/pf_apk2_harmonyos_sans</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+    <style name="TextAppearance.Pf.SettingsValue" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:fontFamily">@font/pf_apk2_harmonyos_sans</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:includeFontPadding">false</item>
+    </style>
+    <style name="TextAppearance.Pf.SettingsPageTitle" parent="TextAppearance.Pf.SettingsTitle">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

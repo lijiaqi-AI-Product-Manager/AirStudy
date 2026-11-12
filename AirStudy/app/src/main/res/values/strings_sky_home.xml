@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sky_home_tagline">让专注，自在起飞</string>
+    <string name="sky_home_heading">把这一刻，\n交给天空。</string>
+    <string name="sky_home_intro">选一个目的地，开启你的专注旅程。</string>
+    <string name="sky_home_route">下一段旅程</string>
+    <string name="sky_home_origin">出发地</string>
+    <string name="sky_home_destination">目的地</string>
+    <string name="sky_home_airport_unknown">—</string>
+    <string name="sky_home_pick_origin">选择出发机场</string>
+    <string name="sky_home_pick_destination">选择目的机场</string>
+    <string name="sky_home_origin_accessibility">出发地，%1$s，%2$s。点按更换机场</string>
+    <string name="sky_home_destination_accessibility">目的地，%1$s，%2$s。点按更换机场</string>
+    <string name="sky_home_route_hint">确认航线后，选择座位与专注场景。</string>
+    <string name="sky_home_footer">每一段专注，都值得抵达。</string>
+    <string name="sky_home_close_map">返回起飞准备</string>
+    <string name="sky_home_map">航图</string>
+    <string name="sky_home_mode">飞行模式</string>
+</resources>

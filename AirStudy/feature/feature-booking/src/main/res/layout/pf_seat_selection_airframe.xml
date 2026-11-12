@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:id="@+id/pf_seat_rootLayout" android:background="#80000000" android:clipChildren="false" android:clipToPadding="false" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <ScrollView android:id="@+id/pf_seat_scroll" android:scrollbars="none" android:clipChildren="false" android:clipToPadding="false" android:layout_width="fill_parent" android:layout_height="fill_parent" android:fillViewport="true" android:fadeScrollbars="true">
+        <LinearLayout android:gravity="center_horizontal" android:orientation="vertical" android:id="@+id/pf_seat_spaceshipContainer" android:paddingTop="40.0dip" android:paddingBottom="40.0dip" android:clipChildren="false" android:clipToPadding="false" android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <RelativeLayout android:id="@+id/pf_seat_cabinContainer" android:layout_width="3200.0dip" android:layout_height="wrap_content">
+                <ImageView android:id="@+id/pf_seat_dynamicSpaceshipBody" android:src="@drawable/pf_seat_dynamic_spaceship_body" android:importantForAccessibility="no" android:layout_width="3200.0dip" android:layout_height="wrap_content" android:scaleType="fitXY" android:adjustViewBounds="true" />
+                <LinearLayout android:orientation="vertical" android:id="@+id/pf_seat_seatsArea" android:padding="10.0dip" android:layout_width="280.0dip" android:layout_height="wrap_content" android:layout_marginTop="140.0dip" android:layout_centerHorizontal="true" />
+            </RelativeLayout>
+        </LinearLayout>
+    </ScrollView>
+</RelativeLayout>

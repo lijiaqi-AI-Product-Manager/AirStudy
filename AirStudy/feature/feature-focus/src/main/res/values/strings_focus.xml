@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+
+
+
+    <string name="flight_mode_selection_title">选择飞行模式</string>
+    <string name="flight_mode_selection_back">返回飞行首页</string>
+
+    <string name="flight_mode_count_up">正计时</string>
+    <string name="flight_mode_count_up_english">COUNT UP</string>
+    <string name="flight_mode_countdown">倒计时</string>
+    <string name="flight_mode_countdown_english">COUNT DOWN</string>
+    <string name="flight_mode_group">联飞模式</string>
+    <string name="flight_mode_group_english">GROUP FLIGHT</string>
+    <string name="flight_mode_group_beta">BETA</string>
+
+    <string name="flight_mode_option_countdown">倒计时飞行</string>
+    <string name="flight_mode_option_countdown_subtitle">选定机场，直飞抵达</string>
+    <string name="flight_mode_option_countup_beta">正计时飞行</string>
+    <string name="flight_mode_option_countup_subtitle">正向计时，就近降落</string>
+
+    <string name="flight_mode_select_countdown">选择 倒计时</string>
+    <string name="flight_mode_select_count_up">选择 正计时</string>
+    <string name="flight_mode_select_group">选择 联飞模式</string>
+    <string name="flight_mode_select_title">选择专注模式</string>
+    <string name="flight_mode_selected_toast">已选择：%1$s（会话接入下一轮）</string>
+    <string name="flight_mode_countdown_started">倒计时飞行已开始</string>
+    <string name="flight_mode_start_failed">无法开始飞行，请稍后重试</string>
+    <string name="flight_mode_not_available">%1$s 将在下一轮接入</string>
+</resources>

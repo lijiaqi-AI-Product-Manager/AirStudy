@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="home_placeholder_title">主页</string>
+    <string name="home_placeholder_body">权限检查已通过。\n地图与时间轴将在接入地图方案后实现。</string>
+
+    
+    <string name="home_action_search_airport">选择机场</string>
+    <string name="home_prepare_takeoff">准备起飞</string>
+    <string name="home_action_records">飞行记录</string>
+
+    <!-- R9 临时可用的开始入口：视觉仍待 1:1 主页替换 -->
+    <string name="home_duration_label">专注时长</string>
+    <string name="home_duration_25">25 分钟</string>
+    <string name="home_duration_45">45 分钟</string>
+    <string name="home_duration_60">60 分钟</string>
+
+    <string name="home_start_flight">开始专注飞行</string>
+    <string name="home_status_idle">选好时长，我们就起飞！</string>
+    <string name="home_status_running">飞行中 · 剩余 %1$d 分钟</string>
+    <string name="home_status_paused">已暂停 · 剩余 %1$d 分钟</string>
+    <string name="home_status_arrived">已到站，正在打开落地页…</string>
+    <string name="home_start_rejected">已有进行中的飞行，未重复开始。</string>
+
+
+    <string name="home_greeting_morning">早上好，旅行者</string>
+    <string name="home_greeting_afternoon">下午好，旅行者</string>
+    <string name="home_greeting_evening">晚上好，旅行者</string>
+    <string name="home_greeting_flight_count">已经安全降落 %1$d 次，今天也出发吧~</string>
+    <string name="home_greeting_flight_count_zero">第一次起飞？挑个目的地出发吧~</string>
+    <string name="home_draft_chip_fmt">继续选座 · %1$s</string>
+    <string name="home_draft_open_failed">无法打开选座页</string>
+    <string name="home_draft_cleared">已忽略草稿</string>
+    <string name="home_draft_cleared_all">已清除全部草稿</string>
+    <string name="home_draft_clear_title">清除选座草稿</string>
+    <string name="home_draft_clear_current">只清当前</string>
+    <string name="home_draft_clear_all">清除全部</string>
+    <string name="home_draft_long_press_hint">长按可清除选座草稿</string>
+    <string name="home_location_paris">选择目的地</string>
+    <string name="home_location_format">%1$s · %2$s</string>
+    <string name="home_origin_default">选择出发机场</string>
+    <string name="flight_hud_distance">已飞 %1$s km · 剩余 %2$s km</string>
+    <string name="flight_hud_distance_unknown">里程暂不可用</string>
+    <string name="home_origin_format">出发 · %1$s · %2$s</string>
+    <string name="home_same_airport">出发地和目的地不能相同</string>
+    <string name="home_menu_takeoff">起飞</string>
+    <string name="home_menu_record">记录</string>
+    <string name="home_menu_map">地图</string>
+    <string name="home_menu_settings">设置</string>
+    <string name="home_menu_achievements">成就</string>
+    <string name="home_menu_sound">声音</string>
+    <string name="home_menu_seat">选座</string>
+    <string name="home_network_online">在线</string>
+    <string name="home_network_offline">离线</string>
+    <string name="home_map_style_title">地图样式</string>
+    <string name="home_map_style_forest">森林</string>
+    <string name="home_map_style_ocean">海洋</string>
+    <string name="home_map_style_night">夜航</string>
+    <string name="home_map_style_sunset">日落</string>
+    <string name="home_map_style_vintage">复古</string>
+    <string name="home_map_style_satellite">卫星</string>
+    <string name="home_map_style_simple">极简</string>
+    <string name="home_map_style_violet">紫罗兰</string>
+    <string name="home_map_style_toggle">样式</string>
+    <string name="home_map_style_panel_hint">8 种底图风格，接入真实地图后同步生效</string>
+    <string name="home_map_placeholder_desc">选择出发和目的机场后查看航线示意</string>
+    <string name="home_control_panel_title">专注控制台（过渡）</string>
+
+
+    <string name="flight_hud_route">%1$s → %2$s</string>
+    <string name="flight_hud_remaining">剩余 %1$s</string>
+    <string name="flight_hud_running">飞行中</string>
+    <string name="flight_hud_paused">已暂停 · 暂停期间不计时</string>
+    <string name="flight_hud_pause">暂停</string>
+    <string name="flight_hud_resume">继续</string>
+    <string name="flight_hud_abandon">放弃</string>
+    <string name="flight_hud_abandon_title">放弃这次飞行？</string>
+    <string name="flight_hud_abandon_message">放弃后本次飞行不会计入记录，已飞时长也不会保存。</string>
+    <string name="flight_hud_confirm_abandon">放弃</string>
+    <string name="flight_hud_cancel_abandon">继续飞</string>
+    <string name="flight_hud_action_failed">操作失败，请稍后重试</string>
+    <string name="flight_hud_ambient_off">环境音 · 关</string>
+    <string name="flight_hud_ambient_disabled">白噪音已在设置中关闭</string>
+    <string name="flight_hud_ambient_on">%1$s · 开</string>
+    <string name="flight_hud_ambient_rain">雨声</string>
+    <string name="flight_hud_ambient_bonfire">篝火</string>
+    <string name="flight_hud_ambient_forest">森林</string>
+    <string name="flight_hud_ambient_ocean">海浪</string>
+    <string name="flight_hud_volume">环境音量 %1$d%%</string>
+    <string name="flight_hud_volume_default">环境音量 50%</string>
+</resources>

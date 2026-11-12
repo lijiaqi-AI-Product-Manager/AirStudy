@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><color name="pf_auth_background">#ff121212</color>
+    <color name="pf_auth_btn_back_bg">#ff333333</color>
+    <color name="pf_auth_btn_back_tint">#e6ffffff</color>
+    <color name="pf_auth_btn_entry_secondary_bg">#ffffffff</color>
+    <color name="pf_auth_btn_entry_secondary_text">#ff000000</color>
+    <color name="pf_auth_btn_solid_bg">#ffffffff</color>
+    <color name="pf_auth_btn_solid_text">#ff000000</color>
+    <color name="pf_auth_cursor">#ffffffff</color>
+    <color name="pf_auth_input_bg">#ff1e1e1e</color>
+    <color name="pf_auth_input_border">#ff3a3a3a</color>
+    <color name="pf_auth_input_hint">#80ffffff</color>
+    <color name="pf_auth_input_text">#ffffffff</color>
+    <color name="pf_auth_text_copyright">#ff666666</color>
+    <color name="pf_auth_text_primary">#ffffffff</color>
+    <color name="pf_auth_text_secondary">#80ffffff</color>
+    <color name="pf_auth_brand_classic">#ff317af7</color>
+    </resources>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <corners android:radius="@dimen/radius_xxl" />
+            <gradient
+                android:angle="270"
+                android:startColor="@color/glass_stroke_top"
+                android:endColor="@color/glass_stroke_bottom" />
+        </shape>
+    </item>
+    <item
+        android:bottom="@dimen/stroke_hairline"
+        android:left="@dimen/stroke_hairline"
+        android:right="@dimen/stroke_hairline"
+        android:top="@dimen/stroke_hairline">
+        <shape android:shape="rectangle">
+            <corners android:radius="@dimen/radius_xxl" />
+            <gradient
+                android:angle="270"
+                android:startColor="@color/glass_fill_top"
+                android:endColor="@color/glass_fill_bottom" />
+        </shape>
+    </item>
+    <item
+        android:bottom="@dimen/stroke_hairline"
+        android:left="@dimen/stroke_hairline"
+        android:right="@dimen/stroke_hairline"
+        android:top="@dimen/stroke_hairline">
+        <shape android:shape="rectangle">
+            <corners android:radius="@dimen/radius_xxl" />
+            <gradient
+                android:centerX="0.5"
+                android:centerY="1.1"
+                android:gradientRadius="70%"
+                android:startColor="@color/glow_brand"
+                android:endColor="@color/glow_transparent"
+                android:type="radial" />
+        </shape>
+    </item>
+</layer-list>

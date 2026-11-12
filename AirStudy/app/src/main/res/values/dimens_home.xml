@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <dimen name="home_hero_height">220dp</dimen>
+    <!-- 滚动内容的底部留白 = 悬浮控制台高度（约 200dp）+ 离底 12dp + 余量，内容不会被面板永久遮住。 -->
+    <dimen name="home_scroll_bottom_inset">240dp</dimen>
+</resources>

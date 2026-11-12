@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_annual_heatmap_title">年度專注熱力圖</string>
+    <string name="stats_heatmap_previous_year">上一年</string>
+    <string name="stats_heatmap_next_year">下一年</string>
+    <string name="stats_heatmap_year_value_fmt">%1$d 年</string>
+    <string name="stats_heatmap_unavailable">熱力圖暫時無法載入</string>
+    <string name="stats_heatmap_month_pattern">MMM</string>
+    <string name="stats_heatmap_accessibility_hint">年度專注熱力圖，可觸控查看每日資料</string>
+    <string name="stats_heatmap_selected_fmt">%1$s，專注 %2$s</string>
+    <string name="stats_heatmap_no_data_short">暫無資料</string>
+</resources>

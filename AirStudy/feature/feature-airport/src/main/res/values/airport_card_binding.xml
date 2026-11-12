@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="pf_airport_card_normal_background">#FF0F0F0F</color>
+    <string name="airport_card_flight_time_accessibility">航时 %1$s</string>
+</resources>

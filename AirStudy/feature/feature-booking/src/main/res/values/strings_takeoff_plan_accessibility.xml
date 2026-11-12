@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_tp_select_origin_a11y">选择出发机场，%1$s，%2$s</string>
+    <string name="pf_tp_select_destination_a11y">选择到达机场，%1$s，%2$s</string>
+    <string name="pf_tp_route_fmt">%1$s %2$s → %3$s %4$s</string>
+    <string name="pf_tp_back_a11y">返回飞行计划</string>
+    <string name="pf_tp_expand_a11y">展开飞行计划</string>
+    <string name="pf_tp_collapse_a11y">收起飞行计划</string>
+    <string name="pf_tp_previous_date_a11y">前一天</string>
+    <string name="pf_tp_next_date_a11y">后一天</string>
+    <string name="pf_tp_seat_a11y">选择座位，%1$s</string>
+    <string name="pf_tp_remove_segment_a11y">移除此航段</string>
+    <string name="pf_tp_departure_hour_a11y">设置起飞时刻的小时，%1$s</string>
+    <string name="pf_tp_departure_minute_a11y">设置起飞时刻的分钟，%1$s</string>
+    <string name="pf_tp_segment_a11y">%1$s，%2$s，%3$s，%4$s，%5$s</string>
+    <string name="pf_tp_city_unavailable">--</string>
+</resources>

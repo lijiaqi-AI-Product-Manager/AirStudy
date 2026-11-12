@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_record_summary_title">Record details</string>
+    <string name="pf_record_summary_details">The available history for this record is kept. Its complete flight details are not yet restored. You can retry later.</string>
+    <string name="pf_record_summary_pending">Details pending</string>
+    <string name="pf_record_summary_total_pending">Some record details are pending</string>
+</resources>

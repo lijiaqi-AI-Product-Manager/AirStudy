@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_tp_common_km">公里</string>
+    <string name="pf_tp_segment_context_edit">編輯</string>
+    <string name="pf_tp_segment_context_delete">刪除</string>
+    <string name="pf_tp_plan_status_in_progress">進行中</string>
+    <string name="pf_tp_plan_status_completed">已完成</string>
+    <string name="pf_tp_plan_status_canceled">已取消</string>
+    <string name="pf_tp_plan_status_completed_on_time">準點</string>
+    <string name="pf_tp_plan_status_completed_early_fmt">提前%1$d分鐘</string>
+    <string name="pf_tp_plan_status_completed_delayed_fmt">誤點%1$d分鐘</string>
+    <string name="pf_tp_segment_context_batch_delete_canceled">刪除所有已取消航段</string>
+    <string name="pf_tp_plan_deleted_canceled_legs_fmt">已刪除 %1$d 個已取消航段</string>
+    <string name="pf_tp_plan_no_deletable_canceled_legs">沒有可刪除的已取消航段</string>
+</resources>

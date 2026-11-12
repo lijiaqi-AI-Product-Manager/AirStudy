@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="stats_background">#FF000000</color>
+    <color name="stats_surface">#FF1F1F1F</color>
+    <color name="stats_secondary_surface">#FF191919</color>
+    <color name="stats_border">#FF404040</color>
+    <color name="stats_text_primary">#FFFFFFFF</color>
+    <color name="stats_text_secondary">#FFCCCCCC</color>
+    <color name="stats_text_tertiary">#FFAAAAAA</color>
+    <color name="stats_accent">#FF317AF7</color>
+    <color name="stats_selected_surface">#FF23314A</color>
+</resources>

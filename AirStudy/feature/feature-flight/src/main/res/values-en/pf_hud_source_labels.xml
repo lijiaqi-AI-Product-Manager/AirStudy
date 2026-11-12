@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="pf_hud_source_distance_remaining">Remaining Dist.</string><string name="pf_hud_source_distance_traveled">Distance Flown</string><string name="pf_hud_source_time_remaining">Time Remaining</string><string name="pf_hud_source_time_elapsed">Time Elapsed</string></resources>

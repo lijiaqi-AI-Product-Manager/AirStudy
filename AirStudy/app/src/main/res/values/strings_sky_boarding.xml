@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sky_boarding_preparing">正在准备登机牌</string>
+    <string name="sky_boarding_printing">正在打印登机牌</string>
+    <string name="sky_boarding_ready">登机牌已就绪</string>
+    <string name="sky_boarding_accessible_summary">登机牌，%1$s %2$s 至 %3$s %4$s，航班 %5$s，座位 %6$s，日期 %7$s，登机时间 %8$s，预计抵达 %9$s</string>
+</resources>

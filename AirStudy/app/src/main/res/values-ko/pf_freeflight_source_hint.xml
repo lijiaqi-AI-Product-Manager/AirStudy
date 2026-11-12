@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="pf_ff_battery_opt_warning_guide_action">설정 가이드 보기</string><string name="pf_ff_battery_opt_warning_message">배터리 절약 모드로 인해 백그라운드 실행 중 저장이 불가능하거나 앱이 종료될 수 있습니다. 정상적인 백그라운드 저장을 위해 이 앱을 배터리 최적화 예외 목록에 추가하거나 백그라운드 실행을 허용해 주세요.</string><string name="pf_ff_battery_opt_warning_title">백그라운드 실행 알림</string><string name="pf_ff_confirm">확인</string></resources>

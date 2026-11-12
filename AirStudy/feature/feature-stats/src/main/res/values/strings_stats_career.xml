@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_career_title">生涯数据</string>
+    <string name="stats_career_subtitle">来自全部成功飞行的权威汇总</string>
+    <string name="stats_total_mileage_label">总里程</string>
+    <string name="stats_completed_flights_label">完成航班</string>
+    <string name="stats_ontime_label">准点率</string>
+    <string name="stats_current_streak_title">连续飞行</string>
+    <string name="stats_streak_best_value_fmt">历史最长 %1$d 天</string>
+    <string name="stats_streak_days_fmt">%1$d 天</string>
+    <string name="stats_km_value_fmt">%1$s km</string>
+    <string name="stats_ontime_rate_value_fmt">%1$d%%</string>
+    <string name="stats_record_city_stats_title">抵达城市统计</string>
+    <string name="stats_record_top_countries_title">常去国家</string>
+    <string name="stats_top_country_most_visited_label">最常抵达国家</string>
+</resources>

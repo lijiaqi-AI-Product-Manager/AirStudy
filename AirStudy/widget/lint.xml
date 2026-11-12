@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<lint>
+    <issue id="VectorRaster">
+        <ignore path="src/main/res/drawable/widget_preview_flying.xml" />
+        <ignore path="src/main/res/drawable/widget_preview_quick_start.xml" />
+        <ignore path="src/main/res/drawable/widget_preview_today.xml" />
+    </issue>
+</lint>

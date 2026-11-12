@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<resources>
+
+    <!-- ==================== 搜索框 ==================== -->
+    <string name="airport_search_hint">城市或机场</string>
+    <string name="airport_search_hint_origin">搜索出发机场</string>
+    <string name="airport_search_hint_destination">搜索目的地</string>
+    <string name="airport_search_clear">清空搜索</string>
+    <string name="airport_search_back">返回</string>
+
+    <!-- ==================== Idle（还没输入）==================== -->
+    <string name="airport_idle_recent">最近去过</string>
+    <string name="airport_idle_popular">热门城市</string>
+    <!-- 全新用户：既没有历史也没有热度数据 -->
+    <string name="airport_idle_bare_title">想去哪里</string>
+    <string name="airport_idle_bare_body">输入城市名、机场名，或者三字码（比如 PEK）</string>
+
+    <!-- ==================== Loading（索引构建中）==================== -->
+    
+    <string name="airport_loading_title">正在准备机场数据</string>
+    <string name="airport_loading_body">正在读取本地机场列表</string>
+
+    <!-- ==================== Empty（数据库为空）==================== -->
+    <string name="airport_empty_title">机场数据还没准备好</string>
+    <string name="airport_empty_body">本地机场数据暂不可用，请重试。</string>
+    <string name="airport_empty_action">重试</string>
+
+    <!-- ==================== TooShort（输入不足）==================== -->
+    
+    <string name="airport_too_short_title">再输入 %1$d 个字</string>
+    <string name="airport_too_short_body">至少输入 2 个字，才能在海量机场里找到你要的那个</string>
+
+    <!-- ==================== NoResult（真的没有）==================== -->
+    <string name="airport_no_result_title">没找到「%1$s」</string>
+
+    <string name="airport_no_result_body">试试半角英文、拼音，或者三字码（比如 ＰＥＫ 要打成 PEK）</string>
+
+    <!-- ==================== Content（有结果）==================== -->
+    <string name="airport_content_total">%1$d 个结果</string>
+    <!-- 被 limit 截断时追加 -->
+    <string name="airport_content_truncated">继续输入以缩小范围</string>
+    <!-- 结果行长按打开详情失败（极少数设备没有可处理 projectfocus:// 的 Activity） -->
+    <string name="airport_search_detail_failed">无法打开机场详情</string>
+
+    <!-- ==================== 无障碍 ==================== -->
+    
+    <string name="airport_group_desc">%1$s，%2$d 个结果</string>
+    <string name="airport_result_count_desc">共 %1$d 个搜索结果</string>
+
+</resources>

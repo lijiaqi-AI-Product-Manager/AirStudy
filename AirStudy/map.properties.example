@@ -1,0 +1,7 @@
+# 本项目自行申请的华为地图配置。复制为map.properties（已忽略入库）。
+# Debug applicationId: com.projectfocus.app.debug；Release: com.projectfocus.app。
+# 在本项目对应应用/签名下启用Map Kit，再填写API Key与可选App ID。
+# 也可使用环境变量PF_HMS_MAP_API_KEY和PF_HMS_MAP_APP_ID。
+# 本轮使用已核对的SDK 6.15.1.318。配置不写入SavedState或日志。
+apiKey=
+appId=

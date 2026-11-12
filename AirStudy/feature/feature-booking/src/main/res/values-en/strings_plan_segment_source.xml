@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_tp_common_km">km</string>
+    <string name="pf_tp_segment_context_edit">Edit</string>
+    <string name="pf_tp_segment_context_delete">Delete</string>
+    <string name="pf_tp_plan_status_in_progress">In progress</string>
+    <string name="pf_tp_plan_status_completed">Completed</string>
+    <string name="pf_tp_plan_status_canceled">Canceled</string>
+    <string name="pf_tp_plan_status_completed_on_time">On Time</string>
+    <string name="pf_tp_plan_status_completed_early_fmt">+%1$d min early</string>
+    <string name="pf_tp_plan_status_completed_delayed_fmt">+%1$d min late</string>
+    <string name="pf_tp_segment_context_batch_delete_canceled">Delete all canceled segments</string>
+    <string name="pf_tp_plan_deleted_canceled_legs_fmt">%1$d canceled segments deleted</string>
+    <string name="pf_tp_plan_no_deletable_canceled_legs">No canceled segments to delete</string>
+</resources>

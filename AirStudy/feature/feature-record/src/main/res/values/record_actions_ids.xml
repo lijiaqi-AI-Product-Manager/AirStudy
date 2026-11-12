@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><item type="id" name="pf_record_delete_dialog" /><item type="id" name="pf_record_delete_message" /><item type="id" name="pf_record_delete_close" /><item type="id" name="pf_record_delete_confirm" /><item type="id" name="pf_record_delete_cancel" /><item type="id" name="pf_record_login_gate" /><item type="id" name="pf_record_login_button" /></resources>

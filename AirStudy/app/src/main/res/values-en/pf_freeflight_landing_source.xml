@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources><string name="pf_ff_land_airport_badge_arrived">Visited</string>
+    <string name="pf_ff_land_common_cancel">Cancel</string>
+    <string name="pf_ff_land_common_confirm">Confirm</string>
+    <string name="pf_ff_land_confirm_landing">Confirm Landing</string>
+    <string name="pf_ff_land_free_flight_landing_action">Land</string>
+    <string name="pf_ff_land_free_flight_landing_confirm_message">Do you want to end count-up mode and land?</string>
+    <string name="pf_ff_land_free_flight_landing_confirm_title">Confirm Landing</string>
+    <string name="pf_ff_land_free_flight_landing_prepare_message">Slide the timeline to choose a landing range</string>
+    <string name="pf_ff_land_free_flight_landing_prepare_title">Prepare to Land</string>
+    <string name="pf_ff_land_heading_to_landing_point">Heading to landing point...</string>
+    <string name="pf_ff_land_please_select_landing_airport">Please select a landing airport</string>
+    </resources>

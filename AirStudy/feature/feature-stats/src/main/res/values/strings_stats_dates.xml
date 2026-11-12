@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_period_day">日</string>
+    <string name="stats_period_week">周</string>
+    <string name="stats_period_month">月</string>
+    <string name="stats_period_year">年</string>
+    <string name="stats_period_custom">自定义</string>
+    <string name="stats_previous_period">上一时段</string>
+    <string name="stats_next_period">下一时段</string>
+    <string name="stats_date_month_pattern">yyyy年M月</string>
+    <string name="stats_date_year_pattern">yyyy 年</string>
+    <string name="stats_date_range_format">%1$s – %2$s</string>
+    <string name="stats_date_title">自定义时段</string>
+    <string name="stats_date_first">开始日期</string>
+    <string name="stats_date_last">结束日期</string>
+    <string name="stats_date_separator">-</string>
+    <string name="stats_date_days">已选择 %1$d 天 · 最多 365 天</string>
+    <string name="stats_date_cancel">取消</string>
+    <string name="stats_date_confirm">确认</string>
+    <string name="stats_share_period">%1$s\n%2$s</string>
+</resources>

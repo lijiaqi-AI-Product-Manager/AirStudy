@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_dashboard_trend_title">Динамика успешных полётов</string>
+    <string name="stats_trend_mode_line">Линейный график</string>
+    <string name="stats_trend_mode_stacked_bar">Столбчатая диаграмма</string>
+    <string name="stats_trend_completed">Успешные полёты</string>
+    <string name="stats_trend_focus_time">Время фокуса</string>
+    <string name="stats_trend_total_label">Всего</string>
+    <string name="stats_trend_peak_label">Пик</string>
+    <string name="stats_times_fmt">%1$d раз</string>
+    <string name="stats_duration_minutes">%dм</string>
+    <string name="stats_duration_hours">%dч</string>
+    <string name="stats_duration_hours_minutes">%1$dч %2$dм</string>
+    <string name="stats_completed_trend_accessibility_hint">График успешных полётов. Коснитесь для просмотра периода.</string>
+    <string name="stats_completed_trend_selected_fmt">%1$s, успешных полётов: %2$d</string>
+    <string name="stats_focus_trend_accessibility_hint">График времени фокуса. Коснитесь для просмотра периода.</string>
+    <string name="stats_trend_chart_selected_fmt">%1$s, фокус: %2$s</string>
+    <string name="stats_trend_axis_hour_format">HH:mm</string>
+    <string name="stats_trend_axis_day_format">d/M</string>
+    <string name="stats_trend_axis_week_format">d/M</string>
+    <string name="stats_trend_axis_month_format">MMM</string>
+    <string name="stats_scene_time_pct_fmt">%1$s · %2$s</string>
+    <string name="stats_trend_detail_more_scenes">Ещё %d сценариев</string>
+</resources>

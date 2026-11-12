@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<resources>
+
+    <!-- ===================== 间距（4dp 基准，7 档） ===================== -->
+    <dimen name="space_xxs">2dp</dimen>
+    <dimen name="space_xs">4dp</dimen>
+    <dimen name="space_s">8dp</dimen>
+    <dimen name="space_m">12dp</dimen>
+    <dimen name="space_l">16dp</dimen>
+    <dimen name="space_xl">24dp</dimen>
+    <dimen name="space_xxl">32dp</dimen>
+
+
+
+    <dimen name="screen_margin">18dp</dimen>
+    <!-- 模块间距（报告 变量 gap 14px；一屏 3–5 个模块，间距 12–20） -->
+    <dimen name="module_gap">14dp</dimen>
+
+    <!-- ===================== 圆角 ===================== -->
+    <dimen name="radius_xs">4dp</dimen>
+    <dimen name="radius_s">8dp</dimen>
+    <dimen name="radius_m">12dp</dimen>
+    <dimen name="radius_l">16dp</dimen>
+    <dimen name="radius_xl">24dp</dimen>
+
+    <dimen name="radius_xxl">32dp</dimen>
+    <!-- 胶囊：用 999dp 而不是 100% —— ShapeableImageView / MaterialCardView
+         在任意一边不等长时，100% 会变成椭圆，999dp 永远是胶囊 -->
+    <dimen name="radius_pill">999dp</dimen>
+
+    <!-- ===================== 描边 ===================== -->
+    <dimen name="stroke_hairline">1dp</dimen>
+    
+    <dimen name="stroke_emphasis">2dp</dimen>
+    <dimen name="stroke_thick">2dp</dimen>
+    <dimen name="stroke_focus_ring">3dp</dimen>
+
+    <!-- ===================== 触控目标 ===================== -->
+    
+    <dimen name="touch_target_min">48dp</dimen>
+    <dimen name="touch_target_comfortable">56dp</dimen>
+
+    <!-- 图标 -->
+    <dimen name="icon_xs">16dp</dimen>
+    <dimen name="icon_s">20dp</dimen>
+    <dimen name="icon_m">24dp</dimen>
+    <dimen name="icon_l">32dp</dimen>
+    <dimen name="icon_xl">48dp</dimen>
+
+    <!-- ===================== 字号 ===================== -->
+
+    <dimen name="text_display">32sp</dimen>
+    <dimen name="text_title_l">22sp</dimen>
+    <dimen name="text_title_m">18sp</dimen>
+    <dimen name="text_body_l">16sp</dimen>
+    <dimen name="text_body_m">14sp</dimen>
+    <dimen name="text_caption">12sp</dimen>
+    <dimen name="text_micro">10sp</dimen>
+
+    
+    <dimen name="text_numeric_xl">40sp</dimen>
+    <dimen name="text_numeric_l">28sp</dimen>
+    <dimen name="text_numeric_m">20sp</dimen>
+
+    <!-- ===================== 液体玻璃参数 ===================== -->
+
+
+
+    <dimen name="glass_blur_radius">18dp</dimen>
+    <dimen name="glass_refraction_height">1.6dp</dimen>
+    <!-- 折射偏移：色散效果靠它把 RGB 三通道错开，单位 dp -->
+    <dimen name="glass_refraction_offset">0.9dp</dimen>
+    <!-- 色散强度 0~1，不是长度单位，用 float -->
+    <item name="glass_dispersion" format="float" type="dimen">0.35</item>
+    <!-- 叠色透明度 0~1（夜间默认 0.14，日间在 values/ 里覆盖为 0.42，见 colors.xml） -->
+    <item name="glass_tint_alpha" format="float" type="dimen">0.14</item>
+    <!-- 液态（法线扰动）模糊强度 0~1 -->
+    <item name="glass_liquid_blur" format="float" type="dimen">0.5</item>
+
+    <!-- ===================== 其他 ===================== -->
+    <dimen name="elevation_card">2dp</dimen>
+
+
+    <dimen name="elevation_card_glow">10dp</dimen>
+    <!-- 悬浮胶囊导航：离底 12dp、高 64dp（报告 .tabbar） -->
+    <dimen name="tabbar_height">64dp</dimen>
+    <dimen name="tabbar_bottom_gap">12dp</dimen>
+    <!-- 主按钮高 50dp（报告：48–52px） -->
+    <dimen name="button_primary_height">50dp</dimen>
+    <dimen name="elevation_sheet">8dp</dimen>
+    <dimen name="elevation_dialog">16dp</dimen>
+
+    <dimen name="avatar_s">28dp</dimen>
+    <dimen name="avatar_m">36dp</dimen>
+    <dimen name="avatar_l">48dp</dimen>
+    <dimen name="avatar_xl">72dp</dimen>
+
+</resources>
