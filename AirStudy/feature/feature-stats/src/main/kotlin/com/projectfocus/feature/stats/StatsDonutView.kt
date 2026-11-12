@@ -155,7 +155,6 @@ class StatsDonutView @JvmOverloads constructor(context: Context, attrs: Attribut
         arcPaint.strokeWidth = ringWidth
         if (slices.isEmpty()) {
             arcPaint.color = visual.color(UiR.color.statistics_ring_empty)
-            arcPaint.alpha = 255
             canvas.drawArc(area, -90f, 360f, false, arcPaint)
         } else {
             slices.forEachIndexed { index, slice ->

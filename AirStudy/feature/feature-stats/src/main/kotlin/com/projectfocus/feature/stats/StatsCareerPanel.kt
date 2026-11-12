@@ -156,7 +156,7 @@ class StatsCareerPanel @JvmOverloads constructor(context: Context, attrs: Attrib
         cities.take(5).forEachIndexed { index, city ->
             val tile = column(12, 11, false)
             tile.addView(number(20f, 12).apply { showStatic(city.arrivals.toString()) }, full())
-            tile.addView(visual.text(11f, visual.tertiaryText).apply { text = city.name; setSingleLine(true); ellipsize = TextUtils.TruncateAt.END }, full(5))
+            tile.addView(visual.text(11f, visual.tertiaryText).apply { text = city.name; setSingleLine(false); ellipsize = null }, full(5))
             tile.contentDescription = city.name + " " + context.getString(R.string.stats_times_fmt, city.arrivals)
             cityRows.addView(tile, LayoutParams(0, -2, 1f).apply { if (index > 0) leftMargin = visual.dp(8) })
         }
@@ -165,7 +165,7 @@ class StatsCareerPanel @JvmOverloads constructor(context: Context, attrs: Attrib
             countryHighlight.addView(LinearLayout(context).apply {
                 orientation = VERTICAL
                 addView(visual.text(11f, visual.tertiaryText).apply { setText(R.string.stats_top_country_most_visited_label) })
-                addView(visual.text(15f, visual.primaryText, true).apply { text = countryName(row.country); setSingleLine(true); ellipsize = TextUtils.TruncateAt.END }, full(2))
+                addView(visual.text(15f, visual.primaryText, true).apply { text = countryName(row.country); setSingleLine(false); ellipsize = null }, full(2))
             }, LayoutParams(0, -2, 1f).apply { leftMargin = visual.dp(12) })
             countryHighlight.addView(number(20f).apply { showStatic(if (row.totalAirports > 0) "${row.visitedAirports}/${row.totalAirports}" else row.visitedAirports.toString()) })
         }
@@ -174,7 +174,7 @@ class StatsCareerPanel @JvmOverloads constructor(context: Context, attrs: Attrib
             val container = LinearLayout(context).apply { orientation = VERTICAL; isFocusable = true; tag = row.country }
             val header = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
             header.addView(flag(22, 15))
-            header.addView(visual.text(13f).apply { text = countryName(row.country); setSingleLine(true); ellipsize = TextUtils.TruncateAt.END }, LayoutParams(0, -2, 1f).apply { leftMargin = visual.dp(8) })
+            header.addView(visual.text(13f).apply { text = countryName(row.country); setSingleLine(false); ellipsize = null }, LayoutParams(0, -2, 1f).apply { leftMargin = visual.dp(8) })
             header.addView(visual.text(13f, visual.secondaryText, true).apply { text = row.visitedAirports.toString() })
             container.addView(header, full())
             val fraction = if (maximum > 0) maxOf(.04f, row.visitedAirports.toFloat() / maximum) else .04f

@@ -3,7 +3,6 @@ package com.projectfocus.feature.stats
 import android.animation.ValueAnimator
 import android.content.Context
 import android.graphics.Canvas
-import android.text.TextUtils
 import android.util.AttributeSet
 import android.view.Gravity
 import android.view.View
@@ -11,6 +10,7 @@ import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
+import com.projectfocus.core.ui.sky.SkyPressFeedback
 
 class StatsScenePanel @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : LinearLayout(context, attrs) {
     private val visual = StatsVisual(context)
@@ -31,14 +31,20 @@ class StatsScenePanel @JvmOverloads constructor(context: Context, attrs: Attribu
         setPadding(visual.dp(16), visual.dp(16), visual.dp(16), visual.dp(16))
         background = visual.card(18)
         elevation = visual.dp(2).toFloat()
-        val heading = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
-        title.setSingleLine(true); title.ellipsize = TextUtils.TruncateAt.END
-        heading.addView(title, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
+        val stackedHeading = resources.configuration.fontScale >= 1.3f
+        val heading = LinearLayout(context).apply {
+            orientation = if(stackedHeading) VERTICAL else HORIZONTAL
+            gravity = if(stackedHeading) Gravity.START else Gravity.CENTER_VERTICAL
+        }
+        heading.addView(title, if(stackedHeading) LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT)
+            else LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
         toggle.apply {
             gravity = Gravity.CENTER
-            minHeight = visual.dp(32)
+            minHeight = visual.dp(48)
+            minWidth = visual.dp(48)
             setPadding(visual.dp(12), 0, visual.dp(12), 0)
             background = selectionBackground()
+            SkyPressFeedback.install(this)
             isFocusable = true
             setOnClickListener {
                 val state = bound ?: return@setOnClickListener
@@ -53,7 +59,9 @@ class StatsScenePanel @JvmOverloads constructor(context: Context, attrs: Attribu
                 }
             }
         }
-        heading.addView(toggle, LayoutParams(LayoutParams.WRAP_CONTENT, visual.dp(32)))
+        heading.addView(toggle, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT).apply {
+            if(stackedHeading)topMargin=visual.dp(4)
+        })
         addView(heading, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
         addView(subtitle, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { topMargin = visual.dp(4) })
         addView(chart, LayoutParams(LayoutParams.MATCH_PARENT, visual.dp(300)).apply { topMargin = visual.dp(4) })
@@ -96,6 +104,7 @@ class StatsScenePanel @JvmOverloads constructor(context: Context, attrs: Attribu
             val name = labels.label(entry.key,entry.iconKey)
             val row = LinearLayout(context).apply {
                 orientation = VERTICAL
+                minimumHeight = visual.dp(48)
                 setPadding(visual.dp(4),visual.dp(12),visual.dp(4),visual.dp(11))
                 tag = entry.key
                 isSelected = entry.key == state.selectedSceneKey
@@ -106,13 +115,28 @@ class StatsScenePanel @JvmOverloads constructor(context: Context, attrs: Attribu
             val header = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
             header.addView(ImageView(context).apply { setImageResource(labels.icon(entry.iconKey));setColorFilter(color) },
                 LayoutParams(visual.dp(22),visual.dp(22)))
-            header.addView(visual.text(13f,visual.primaryText,true).apply {
-                text = name;setSingleLine(true);ellipsize = TextUtils.TruncateAt.END
-            },LayoutParams(0,LayoutParams.WRAP_CONTENT,1f).apply { leftMargin = visual.dp(10) })
+            val nameLabel = visual.text(13f,visual.primaryText,true).apply {
+                text = name;tag = "stats-scene-name"
+            }
             val details = context.getString(R.string.stats_scene_time_count_pct_fmt,
                 StatsFocusText.rich(context,entry.focusMinutes,visual.secondaryText).toString(),entry.completedFlights,
                 context.getString(R.string.stats_percent_value_fmt,Math.round(percentage)))
-            header.addView(visual.text(11f,visual.secondaryText).apply { text = details })
+            val detailsLabel = visual.text(11f,visual.secondaryText).apply {
+                text = details;tag = "stats-scene-details"
+            }
+            if(resources.configuration.fontScale >= 1.3f || resources.configuration.screenWidthDp < 360) {
+                val detailColumn = LinearLayout(context).apply {
+                    orientation = VERTICAL
+                    addView(nameLabel,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT))
+                    addView(detailsLabel,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT).apply {
+                        topMargin=visual.dp(4)
+                    })
+                }
+                header.addView(detailColumn,LayoutParams(0,LayoutParams.WRAP_CONTENT,1f).apply { leftMargin=visual.dp(10) })
+            } else {
+                header.addView(nameLabel,LayoutParams(0,LayoutParams.WRAP_CONTENT,1f).apply { leftMargin=visual.dp(10) })
+                header.addView(detailsLabel)
+            }
             row.addView(header,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT))
             val rail = FrameLayout(context).apply { background = solid(color,.14f) }
             val fill = View(context).apply { background = solid(color,1f);pivotX = 0f;scaleX = 0f }

@@ -98,7 +98,7 @@ class StatsInsightsPanel @JvmOverloads constructor(context: Context, attrs: Attr
             orientation=VERTICAL
             addView(visual.text(11f,visual.secondaryText).apply { setText(caption) })
             addView(visual.text(15f,visual.primaryText,true).apply {
-                tag="$key-value";text=value;maxLines=1;ellipsize=TextUtils.TruncateAt.END
+                tag="$key-value";text=value;setSingleLine(false);ellipsize=null
             },LayoutParams(-1,-2).apply { topMargin=visual.dp(3) })
         },LayoutParams(0,-2,1f).apply { leftMargin=visual.dp(12) })
         style.append(rows,row)
@@ -150,10 +150,10 @@ class StatsHighlightsPanel @JvmOverloads constructor(context: Context, attrs: At
             row.addView(rank,LayoutParams(visual.dp(38),visual.dp(38)))
             val scene=item.scene;val category=scene?.iconKey ?: "study"
             row.addView(style.icon(labels.icon(category),labels.color(category),34,18),LayoutParams(visual.dp(34),visual.dp(34)).apply { leftMargin=visual.dp(9) })
-            row.addView(LinearLayout(context).apply {
+            val details=LinearLayout(context).apply {
                 orientation=VERTICAL
                 addView(visual.text(14f,visual.primaryText,true).apply {
-                    tag="stats-highlight-scene";text=labels.label(scene?.key ?: "study",category);setSingleLine(true);ellipsize=TextUtils.TruncateAt.END
+                    tag="stats-highlight-scene";text=labels.label(scene?.key ?: "study",category);setSingleLine(false);ellipsize=null
                 })
                 addView(visual.text(11f,visual.tertiaryText).apply {
                     tag="stats-highlight-date"
@@ -162,8 +162,12 @@ class StatsHighlightsPanel @JvmOverloads constructor(context: Context, attrs: At
                         style.date(item.startedAtWallMs,if(year==today)65552 else 65556,zone)
                     }
                 })
-            },LayoutParams(0,-2,1f).apply { leftMargin=visual.dp(10) })
-            row.addView(visual.text(15f,visual.accent,true).apply { tag="stats-highlight-duration";text=style.duration(item.focusMinutes) })
+            }
+            row.addView(details,LayoutParams(0,-2,1f).apply { leftMargin=visual.dp(10) })
+            val duration=visual.text(15f,visual.accent,true).apply { tag="stats-highlight-duration";text=style.duration(item.focusMinutes) }
+            if(resources.configuration.fontScale>=1.3f || resources.configuration.screenWidthDp<360) {
+                details.addView(duration,LayoutParams(-1,-2).apply { topMargin=visual.dp(4) })
+            } else row.addView(duration)
             style.append(rows,row)
         }
     }

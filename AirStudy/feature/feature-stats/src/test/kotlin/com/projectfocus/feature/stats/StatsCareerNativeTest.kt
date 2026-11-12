@@ -93,7 +93,12 @@ class StatsCareerNativeTest {
         for(i in 0 until panel.cityRows.childCount) assertTrue(panel.cityRows.getChildAt(i).right<=panel.cityRows.width)
         assertTrue(panel.cityScroll.canScrollHorizontally(1))
         val caption=(panel.cityRows.getChildAt(0) as LinearLayout).getChildAt(1) as android.widget.TextView
-        assertTrue(caption.layout.getEllipsisStart(0)>0 || caption.paint.measureText(caption.text.toString())<=caption.width)
+        assertEquals("很长的城市名称 1",caption.text.toString())
+        assertTrue(caption.layout.lineCount>1)
+        for(line in 0 until caption.layout.lineCount) {
+            assertEquals(0,caption.layout.getEllipsisCount(line))
+            assertTrue(caption.layout.getLineWidth(line)<=caption.width+1f)
+        }
         panel.cityScroll.scrollTo(panel.cityRows.width,0);layout()
         assertTrue(panel.cityScroll.scrollX>0)
         panel.cityScroll.scrollTo(0,0)

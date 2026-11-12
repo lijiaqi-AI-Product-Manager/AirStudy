@@ -3,7 +3,6 @@ package com.projectfocus.feature.stats
 import android.animation.ValueAnimator
 import android.content.Context
 import android.util.AttributeSet
-import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.animation.PathInterpolator
@@ -12,14 +11,15 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
-import androidx.core.widget.TextViewCompat
+import com.projectfocus.core.ui.sky.SkyPressFeedback
+import com.projectfocus.core.ui.sky.SkySurfaces
 import java.time.ZoneId
 
 class StatsDateControls @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null) : LinearLayout(context, attrs) {
     private val visual = StatsVisual(context)
     private val track = FrameLayout(context)
     private val indicator = View(context)
-    private val tabs = LinearLayout(context)
+    private val tabs = StatsPeriodTabsLayout(context)
     private var selected = StatsPeriod.WEEK.ordinal
     private var colorsBound = false
     private var colorAnimator: ValueAnimator? = null
@@ -50,8 +50,6 @@ class StatsDateControls @JvmOverloads constructor(context: Context, attrs: Attri
         indicator.elevation = visual.dp(2).toFloat()
         indicator.visibility = INVISIBLE
         track.addView(indicator, FrameLayout.LayoutParams(0, visual.dp(34)))
-        tabs.orientation = HORIZONTAL
-        tabs.gravity = Gravity.CENTER_VERTICAL
         tabs.elevation = visual.dp(2).toFloat()
         val labels = listOf(R.string.stats_period_day, R.string.stats_period_week, R.string.stats_period_month,
             R.string.stats_period_year, R.string.stats_period_custom)
@@ -63,24 +61,21 @@ class StatsDateControls @JvmOverloads constructor(context: Context, attrs: Attri
                 setHorizontallyScrolling(false)
                 isClickable = true
                 isFocusable = true
-                TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(this, 10, 12, 1, TypedValue.COMPLEX_UNIT_SP)
+                SkyPressFeedback.install(this)
                 setOnClickListener { if (isEnabled) onPeriodRequested?.invoke(StatsPeriod.entries[index]) }
-                tabs.addView(this, LayoutParams(0, LayoutParams.MATCH_PARENT, 1f))
+                tabs.addView(this, android.view.ViewGroup.LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.MATCH_PARENT))
             }
         }
         track.addView(tabs, FrameLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT).apply {
             setMargins(visual.dp(3), visual.dp(3), visual.dp(3), visual.dp(3))
         })
-        addView(track, LayoutParams(LayoutParams.MATCH_PARENT, visual.dp(40)))
-        val navigation = LinearLayout(context).apply {
-            orientation = HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(0, visual.dp(1), 0, visual.dp(1))
-        }
+        addView(track, LayoutParams(LayoutParams.MATCH_PARENT, visual.dp(58)))
+        val navigation = StatsDateNavigationLayout(context)
         fun arrow(icon: Int, label: Int, direction: Int) = ImageButton(context).apply {
             setImageResource(icon)
             setColorFilter(visual.secondaryText)
-            setBackgroundColor(android.graphics.Color.TRANSPARENT)
+            SkySurfaces.secondary(this,24f)
+            SkyPressFeedback.install(this)
             setPadding(visual.dp(10), visual.dp(10), visual.dp(10), visual.dp(10))
             contentDescription = context.getString(label)
             setOnClickListener { if (isEnabled) onMoveRequested?.invoke(direction) }
@@ -89,26 +84,28 @@ class StatsDateControls @JvmOverloads constructor(context: Context, attrs: Attri
         next = arrow(R.drawable.stats_ic_next, R.string.stats_next_period, 1)
         rangeLabel = visual.text(14f, visual.primaryText, true).apply {
             gravity = Gravity.CENTER
-            setSingleLine(true)
-            ellipsize = android.text.TextUtils.TruncateAt.END
+            setSingleLine(false)
+            ellipsize = null
         }
-        navigation.addView(previous, LayoutParams(visual.dp(40), visual.dp(40)))
-        navigation.addView(rangeLabel, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
-        navigation.addView(next, LayoutParams(visual.dp(40), visual.dp(40)))
+        navigation.addView(previous, android.view.ViewGroup.LayoutParams(visual.dp(48),visual.dp(48)))
+        navigation.addView(rangeLabel, android.view.ViewGroup.LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT))
+        navigation.addView(next, android.view.ViewGroup.LayoutParams(visual.dp(48),visual.dp(48)))
         addView(navigation, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { topMargin = visual.dp(9) })
         sceneFilter.apply {
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(visual.dp(12), 0, visual.dp(8), 0)
+            setPadding(visual.dp(12),visual.dp(6),visual.dp(8),visual.dp(6))
+            minimumHeight=SkySurfaces.dp(context,48f)
+            SkyPressFeedback.install(this)
             visibility = GONE
             isFocusable = true
             addView(sceneIcon, LayoutParams(visual.dp(16), visual.dp(16)).apply { rightMargin = visual.dp(8) })
-            sceneFilterLabel.apply { gravity = Gravity.CENTER_VERTICAL; setSingleLine(true); ellipsize = android.text.TextUtils.TruncateAt.END }
-            addView(sceneFilterLabel, LayoutParams(0, visual.dp(34), 1f))
+            sceneFilterLabel.apply { gravity = Gravity.CENTER_VERTICAL; setSingleLine(false); ellipsize = null }
+            addView(sceneFilterLabel, LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f))
             clearIcon.setImageResource(com.projectfocus.core.ui.R.drawable.pf_scene_ic_close)
             clearIcon.contentDescription = context.getString(R.string.stats_clear_scenario_filter)
             addView(clearIcon, LayoutParams(visual.dp(16), visual.dp(16)))
         }
-        addView(sceneFilter, LayoutParams(LayoutParams.MATCH_PARENT, visual.dp(34)).apply { topMargin = visual.dp(8) })
+        addView(sceneFilter, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply { topMargin = visual.dp(8) })
         readyForVisibility = true
     }
 
@@ -157,7 +154,7 @@ class StatsDateControls @JvmOverloads constructor(context: Context, attrs: Attri
             sceneIcon.setColorFilter(color)
             clearIcon.setColorFilter(color)
             sceneFilterLabel.text = sceneLabels.label(state.selectedSceneKey)
-            sceneFilterLabel.setTextColor(color)
+            sceneFilterLabel.setTextColor(visual.primaryText)
             sceneFilter.background = visual.rounded(16, intArrayOf(visual.alpha(color, 0.12f), visual.alpha(color, 0.12f)), visual.alpha(color, 0.28f))
             sceneFilter.contentDescription = "${sceneFilterLabel.text}，${context.getString(R.string.stats_clear_scenario_filter)}"
             sceneFilter.setOnClickListener {
@@ -181,16 +178,23 @@ class StatsDateControls @JvmOverloads constructor(context: Context, attrs: Attri
         if (cell.width == 0 || track.height == 0) return
         indicator.layoutParams = (indicator.layoutParams as FrameLayout.LayoutParams).apply {
             width = cell.width
-            height = (track.height - visual.dp(6)).coerceAtLeast(0)
+            height = cell.height
             leftMargin = visual.dp(3)
             topMargin = visual.dp(3)
         }
-        indicator.layout(visual.dp(3),visual.dp(3),visual.dp(3)+cell.width,track.height-visual.dp(3))
+        indicator.layout(visual.dp(3),visual.dp(3),visual.dp(3)+cell.width,visual.dp(3)+cell.height)
         indicator.animate().cancel()
         val destination = cell.left.toFloat()
-        if (animate && ValueAnimator.areAnimatorsEnabled()) indicator.animate().translationX(destination).setDuration(300).setInterpolator(motion).start()
-        else indicator.translationX = destination
+        if (animate && ValueAnimator.areAnimatorsEnabled()) indicator.animate().translationX(destination).translationY(cell.top.toFloat()).setDuration(300).setInterpolator(motion).start()
+        else { indicator.translationX = destination;indicator.translationY=cell.top.toFloat() }
         indicator.visibility = VISIBLE
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int,heightMeasureSpec: Int) {
+        val available=(View.MeasureSpec.getSize(widthMeasureSpec)-paddingLeft-paddingRight-visual.dp(6)).coerceAtLeast(0)
+        val height=tabs.requiredHeight(available)+visual.dp(6)
+        if(track.layoutParams.height!=height)track.layoutParams=track.layoutParams.apply { this.height=height }
+        super.onMeasure(widthMeasureSpec,heightMeasureSpec)
     }
 
     override fun onLayout(changed: Boolean, left: Int, top: Int, right: Int, bottom: Int) {

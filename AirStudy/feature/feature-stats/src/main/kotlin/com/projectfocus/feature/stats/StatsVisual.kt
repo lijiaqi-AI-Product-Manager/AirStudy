@@ -13,15 +13,15 @@ internal class StatsVisual(val context: Context) {
     fun dp(value: Float) = (value * context.resources.displayMetrics.density).toInt()
     fun dp(value: Int) = dp(value.toFloat())
     fun color(id: Int) = ContextCompat.getColor(context, id)
-    val background get() = color(UiR.color.stats_background)
-    val surface get() = color(UiR.color.stats_surface)
-    val secondarySurface get() = color(UiR.color.stats_secondary_surface)
-    val border get() = color(UiR.color.stats_border)
-    val primaryText get() = color(UiR.color.stats_text_primary)
-    val secondaryText get() = color(UiR.color.stats_text_secondary)
-    val tertiaryText get() = color(UiR.color.stats_text_tertiary)
-    val accent get() = color(UiR.color.stats_accent)
-    val selectedSurface get() = color(UiR.color.stats_selected_surface)
+    val background get() = color(UiR.color.sky_canvas)
+    val surface get() = color(UiR.color.sky_card_solid)
+    val secondarySurface get() = color(UiR.color.sky_selected)
+    val border get() = color(UiR.color.sky_divider)
+    val primaryText get() = color(UiR.color.sky_ink)
+    val secondaryText get() = mix(color(UiR.color.sky_ink_secondary), primaryText, 0.16f)
+    val tertiaryText get() = secondaryText
+    val accent get() = color(UiR.color.sky_primary)
+    val selectedSurface get() = color(UiR.color.sky_selected)
     val onAccent get() = if (androidx.core.graphics.ColorUtils.calculateContrast(Color.WHITE, accent) >=
         androidx.core.graphics.ColorUtils.calculateContrast(Color.BLACK, accent)) Color.WHITE else Color.BLACK
     fun alpha(color: Int, amount: Float) = androidx.core.graphics.ColorUtils.setAlphaComponent(color, (255 * amount).roundToInt())
@@ -37,7 +37,7 @@ internal class StatsVisual(val context: Context) {
             cornerRadius = dp(radius).toFloat()
             if (stroke != null) setStroke(dp(1), stroke)
         }
-    fun card(radius: Int = 16) = rounded(radius, intArrayOf(mix(surface, background, 0.015f), mix(surface, background, 0.075f)), alpha(border, 0.3f))
+    fun card(radius: Int = 24) = rounded(radius, intArrayOf(color(UiR.color.sky_card_top), color(UiR.color.sky_card_bottom)), color(UiR.color.sky_edge))
     fun secondary(radius: Int) = StatsSurfaceDrawable(this, radius.toFloat())
     fun selected(radius: Int) = rounded(radius, intArrayOf(accent, mix(accent, onAccent, 0.1f)), alpha(onAccent, 0.46f), GradientDrawable.Orientation.LEFT_RIGHT)
     fun dayEndpoint() = rounded(6, intArrayOf(mix(accent, onAccent, 0.1f), accent), alpha(onAccent, 0.44f))

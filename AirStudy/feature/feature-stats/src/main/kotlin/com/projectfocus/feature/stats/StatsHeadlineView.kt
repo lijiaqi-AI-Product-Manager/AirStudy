@@ -3,7 +3,6 @@ package com.projectfocus.feature.stats
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.drawable.GradientDrawable
-import android.text.TextUtils
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.Gravity
@@ -31,14 +30,21 @@ class StatsHeadlineView @JvmOverloads constructor(context: Context, attrs: Attri
         setPadding(visual.dp(18),visual.dp(18),visual.dp(18),visual.dp(18))
         background = visual.card(22)
         elevation = visual.dp(2).toFloat()
-        val top = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
-        periodLabel = visual.text(13f,visual.secondaryText).apply { maxLines = 1; ellipsize = TextUtils.TruncateAt.END }
+        val stackedHeading = resources.configuration.fontScale >= 1.3f
+        val top = LinearLayout(context).apply {
+            orientation = if(stackedHeading) VERTICAL else HORIZONTAL
+            gravity = if(stackedHeading) Gravity.START else Gravity.CENTER_VERTICAL
+        }
+        periodLabel = visual.text(13f,visual.secondaryText)
         comparisonLabel = visual.text(11f,visual.secondaryText,true).apply {
             setPadding(visual.dp(9),visual.dp(4),visual.dp(9),visual.dp(4))
             visibility = GONE
         }
-        top.addView(periodLabel,LayoutParams(0,LayoutParams.WRAP_CONTENT,1f))
-        top.addView(comparisonLabel)
+        top.addView(periodLabel,if(stackedHeading) LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.WRAP_CONTENT)
+            else LayoutParams(0,LayoutParams.WRAP_CONTENT,1f))
+        top.addView(comparisonLabel,LayoutParams(LayoutParams.WRAP_CONTENT,LayoutParams.WRAP_CONTENT).apply {
+            if(stackedHeading)topMargin=visual.dp(4)
+        })
         addView(top)
         val total = LinearLayout(context).apply { gravity = Gravity.BOTTOM }
         focus = StatsNumberView(context,38f).apply {

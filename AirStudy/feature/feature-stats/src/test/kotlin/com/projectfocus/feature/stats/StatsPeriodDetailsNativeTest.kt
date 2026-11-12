@@ -87,14 +87,22 @@ class StatsPeriodDetailsNativeTest {
     private fun assertReadable() {
         for(key in listOf("stats-insight-best-day","stats-insight-top-scene","stats-insight-top-period")) {
             val text=value(key);assertTrue(text.width>0);assertNotNull(text.layout)
-            assertTrue(text.layout.getLineWidth(0)<=text.width+1f)
-            if(text.layout.getEllipsisCount(0)>0)assertTrue(text.layout.getEllipsisStart(0)>0)
+            for(line in 0 until text.layout.lineCount) {
+                assertTrue(text.layout.getLineWidth(line)<=text.width+1f)
+                assertEquals(0,text.layout.getEllipsisCount(line))
+            }
         }
         for(index in 0 until highlights.rows.childCount) {
             val row=highlights.rows.getChildAt(index)
             val scene=row.findViewWithTag<TextView>("stats-highlight-scene")
             val duration=row.findViewWithTag<TextView>("stats-highlight-duration")
             assertTrue(scene.width>0);assertTrue(duration.right<=row.width-row.paddingRight)
+            for(text in listOf(scene,duration,row.findViewWithTag<TextView>("stats-highlight-date"))) {
+                for(line in 0 until text.layout.lineCount) {
+                    assertEquals(0,text.layout.getEllipsisCount(line))
+                    assertTrue(text.layout.getLineWidth(line)<=text.width+1f)
+                }
+            }
         }
     }
     @Test fun `real projection builds all insights and five ranked cards with source geometry`() {

@@ -132,7 +132,7 @@ class StatsSceneNativeTest {
     }
     @Test @Config(qualifiers="zh-rCN-w320dp-h640dp-night-mdpi")
     fun `narrow night display fits a selected custom scene and exposes a separate clear action`() {
-        val scene=StatsSceneEntry("一个较长的自定义专注场景名称","custom","programming",123456.0,20000)
+        val scene=StatsSceneEntry("一个较长的自定义专注场景名称与每周学习计划","custom","programming",123456.0,20000)
         val selected=state().copy(selectedSceneKey=scene.key,periodScenes=listOf(scene),allTimeScenes=listOf(scene))
         var clears=0
         controls.onClearSceneRequested={ _,_->clears++ }
@@ -143,6 +143,18 @@ class StatsSceneNativeTest {
         assertTrue(panel.legend.getChildAt(0).isSelected)
         assertEquals("一个较长的自定…",panel.chart.slices.single().label)
         assertTrue(controls.sceneFilterLabel.width>0)
+        assertTrue(panel.toggle.width>=48 && panel.toggle.height>=48)
+        val legendRow=panel.legend.getChildAt(0) as ViewGroup
+        val name=legendRow.findViewWithTag<TextView>("stats-scene-name")
+        val details=legendRow.findViewWithTag<TextView>("stats-scene-details")
+        assertEquals(scene.key,name.text.toString())
+        assertTrue(name.layout.lineCount>1)
+        for(label in listOf(name,details,controls.sceneFilterLabel)) {
+            for(line in 0 until label.layout.lineCount) {
+                assertEquals(0,label.layout.getEllipsisCount(line))
+                assertTrue(label.layout.getLineWidth(line)<=label.width-label.paddingLeft-label.paddingRight+1f)
+            }
+        }
         capture("statistics-scenes-night-narrow")
         controls.sceneFilter.performClick()
         assertEquals(1,clears)
@@ -185,7 +197,7 @@ class StatsSceneNativeTest {
         assertTrue(texts(panel.legend).contains("0m · 1次 · 0%"))
         val bitmap=Bitmap.createBitmap(panel.chart.width,panel.chart.height,Bitmap.Config.ARGB_8888)
         panel.chart.draw(Canvas(bitmap))
-        assertEquals(android.graphics.Color.BLACK,bitmap.getPixel(panel.chart.width/2+95,panel.chart.height/2))
+        assertEquals(activity.getColor(UiR.color.statistics_ring_empty),bitmap.getPixel(panel.chart.width/2+95,panel.chart.height/2))
         bitmap.recycle()
     }
 }
