@@ -420,8 +420,20 @@ class StatisticsDateFlowTest {
     private fun await(condition: () -> Boolean) {
         val end=System.nanoTime()+TimeUnit.SECONDS.toNanos(15)
         while(!condition() && System.nanoTime()<end) { idle();Thread.sleep(10) }
-        idle();assertTrue("Statistics date state did not reach the expected page result",condition());layout()
+        idle();assertTrue("Statistics date state did not reach the expected page result; " + stateDiagnostic(),condition());layout()
     }
+    private fun stateDiagnostic(): String = runCatching {
+        val host = activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+        val page = host.childFragmentManager.primaryNavigationFragment as StatsFragment
+        val state = ViewModelProvider(page)[StatsViewModel::class.java].state.value
+        val rendered: com.projectfocus.feature.stats.StatsUiState? = org.robolectric.util.ReflectionHelpers.getField(page, "lastState")
+        "generation=${TokenStore.snapshot().generation}, modelAccount=${state.account}, loading=${state.isLoading}, " +
+            "career=${state.career?.completedFlights}, scene=${state.selectedSceneKey}, allCountries=${state.coverage.allCountries}, " +
+            "renderedAccount=${rendered?.account}, renderedCareer=${rendered?.career?.completedFlights}, " +
+            "rows=${activity.findViewById<StatsCareerPanel>(StatsR.id.statsCareerPanel).countryRows.childCount}, " +
+            "lifecycle=${page.viewLifecycleOwner.lifecycle.currentState}"
+    }.getOrElse { it.toString() }
+
     private fun layout() {
         val root=activity.findViewById<ViewGroup>(android.R.id.content)
         val density=activity.resources.displayMetrics.density

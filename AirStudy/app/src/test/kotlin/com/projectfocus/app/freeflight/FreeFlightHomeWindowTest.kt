@@ -166,7 +166,7 @@ class FreeFlightHomeWindowTest {
         activity.findViewById<View>(FlightR.id.pf_flight_pause).performClick()
         await("Actual archive resumed") { graph.repository().state.value?.clock?.pause == null }
         assertTrue(activity.sessionRepository.state.value is SessionState.Idle)
-        await("Actual HUD reflects resumed state") { activity.findViewById<View>(FlightR.id.pf_flight_pause_overlay).visibility == View.GONE }
+        await("Actual HUD reflects resumed state") { activity.findViewById<View>(FlightR.id.pf_flight_pause).contentDescription == activity.getString(FlightR.string.pf_flight_pause) }
         capture("freeflight-actual-home-running")
         activity.findViewById<View>(FlightR.id.pf_flight_pause).performClick()
         await("Actual archive paused") { graph.repository().state.value?.clock?.pause == FreeFlightPause.USER }
