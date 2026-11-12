@@ -64,6 +64,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        RecordSkyPresentation.page(view)
         val back = object : OnBackPressedCallback(false) {
             override fun handleOnBackPressed() {
                 if (loginGate?.isOpen == true) loginGate?.close() else preview?.close()
@@ -243,6 +244,7 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
             else -> R.string.pf_record_page_no_records
         })
         hint.setOnClickListener(if (state.failed) View.OnClickListener { viewModel.retry() } else null)
+        RecordSkyPresentation.state(root, state.ready, state.failed)
         root.findViewById<View>(R.id.pf_record_page_stats_progress_container).visibility = View.GONE
         root.findViewById<View>(R.id.pf_record_page_page_indicator_container).visibility = if (state.ready && state.matchedCount > 0) View.VISIBLE else View.GONE
         root.findViewById<TextView>(R.id.pf_record_page_text_page_indicator).text = getString(R.string.pf_record_page_page_format, state.page)

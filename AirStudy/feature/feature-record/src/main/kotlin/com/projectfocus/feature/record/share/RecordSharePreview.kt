@@ -2,6 +2,7 @@ package com.projectfocus.feature.record.share
 
 import android.content.ActivityNotFoundException
 import android.content.Context
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -116,7 +117,8 @@ class RecordSharePreview(
             importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_NO
             if (Build.VERSION.SDK_INT >= 31) {
                 setRenderEffect(RenderEffect.createBlurEffect(30f, 30f, Shader.TileMode.MIRROR))
-            } else setColorFilter(Color.argb(120, 0, 0, 0), PorterDuff.Mode.SRC_ATOP)
+            }
+            setColorFilter(Color.argb(128, 9, 16, 32), PorterDuff.Mode.SRC_ATOP)
         }
         overlay.addView(backgroundView, FrameLayout.LayoutParams(-1, -1))
         val rootLocation = IntArray(2).also(content::getLocationInWindow)
@@ -138,6 +140,10 @@ class RecordSharePreview(
             id = R.id.pf_record_page_share_button
             setText(R.string.pf_record_page_share_card)
             icon = ContextCompat.getDrawable(context, android.R.drawable.ic_menu_share)
+            backgroundTintList = ColorStateList.valueOf(Color.rgb(34, 99, 212))
+            setTextColor(Color.WHITE)
+            iconTint = ColorStateList.valueOf(Color.WHITE)
+            minimumHeight = dp(52)
             elevation = 0f
             translationZ = 0f
             stateListAnimator = null

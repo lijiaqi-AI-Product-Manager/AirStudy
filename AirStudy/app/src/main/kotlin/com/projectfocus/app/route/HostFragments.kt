@@ -183,6 +183,7 @@ class RecordListHostFragment : Fragment(com.projectfocus.feature.record.R.layout
         tabs = com.google.android.material.tabs.TabLayoutMediator(tabLayout, pager) { tab, position ->
             tab.setText(if (position == 0) RecordR.string.pf_record_page_record_tab_records else RecordR.string.pf_record_page_record_tab_statistics)
         }.also { it.attach() }
+        com.projectfocus.feature.record.ui.RecordSkyPresentation.host(view)
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 kotlinx.coroutines.flow.combine(viewModel.state, TokenStore.identities) { state, identity -> state to identity }

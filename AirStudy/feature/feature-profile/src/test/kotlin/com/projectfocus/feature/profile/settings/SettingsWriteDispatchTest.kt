@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
@@ -13,17 +14,20 @@ import com.projectfocus.core.datastore.PrefKey
 import com.projectfocus.core.datastore.SettingsRepository
 import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -50,6 +54,7 @@ class SettingsWriteDispatchTest {
     private lateinit var main: TestDispatcher
     private val models = mutableListOf<ViewModelStore>()
     private val scopes = mutableListOf<CoroutineScope>()
+    private var storageTrace: TracedStore? = null
 
     @Before fun holdMainQueue() {
         main = StandardTestDispatcher()
@@ -68,27 +73,48 @@ class SettingsWriteDispatchTest {
     }
 
     @Test fun selectedOrientationPersistsBeforeMainQueueIsReleased() {
-        val repository = realRepository()
-        val model = model(repository)
-        val mainExecutions = AtomicInteger()
-        model.viewModelScope.launch { mainExecutions.incrementAndGet() }
-        model.set(PrefKey.ScreenOrientation, "portrait")
-        val actual = runBlocking(Dispatchers.IO) {
-            withTimeout(5000) { repository.observe(PrefKey.ScreenOrientation).first { it == "portrait" } }
+        repeat(8) { attempt ->
+            val repository = realRepository()
+            val model = model(repository)
+            val mainExecutions = AtomicInteger()
+            model.viewModelScope.launch { mainExecutions.incrementAndGet() }
+            model.set(PrefKey.ScreenOrientation, "portrait")
+            val actual = try {
+                runBlocking(Dispatchers.IO) {
+                    withTimeout(5000) {
+                        val committed = checkNotNull(storageTrace).commits.receive()
+                        assertEquals("portrait", committed[stringPreferencesKey(PrefKey.ScreenOrientation.name)])
+                        repository.read(PrefKey.ScreenOrientation)
+                    }
+                }
+            } catch (error: TimeoutCancellationException) {
+                throw AssertionError("Orientation did not reach durable storage before Main release; attempt=$attempt; " +
+                    "mainExecutions=${mainExecutions.get()}; message=${model.message.value}; " +
+                    "children=${model.viewModelScope.coroutineContext[Job]!!.children.toList()}; " +
+                    "storage=${storageTrace?.events}", error)
+            }
+            assertEquals("portrait", actual)
+            assertEquals("The Main queue was held throughout the durable write", 0, mainExecutions.get())
         }
-        assertEquals("portrait", actual)
-        assertEquals("The Main queue was held throughout the durable write", 0, mainExecutions.get())
     }
 
     @Test fun resetPersistsBeforeMainQueueIsReleased() {
         val repository = realRepository()
-        runBlocking(Dispatchers.IO) { repository.write(PrefKey.ThemeMode, "night") }
+        runBlocking(Dispatchers.IO) {
+            repository.write(PrefKey.ThemeMode, "night")
+            val seeded = withTimeout(5000) { checkNotNull(storageTrace).commits.receive() }
+            assertEquals("night", seeded[stringPreferencesKey(PrefKey.ThemeMode.name)])
+        }
         val model = model(repository)
         val mainExecutions = AtomicInteger()
         model.viewModelScope.launch { mainExecutions.incrementAndGet() }
         model.resetToDefaults()
         runBlocking(Dispatchers.IO) {
-            withTimeout(5000) { repository.observe(PrefKey.ThemeMode).first { it == PrefKey.ThemeMode.default } }
+            withTimeout(5000) {
+                val committed = checkNotNull(storageTrace).commits.receive()
+                assertNull(committed[stringPreferencesKey(PrefKey.ThemeMode.name)])
+                assertEquals(PrefKey.ThemeMode.default, repository.read(PrefKey.ThemeMode))
+            }
             withTimeout(5000) { model.message.first { it == SettingsMessage.ResetDone } }
         }
         assertEquals(0, mainExecutions.get())
@@ -128,8 +154,11 @@ class SettingsWriteDispatchTest {
 
     private fun realRepository(): SettingsRepository {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO).also { scopes += it }
-        return SettingsRepository(PreferenceDataStoreFactory.create(scope = scope,
-            produceFile = { File(files.root, "settings.preferences_pb") }))
+        val folder = files.newFolder()
+        val traced = TracedStore(PreferenceDataStoreFactory.create(scope = scope,
+            produceFile = { File(folder, "settings.preferences_pb") }))
+        storageTrace = traced
+        return SettingsRepository(traced)
     }
 
     private fun model(repository: SettingsRepository): SettingsViewModel {
@@ -139,6 +168,27 @@ class SettingsWriteDispatchTest {
             override fun <T : ViewModel> create(modelClass: Class<T>): T = SettingsViewModel(repository) as T
         }
         return ViewModelProvider(store, factory)[SettingsViewModel::class.java]
+    }
+
+    private class TracedStore(private val delegate: DataStore<Preferences>) : DataStore<Preferences> {
+        val events = ConcurrentLinkedQueue<String>()
+        val commits = Channel<Preferences>(Channel.UNLIMITED)
+        override val data = delegate.data.onEach { events += "observed=$it" }
+        override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+            events += "submitted:${Thread.currentThread().name}"
+            try {
+                return delegate.updateData { current ->
+                    events += "transform:${Thread.currentThread().name}"
+                    transform(current)
+                }.also {
+                    events += "committed=$it"
+                    check(commits.trySend(it).isSuccess)
+                }
+            } catch (error: Throwable) {
+                events += "failed:${error.javaClass.simpleName}:${error.message}"
+                throw error
+            }
+        }
     }
 
     /** Acknowledgements are held separately to reproduce overlapping user choices. */

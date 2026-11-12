@@ -10,6 +10,7 @@ import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.card.MaterialCardView
 import com.projectfocus.feature.record.R
+import com.projectfocus.core.ui.R as UiR
 import com.projectfocus.feature.record.list.FlightStatus
 import com.projectfocus.feature.record.list.RecordItem
 import com.projectfocus.feature.scene.source.SourceSceneCatalog
@@ -22,13 +23,13 @@ class RecordCardView @JvmOverloads constructor(
 ) : MaterialCardView(context, attrs, defStyleAttr) {
     init {
         LayoutInflater.from(context).inflate(R.layout.pf_record_card_content, this, true)
-        radius = 10f * resources.displayMetrics.density
+        radius = 24f * resources.displayMetrics.density
         useCompatPadding = true
         strokeWidth = (resources.displayMetrics.density + 0.5f).toInt()
         isClickable = true
         isFocusable = true
         layoutParams = RecyclerView.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
-            topMargin = (12f * resources.displayMetrics.density + 0.5f).toInt()
+            topMargin = (4f * resources.displayMetrics.density + 0.5f).toInt()
             bottomMargin = topMargin
         }
     }
@@ -52,16 +53,19 @@ class RecordCardView @JvmOverloads constructor(
     private val sceneEdit = findViewById<View>(R.id.pf_record_card_img_focus_scene_edit)
     private val cloud = findViewById<View>(R.id.pf_record_card_img_archive_cloud_icon)
 
-    init { bind(null) }
+    init {
+        RecordSkyPresentation.ticket(this)
+        bind(null)
+    }
 
     fun bind(item: RecordItem?, onSceneEdit: ((View, RecordItem) -> Unit)? = null,
              sceneEditingEnabled: Boolean = true) {
         val unknown = context.getString(R.string.pf_record_card_common_na)
-        setCardBackgroundColor(color(R.color.pf_record_card_surface))
-        strokeColor = color(R.color.pf_record_card_stroke)
+        setCardBackgroundColor(color(UiR.color.sky_card_solid))
+        strokeColor = color(UiR.color.sky_divider)
         listOf(distance, fromCode, toCode, flightNumber, departureTime, date, focus, seat)
-            .forEach { it.setTextColor(color(R.color.pf_record_card_primary)) }
-        listOf(fromCity, toCity).forEach { it.setTextColor(color(R.color.pf_record_card_secondary)) }
+            .forEach { it.setTextColor(color(UiR.color.sky_ink)) }
+        listOf(fromCity, toCity).forEach { it.setTextColor(RecordSkyPresentation.ticketSecondaryInk(context)) }
         cloud.visibility = View.GONE
         sceneEdit.visibility = View.GONE
         sceneEdit.setOnClickListener(null)
@@ -91,11 +95,11 @@ class RecordCardView @JvmOverloads constructor(
         departureTime.text = item.startTime
         date.text = item.dateText?.takeIf { it.isNotBlank() } ?: unknown
         seat.text = item.seat?.takeIf { it.isNotBlank() } ?: unknown
-        val statusColor = color(when (item.status) {
-            FlightStatus.COMPLETED -> R.color.pf_record_card_completed
-            FlightStatus.ONGOING -> R.color.pf_record_card_ongoing
-            FlightStatus.CANCELLED, FlightStatus.UNKNOWN -> R.color.pf_record_card_cancelled
-        })
+        val statusColor = when (item.status) {
+            FlightStatus.COMPLETED -> RecordSkyPresentation.ticketCompletedInk(context)
+            FlightStatus.ONGOING -> color(UiR.color.sky_primary)
+            FlightStatus.CANCELLED, FlightStatus.UNKNOWN -> RecordSkyPresentation.ticketSecondaryInk(context)
+        }
         statusDot.setColorFilter(statusColor)
         status.setTextColor(statusColor)
         status.text = " " + context.getString(when (item.status) {
@@ -113,12 +117,12 @@ class RecordCardView @JvmOverloads constructor(
         val builtin = SourceSceneCatalog.builtins.firstOrNull { it.iconKey == item.sceneIconKey }
             ?: SourceSceneCatalog.builtins.firstOrNull { it.type == item.sceneType }
         sceneIcon.setImageResource(builtin?.iconRes ?: R.drawable.pf_record_card_ic_focus_mode)
-        val sceneColor = builtin?.color ?: color(R.color.pf_record_card_primary)
+        val sceneColor = builtin?.color ?: color(UiR.color.sky_ink)
         sceneIcon.setColorFilter(sceneColor)
-        scene.setTextColor(sceneColor)
+        scene.setTextColor(color(UiR.color.sky_ink))
         if (item.status == FlightStatus.COMPLETED && (item.cloudSummary != null || item.recordedAtWallMs != null) && onSceneEdit != null) {
             sceneEdit.visibility = View.VISIBLE
-            (sceneEdit as ImageView).setColorFilter(0xFF8E8E93.toInt())
+            (sceneEdit as ImageView).setColorFilter(color(UiR.color.sky_primary))
             sceneEdit.isEnabled = sceneEditingEnabled
             sceneEdit.setOnClickListener { anchor -> if (sceneEdit.isEnabled) onSceneEdit(anchor, item) }
         }

@@ -2,6 +2,11 @@ package com.projectfocus.feature.record.ui
 
 import android.app.Application
 import android.content.Context
+import android.content.res.Configuration
+import android.util.TypedValue
+import android.graphics.Rect
+import android.view.ViewGroup
+import androidx.core.graphics.ColorUtils
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -104,7 +109,7 @@ class RecordCardNativeTest {
         card.bind(item)
         assertEquals("--",text(card,R.id.pf_record_card_text_arrival_code))
         assertEquals("--",text(card,R.id.pf_record_card_text_arrival_city))
-        assertEquals(Color.parseColor("#E62C2C2C"),card.cardBackgroundColor.defaultColor)
+        assertEquals(card.context.getColor(UiR.color.sky_card_solid),card.cardBackgroundColor.defaultColor)
         assertFalse(item.arrivalSelected)
         capture(card,"record-card-countup-cancelled-night")
     }
@@ -143,23 +148,63 @@ class RecordCardNativeTest {
         }
     }
 
-    private fun capture(card: RecordCardView, name: String) {
+    @Test @Config(qualifiers="zh-rCN-w320dp-h568dp-notnight-mdpi")
+    fun enlargedTicketKeepsActualValuesSceneTargetAndReadableLabels() {
+        for(scale in listOf(1.6f,2f)) {
+            val base=context()
+            val configuration=Configuration(base.resources.configuration).apply { fontScale=scale }
+            val context=ContextThemeWrapper(base.createConfigurationContext(configuration),UiR.style.Theme_Pf)
+            val card=RecordCardView(context)
+            card.bind(RecordItemMapping.item(RecordedFlight.CountUp(archive()),zone), { _, _ -> })
+            val renderedSurface=capture(card,"record-ticket-small-$scale",320)
+            val edit=card.findViewById<View>(R.id.pf_record_card_img_focus_scene_edit)
+            assertTrue(edit.width>=48 && edit.height>=48)
+            val title=card.findViewById<TextView>(R.id.pf_record_card_text_departure_code)
+            assertEquals(scale,title.resources.configuration.fontScale,.01f)
+            assertEquals(Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_SP,25f,title.resources.displayMetrics)).toFloat(),title.textSize,.01f)
+            assertTrue(title.textSize>25f)
+            val ids=listOf(R.id.pf_record_card_text_flight_number,R.id.pf_record_card_text_departure_time,
+                R.id.pf_record_card_text_date,R.id.pf_record_card_text_focus_scene,
+                R.id.pf_record_card_text_focusTime,R.id.pf_record_card_text_seat)
+            val rectangles=ids.map { id ->
+                val value=card.findViewById<TextView>(id)
+                assertTrue(value.width>0 && value.height>0)
+                for(line in 0 until value.layout.lineCount)assertEquals(0,value.layout.getEllipsisCount(line))
+                Rect(0,0,value.width,value.height).also { card.offsetDescendantRectToMyCoords(value,it) }
+            }
+            for(rect in rectangles)assertTrue(rect.left>=0 && rect.right<=card.width && rect.bottom<=card.height)
+            for(index in rectangles.indices)for(other in index+1 until rectangles.size)
+                assertFalse(Rect.intersects(rectangles[index],rectangles[other]))
+            fun textViews(view: View): List<TextView> = when(view) {
+                is TextView -> listOf(view)
+                is ViewGroup -> (0 until view.childCount).flatMap { textViews(view.getChildAt(it)) }
+                else -> emptyList()
+            }
+            for(label in textViews(card).filter { it.visibility==View.VISIBLE && it.text.isNotBlank() }) {
+                val background=if(label.id==R.id.pf_record_card_text_flight_type_badge)
+                    context.getColor(UiR.color.sky_selected) else renderedSurface
+                assertTrue("Unreadable ticket label: ${label.text}",ColorUtils.calculateContrast(label.currentTextColor,background)>=4.5)
+            }
+        }
+    }
+
+    private fun capture(card: RecordCardView, name: String, width: Int = 432): Int {
         val parent = FrameLayout(card.context).apply {
-            setBackgroundColor(com.google.android.material.color.MaterialColors.getColor(card,
-                com.google.android.material.R.attr.colorSurface))
+            setBackgroundColor(card.context.getColor(UiR.color.sky_canvas))
             setPadding(16,0,16,0)
             addView(card)
         }
         try {
-            parent.measure(View.MeasureSpec.makeMeasureSpec(432,View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(500,View.MeasureSpec.AT_MOST))
-            parent.layout(0,0,432,parent.measuredHeight)
-            val bitmap = Bitmap.createBitmap(432,parent.measuredHeight,Bitmap.Config.ARGB_8888)
+            parent.measure(View.MeasureSpec.makeMeasureSpec(width,View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(2000,View.MeasureSpec.AT_MOST))
+            parent.layout(0,0,width,parent.measuredHeight)
+            val bitmap = Bitmap.createBitmap(width,parent.measuredHeight,Bitmap.Config.ARGB_8888)
             try {
                 parent.draw(Canvas(bitmap))
                 val file = File("build/reports/record-card/$name.png")
                 checkNotNull(file.parentFile).mkdirs()
                 file.outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,it)) }
+                return bitmap.getPixel(width/2,20)
             } finally { bitmap.recycle() }
         } finally { parent.removeView(card) }
     }

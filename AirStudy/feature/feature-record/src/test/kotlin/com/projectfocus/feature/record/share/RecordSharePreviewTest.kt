@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Intent
 import android.content.pm.ProviderInfo
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.os.Looper
@@ -11,6 +12,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.test.core.app.ActivityScenario
+import androidx.core.graphics.ColorUtils
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.model.flight.freeflight.*
 import com.projectfocus.core.network.di.TokenStore
@@ -112,6 +115,14 @@ class RecordSharePreviewTest {
         pump { visible }
         assertNotNull(content.findViewById<View>(R.id.pf_record_page_share_preview))
         assertEquals(item.spokenSummary,content.findViewById<View>(R.id.pf_record_page_share_card_image).contentDescription)
+        content.measure(View.MeasureSpec.makeMeasureSpec(432,View.MeasureSpec.EXACTLY),
+            View.MeasureSpec.makeMeasureSpec(936,View.MeasureSpec.EXACTLY))
+        content.layout(0,0,432,936)
+        val share=content.findViewById<ExtendedFloatingActionButton>(R.id.pf_record_page_share_button)
+        val surface=requireNotNull(share.backgroundTintList).defaultColor
+        assertEquals(255,Color.alpha(surface))
+        assertTrue(ColorUtils.calculateContrast(share.currentTextColor,surface)>=4.5)
+        assertTrue(share.width>=48 && share.height>=48)
         content.findViewById<View>(R.id.pf_record_page_share_button).performClick()
         var chooser: Intent? = null
         pump { chooser = shadowOf(activity).nextStartedActivity; chooser!=null }
