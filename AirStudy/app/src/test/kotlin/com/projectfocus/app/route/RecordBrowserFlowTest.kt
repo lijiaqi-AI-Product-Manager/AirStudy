@@ -197,8 +197,13 @@ class RecordBrowserFlowTest {
         await {
             val overlay = activity.findViewById<View>(RecordR.id.pf_record_page_share_preview)
             val image = activity.findViewById<View>(RecordR.id.pf_record_page_share_card_image)
-            overlay != null && overlay.alpha >= 0.999f && image != null && image.scaleX >= 1.059f
+            overlay != null && overlay.alpha >= 0.999f && image != null && image.scaleX >= 1.019f
         }
+        val previewImage=activity.findViewById<View>(RecordR.id.pf_record_page_share_card_image)
+        val previewShare=activity.findViewById<View>(RecordR.id.pf_record_page_share_button)
+        assertTrue(previewImage.width>=120 && previewImage.height>=120)
+        assertTrue(previewImage.bottom+previewImage.height*(previewImage.scaleY-1f)/2f<=previewShare.top)
+        assertTrue(previewShare.isEnabled && previewShare.width>=48 && previewShare.height>=48)
         capture("records-countdown-assigned-number-preview")
         activity.onBackPressedDispatcher.onBackPressed()
         await { activity.findViewById<View>(RecordR.id.pf_record_page_share_preview) == null }

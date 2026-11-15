@@ -275,8 +275,17 @@ class ShareLauncherIntegrationTest {
             }
             y += 4
         }
+        File("build/reports/record-card/record-detail-share-export-day.png").apply {
+            parentFile.mkdirs()
+        }.outputStream().use { output ->
+            assertTrue(bmp.compress(android.graphics.Bitmap.CompressFormat.PNG,100,output))
+        }
         bmp.recycle()
         assertThat(colors.size).isAtLeast(3)
+        val exported=File("build/reports/record-card/record-detail-share-export-day.png")
+        val image=android.graphics.BitmapFactory.decodeFile(exported.absolutePath)
+        assertArtworkUsesMainBody(image,context)
+        image.recycle()
     }
 
     @Test
@@ -300,6 +309,76 @@ class ShareLauncherIntegrationTest {
         val uris = started.map { innerIntent(it).getParcelableExtra<Uri>(Intent.EXTRA_STREAM)!! }
         assertThat(uris).hasSize(2)
         assertThat(uris[0]).isNotEqualTo(uris[1])
+    }
+
+    private fun assertArtworkUsesMainBody(bitmap: android.graphics.Bitmap, themed: Context) {
+        assertThat(bitmap.width).isEqualTo(ShareArtwork.OUTPUT_WIDTH)
+        val paper=themed.getColor(com.projectfocus.core.ui.R.color.sky_card_solid)
+        val ink=themed.getColor(com.projectfocus.core.ui.R.color.sky_ink)
+        var count=0
+        for(y in bitmap.height*55/100 until bitmap.height*85/100 step 3) {
+            for(x in bitmap.width/12 until bitmap.width*3/4 step 3) {
+                val pixel=bitmap.getPixel(x,y)
+                val distance=kotlin.math.abs(android.graphics.Color.red(pixel)-android.graphics.Color.red(ink))+
+                    kotlin.math.abs(android.graphics.Color.green(pixel)-android.graphics.Color.green(ink))+
+                    kotlin.math.abs(android.graphics.Color.blue(pixel)-android.graphics.Color.blue(ink))
+                if(android.graphics.Color.alpha(pixel)==255 && distance<150 &&
+                    androidx.core.graphics.ColorUtils.calculateContrast(pixel,paper)>=4.5)count++
+            }
+        }
+        assertTrue("The main information must occupy the exported card",count>40)
+    }
+
+    private suspend fun captureArtwork(name: String,themed: Context,data: BoardingPassData): android.graphics.Bitmap {
+        val started=mutableListOf<Intent>()
+        val composer=ShareCardComposer(themed)
+        val spec=spec().copy(flightNo=data.flightNo,detail=ShareDetail(data.departureCity,data.arrivalCity,
+            data.departureCode,data.arrivalCode,data.distanceText.removeSuffix(" km"),data.focusDurationText))
+        val outcome=ShareLauncher(composer,themed).share(spec,data,{ started+=it },testMainDispatcher())
+        assertThat(outcome).isEqualTo(ShareLauncher.Outcome.Launched)
+        @Suppress("DEPRECATION")
+        val uri=innerIntent(started.single()).getParcelableExtra<Uri>(Intent.EXTRA_STREAM)!!
+        assertThat(innerIntent(started.single()).getStringExtra(Intent.EXTRA_TEXT)).contains(data.departureCity)
+        assertThat(innerIntent(started.single()).getStringExtra(Intent.EXTRA_TEXT)).contains(data.arrivalCity)
+        val bytes=themed.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
+        File("build/reports/record-card/$name.png").apply { parentFile!!.mkdirs() }.writeBytes(bytes)
+        val bitmap=android.graphics.BitmapFactory.decodeByteArray(bytes,0,bytes.size)
+        assertArtworkUsesMainBody(bitmap,themed)
+        return bitmap
+    }
+
+    @Test @Config(qualifiers="zh-rCN-w360dp-h800dp-night-mdpi")
+    fun nightExportKeepsLongCitiesAndCancelledFlightData() = runTest {
+        val data=pass().copy(flightNo="AS2645",abandoned=true,
+            departureCity="San Francisco International Airport",
+            arrivalCity="大阪关西国际机场与临空城",passengerName="AirStudy Traveler")
+        val image=captureArtwork("record-detail-share-export-night",context,data)
+        assertTrue(image.height>image.width/2)
+        image.recycle()
+        val prepared=ShareCardComposer(context).prepareView(spec().copy(flightNo=data.flightNo),data)
+        assertThat(prepared.view.data).isEqualTo(data)
+        val info=android.view.accessibility.AccessibilityNodeInfo.obtain()
+        try {
+            prepared.view.onInitializeAccessibilityNodeInfo(info)
+            assertThat(info.contentDescription).isNotNull()
+            assertThat(info.contentDescription.toString()).contains(data.flightNo)
+            assertThat(info.contentDescription.toString()).contains(data.arrivalCity)
+            assertThat(info.contentDescription.toString()).contains(data.distanceText)
+            assertThat(info.contentDescription.toString()).contains("已取消")
+        } finally { info.recycle() }
+    }
+
+    @Test @Config(qualifiers="zh-rCN-w320dp-h936dp-mdpi")
+    fun artworkScaleStaysConsistentWithoutChangingTheReadersTextPreference() = runTest {
+        for(scale in listOf(1.6f,2f)) {
+            val config=android.content.res.Configuration(context.resources.configuration).apply { fontScale=scale }
+            val themed=context.createConfigurationContext(config)
+            val data=pass().copy(flightNo="AS2645",departureCity="一个需要完整展示的出发城市名称",
+                arrivalCity="一个需要完整展示的目的地城市名称")
+            val image=captureArtwork("record-detail-share-export-large-$scale",themed,data)
+            image.recycle()
+            assertThat(themed.resources.configuration.fontScale).isEqualTo(scale)
+        }
     }
 
     // ── 结果映射 ───────────────────────────────────────────

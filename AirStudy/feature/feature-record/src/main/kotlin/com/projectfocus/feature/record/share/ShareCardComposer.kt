@@ -2,6 +2,7 @@ package com.projectfocus.feature.record.share
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.view.View
 import androidx.annotation.MainThread
@@ -70,7 +71,7 @@ class ShareCardComposer @Inject constructor(
     }
 
     /** 生产用工厂。 */
-    fun defaultFactory(): CardFactory = CardFactory { themed -> BoardingPassView(themed) }
+    fun defaultFactory(): CardFactory = CardFactory { themed -> ShareBoardingPassView(themed) }
 
     /**
      * ① 主线程：创建带主题的卡片 View 并绑数据。
@@ -89,7 +90,8 @@ class ShareCardComposer @Inject constructor(
         //   而文字也被解析成同一个白 —— 分享出去的是一张**纯白图**。
 
         //     天然带主题），所以肉眼在 App 里看一切都是好的。
-        val themed = android.view.ContextThemeWrapper(context, UiR.style.Theme_Pf)
+        val artworkConfiguration=Configuration(context.resources.configuration).apply { fontScale=1f }
+        val themed = android.view.ContextThemeWrapper(context.createConfigurationContext(artworkConfiguration), UiR.style.Theme_Pf)
         val view = factory.create(themed)
         view.data = data
         return Prepared(view = view, context = themed)
@@ -178,16 +180,25 @@ class ShareCardComposer @Inject constructor(
 
     private class ViewCardSource(private val view: View) : BoardingPassRenderer.CardSource {
 
-        override fun measureForExport(widthPx: Int, heightPx: Int) {
+        private var outputWidth=0
+        private var outputHeight=0
+
+        private fun measureNatural() {
             view.measure(
-                View.MeasureSpec.makeMeasureSpec(widthPx, View.MeasureSpec.EXACTLY),
-                View.MeasureSpec.makeMeasureSpec(heightPx, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
             )
-            view.layout(0, 0, widthPx, heightPx)
+            view.layout(0,0,view.measuredWidth,view.measuredHeight)
+        }
+
+        override fun measureForExport(widthPx: Int, heightPx: Int) {
+            if(view.width<=0 || view.height<=0)measureNatural()
+            outputWidth=widthPx
+            outputHeight=heightPx
         }
 
         override fun drawTo(canvas: android.graphics.Canvas) {
-            view.draw(canvas)
+            ShareArtwork.draw(canvas,view.context,view,outputWidth,outputHeight)
         }
 
 
@@ -200,16 +211,9 @@ class ShareCardComposer @Inject constructor(
 
 
         override fun aspectRatio(): Float {
-            if (view.measuredWidth > 0 && view.measuredHeight > 0) {
-                return view.measuredWidth.toFloat() / view.measuredHeight
-            }
-            view.measure(
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
-            )
-            val w = view.measuredWidth
-            val h = view.measuredHeight
-            return if (w > 0 && h > 0) w.toFloat() / h else DEFAULT_RATIO
+            measureNatural()
+            val (w,h)=ShareArtwork.logicalSize(view.context,view.measuredWidth,view.measuredHeight)
+            return if(w>0 && h>0)w/h else DEFAULT_RATIO
         }
 
         private companion object {

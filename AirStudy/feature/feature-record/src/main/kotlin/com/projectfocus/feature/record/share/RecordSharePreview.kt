@@ -97,13 +97,26 @@ class RecordSharePreview(
         val bitmap: Bitmap
         try {
             content.draw(Canvas(background))
-            bitmap = Bitmap.createBitmap(card.width, card.height, Bitmap.Config.ARGB_8888)
-            try { card.draw(Canvas(bitmap)) } catch (error: Exception) { bitmap.recycle(); throw error }
+            val artwork=RecordCardView(card.context).apply {
+                bind(item)
+                fun preserveText(view: View) {
+                    if(view is android.widget.TextView) {
+                        view.setSingleLine(false);view.maxLines=Int.MAX_VALUE
+                        view.ellipsize=null;view.setHorizontallyScrolling(false)
+                    }
+                    if(view is ViewGroup)for(index in 0 until view.childCount)preserveText(view.getChildAt(index))
+                }
+                preserveText(this)
+                measure(View.MeasureSpec.makeMeasureSpec(card.width,View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED))
+                layout(0,0,measuredWidth,measuredHeight)
+            }
+            bitmap = ShareArtwork.render(context,artwork)
         } catch (error: Exception) {
             background.recycle()
             throw error
         }
-        val overlay = FrameLayout(context).apply {
+        val overlay = RecordShareOverlay(context).apply {
             id = R.id.pf_record_page_share_preview
             isClickable = true
             isFocusableInTouchMode = true
@@ -121,21 +134,14 @@ class RecordSharePreview(
             setColorFilter(Color.argb(128, 9, 16, 32), PorterDuff.Mode.SRC_ATOP)
         }
         overlay.addView(backgroundView, FrameLayout.LayoutParams(-1, -1))
-        val rootLocation = IntArray(2).also(content::getLocationInWindow)
-        val cardLocation = IntArray(2).also(card::getLocationInWindow)
-        val left = cardLocation[0] - rootLocation[0]
-        val top = cardLocation[1] - rootLocation[1]
         val image = ImageView(context).apply {
             id = R.id.pf_record_page_share_card_image
-            scaleType = ImageView.ScaleType.FIT_XY
+            scaleType = ImageView.ScaleType.FIT_CENTER
             setImageBitmap(bitmap)
             contentDescription = item.spokenSummary
             setOnClickListener { }
         }
-        overlay.addView(image, FrameLayout.LayoutParams(bitmap.width, bitmap.height).apply {
-            leftMargin = left
-            topMargin = top
-        })
+        overlay.addView(image, FrameLayout.LayoutParams(1,1))
         val share = ExtendedFloatingActionButton(context).apply {
             id = R.id.pf_record_page_share_button
             setText(R.string.pf_record_page_share_card)
@@ -148,9 +154,9 @@ class RecordSharePreview(
             translationZ = 0f
             stateListAnimator = null
         }
-        overlay.addView(share, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START).apply {
-            topMargin = top + bitmap.height + dp(8)
-        })
+        overlay.addView(share, FrameLayout.LayoutParams(-2, -2, Gravity.TOP or Gravity.START))
+        overlay.artwork=image
+        overlay.action=share
         val accessibility = (0 until content.childCount).map { index ->
             content.getChildAt(index).let { it to it.importantForAccessibility }
         }
@@ -160,16 +166,9 @@ class RecordSharePreview(
         overlay.setOnClickListener { close() }
         share.setOnClickListener { if (entry === next && shareJob?.isActive != true) share(next, share) }
         content.addView(overlay, ViewGroup.LayoutParams(-1, -1))
-        share.post {
-            if (entry !== next) return@post
-            val params = share.layoutParams as FrameLayout.LayoutParams
-            params.leftMargin = ((content.width - share.width) / 2).coerceAtLeast(0)
-            params.topMargin = params.topMargin.coerceAtMost((content.height - share.height - dp(16)).coerceAtLeast(0))
-            share.layoutParams = params
-        }
         overlay.requestFocus()
         overlay.animate().alpha(1f).setDuration(180).start()
-        image.animate().scaleX(1.06f).scaleY(1.06f).setDuration(160).start()
+        image.animate().scaleX(overlay.artworkScale).scaleY(overlay.artworkScale).setDuration(160).start()
         visibilityChanged(true)
     }
 

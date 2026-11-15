@@ -5,6 +5,9 @@ import android.content.Intent
 import android.content.pm.ProviderInfo
 import android.graphics.BitmapFactory
 import android.graphics.Color
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.os.Looper
@@ -139,8 +142,12 @@ class RecordSharePreviewTest {
         assertEquals(uri,send.clipData!!.getItemAt(0).uri)
         val bytes = activity.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
         val bitmap = BitmapFactory.decodeByteArray(bytes,0,bytes.size)
-        assertEquals(card.width,bitmap.width)
-        assertEquals(card.height,bitmap.height)
+        assertEquals(ShareArtwork.OUTPUT_WIDTH,bitmap.width)
+        val displayed=content.findViewById<android.widget.ImageView>(R.id.pf_record_page_share_card_image)
+        assertTrue(displayed.width>=120 && displayed.height>=120)
+        assertTrue(bitmap.sameAs((displayed.drawable as BitmapDrawable).bitmap))
+        assertTrue(bitmap.width>card.width)
+        assertTrue(bitmap.height>card.height)
         bitmap.recycle()
         assertThrows(IllegalArgumentException::class.java) { ShareIntentBuilder.uriFor(activity,File(activity.cacheDir,"outside-share.png")) }
         val escaped = Uri.parse("content://${activity.packageName}.fileprovider/share_cards/../outside-share.png")
@@ -181,5 +188,64 @@ class RecordSharePreviewTest {
         assertFalse(visible)
         assertNull(content.findViewById<View>(R.id.pf_record_page_share_preview))
         assertNull(shadowOf(activity).nextStartedActivity)
+    }
+
+    @Test fun exportingDoesNotChangeTheEditableCardOrItsSceneAction() {
+        var edited=0
+        card.bind(item,onSceneEdit={_,_->edited++})
+        content.measure(View.MeasureSpec.makeMeasureSpec(432,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(936,View.MeasureSpec.EXACTLY))
+        content.layout(0,0,432,936)
+        val width=card.width;val height=card.height
+        preview.open(card,item,owner);pump { visible }
+        repeat(3) { content.measure(View.MeasureSpec.makeMeasureSpec(432,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(936,View.MeasureSpec.EXACTLY));content.layout(0,0,432,936);idle() }
+        assertEquals(width,card.width);assertEquals(height,card.height)
+        val edit=card.findViewById<View>(R.id.pf_record_card_img_focus_scene_edit)
+        assertEquals(View.VISIBLE,edit.visibility);assertTrue(edit.isEnabled)
+        val bitmap=(content.findViewById<android.widget.ImageView>(R.id.pf_record_page_share_card_image).drawable as BitmapDrawable).bitmap
+        File("build/reports/record-card/record-share-editable-export.png").apply { parentFile!!.mkdirs() }
+            .outputStream().use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,it)) }
+        preview.close();edit.performClick();assertEquals(1,edited)
+    }
+
+    @Test @Config(qualifiers="zh-rCN-w320dp-h936dp-night-mdpi")
+    fun largeTypeNightPreviewFitsItsWholeArtworkAndKeepsSharingReachable() {
+        val config=android.content.res.Configuration(activity.resources.configuration).apply { fontScale=2f }
+        val themed=android.view.ContextThemeWrapper(activity.createConfigurationContext(config),com.projectfocus.core.ui.R.style.Theme_Pf)
+        val parent=card.parent as FrameLayout
+        parent.removeView(card)
+        item=item.copy(sceneTitle="一个需要完整保留的自定义阅读与学习场景",flightNumber="AS2645")
+        card=RecordCardView(themed).apply { bind(item) }
+        parent.addView(card,FrameLayout.LayoutParams(288,-2).apply { leftMargin=16;topMargin=60 })
+        fun layout() {
+            repeat(3) {
+                content.measure(View.MeasureSpec.makeMeasureSpec(320,View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(936,View.MeasureSpec.EXACTLY))
+                content.layout(0,0,320,936);idle()
+            }
+        }
+        layout();preview.open(card,item,owner);pump { visible };layout()
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300));layout()
+        val image=content.findViewById<android.widget.ImageView>(R.id.pf_record_page_share_card_image)
+        val button=content.findViewById<View>(R.id.pf_record_page_share_button)
+        val actual=Bitmap.createBitmap(content.width,content.height,Bitmap.Config.ARGB_8888)
+        content.draw(Canvas(actual))
+        File("build/reports/record-card/record-share-night-large-preview.png").apply { parentFile!!.mkdirs() }
+            .outputStream().use { assertTrue(actual.compress(Bitmap.CompressFormat.PNG,100,it)) }
+        actual.recycle()
+        assertEquals(item.spokenSummary,image.contentDescription)
+        assertTrue("Artwork must be visible at a useful size: ${image.width} x ${image.height}",image.width>=120 && image.height>=120)
+        assertTrue(image.left>=0 && image.right<=content.width && image.top>=0 && image.bottom<=content.height)
+        val bottom=image.bottom+image.height*(image.scaleY-1f)/2f
+        assertTrue("Artwork bottom=$bottom, button top=${button.top}, image=${image.top}..${image.bottom}, scale=${image.scaleY}, parent=${content.height}",bottom<=button.top)
+        assertTrue(button.width>=48 && button.height>=48 && button.bottom<=content.height)
+        val export=(image.drawable as BitmapDrawable).bitmap
+        assertTrue(export.width<=ShareArtwork.OUTPUT_WIDTH)
+        assertTrue(export.width.toLong()*export.height<=4_000_000L+ShareArtwork.OUTPUT_WIDTH)
+        File("build/reports/record-card/record-share-night-large-export.png").apply { parentFile!!.mkdirs() }
+            .outputStream().use { assertTrue(export.compress(Bitmap.CompressFormat.PNG,100,it)) }
+        val bitmap=Bitmap.createBitmap(content.width,content.height,Bitmap.Config.ARGB_8888)
+        content.draw(Canvas(bitmap))
+        File("build/reports/record-card/record-share-night-large-preview.png").outputStream()
+            .use { assertTrue(bitmap.compress(Bitmap.CompressFormat.PNG,100,it)) }
+        bitmap.recycle()
     }
 }

@@ -48,7 +48,7 @@ import com.projectfocus.core.ui.R as UiR
 
 
 
-class BoardingPassView @JvmOverloads constructor(
+open class BoardingPassView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0,
