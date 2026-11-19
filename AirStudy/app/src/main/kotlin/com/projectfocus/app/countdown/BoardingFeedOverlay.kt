@@ -37,6 +37,11 @@ internal class BoardingFeedOverlay(context: Context, private val night: Boolean)
     private val angle = Math.toRadians(78.0)
     private val paperPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val slotPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val indicatorPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        strokeWidth = density * 1.5f
+        strokeCap = Paint.Cap.ROUND
+        color = if (night) 0xFF8BC4FF.toInt() else 0xFF4166A6.toInt()
+    }
     private val edgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         shader = LinearGradient(0f, 0f, 0f, 1f,
             intArrayOf(Color.TRANSPARENT, if (night) 0x80000000.toInt() else 0x550F172A), null, Shader.TileMode.CLAMP)
@@ -172,6 +177,13 @@ internal class BoardingFeedOverlay(context: Context, private val night: Boolean)
         slotPaint.color = if (night) 0xFF091322.toInt() else 0xFFB5C6E0.toInt()
         slotPaint.alpha = (255 * outletOpacity).roundToInt()
         canvas.drawRoundRect(outlet, 7f * density, 7f * density, slotPaint)
+        if (lower && progress > 0f) {
+            val start = outlet.left + 10f * density
+            val length = (outlet.width() - 20f * density).coerceAtLeast(0f)
+            val y = outlet.centerY() + 3.5f * density
+            indicatorPaint.alpha = (210 * outletOpacity).roundToInt()
+            canvas.drawLine(start, y, start + length * progress, y, indicatorPaint)
+        }
         canvas.restoreToCount(save)
     }
 

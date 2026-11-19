@@ -71,6 +71,13 @@ class OrdinaryFlightPreparationCoordinator(
     val state = mutableState.asStateFlow()
     private var operation = 0L
     private var loading: Job? = null
+    private var printingCueRequest: String? = null
+
+    internal fun consumePrintingCue(request: String): Boolean {
+        if (current(request, OrdinaryPreparationStep.BOARDING) == null || printingCueRequest == request) return false
+        printingCueRequest = request
+        return true
+    }
 
     fun selectedContext(): OrdinaryFlightContext = actions.context()
 

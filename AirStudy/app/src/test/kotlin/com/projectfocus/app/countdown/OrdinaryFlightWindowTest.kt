@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.os.Bundle
 import android.os.Looper
 import android.os.SystemClock
+import android.view.HapticFeedbackConstants
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
@@ -265,7 +266,10 @@ class OrdinaryFlightWindowTest {
         assertIdleAndNoRecord()
     }
 
-    @Test fun aShortOrLeftwardSwipeResetsAndAccessibleInspectionStillNeedsExplicitBoarding() {
+    @Test
+    @Config(qualifiers = "zh-rCN-w432dp-h960dp-xxhdpi")
+    fun aShortOrLeftwardSwipeResetsAndAccessibleInspectionStillNeedsExplicitBoarding() {
+        runBlocking(Dispatchers.IO) { activity.settingsRepository.write(PrefKey.HapticMaster, false) }
         assertTrue(activity.openOrdinaryFlightPreparation())
         await("Accessible seats") { coordinator().state.value.step == OrdinaryPreparationStep.SEAT }
         chooseAndConfirmSeat()
@@ -273,7 +277,11 @@ class OrdinaryFlightWindowTest {
         await("Accessible inspection") { coordinator().state.value.step == OrdinaryPreparationStep.INSPECTION }
         val band = activity.findViewById<View>(PassR.id.tear_touch_band)
         val artwork = activity.findViewById<BoardingSequenceView>(R.id.ordinaryBoardingArtwork)
-        for (distance in listOf(-350f, 299f)) {
+        val surface = activity.findViewById<OrdinaryBoardingPassSurface>(R.id.ordinaryBoarding)
+        val hapticBefore = shadowOf(surface).lastHapticFeedbackPerformed()
+        val shortDistance = surface.paper.width * surface.paper.scaleX * .4f
+        assertTrue("A short high-density swipe exceeds 300 screen pixels", shortDistance > 300f)
+        for (distance in listOf(-shortDistance, shortDistance)) {
             val now = SystemClock.uptimeMillis()
             for ((action, x) in listOf(MotionEvent.ACTION_DOWN to 20f, MotionEvent.ACTION_MOVE to 20f + distance,
                     MotionEvent.ACTION_UP to 20f + distance)) {
@@ -287,6 +295,7 @@ class OrdinaryFlightWindowTest {
         assertTrue(band.performClick())
         await("Accessible boarding confirmation") { coordinator().state.value.step == OrdinaryPreparationStep.PREPARE }
         assertEquals(179, artwork.renderedFrame)
+        assertEquals(hapticBefore, shadowOf(surface).lastHapticFeedbackPerformed())
         assertNull(activity.findViewById<View>(R.id.ordinaryReady))
         assertIdleAndNoRecord()
         assertTrue(coordinator().cancel())
@@ -321,6 +330,8 @@ class OrdinaryFlightWindowTest {
             val frozen = requireNotNull(coordinator().state.value.route)
             val action = activity.findViewById<View>(R.id.ordinaryCheckIn)
             val feed = activity.findViewById<View>(R.id.ordinaryBoardingFeed)
+            val surface = activity.findViewById<OrdinaryBoardingPassSurface>(R.id.ordinaryBoarding)
+            assertEquals(HapticFeedbackConstants.CLOCK_TICK, shadowOf(surface).lastHapticFeedbackPerformed())
             assertFalse(action.isEnabled)
             assertFalse(action.isShown)
             action.performClick()
@@ -345,6 +356,9 @@ class OrdinaryFlightWindowTest {
             capture("ordinary-print-complete-day")
             action.performClick()
             await("Explicit inspection") { coordinator().state.value.step == OrdinaryPreparationStep.INSPECTION }
+            tearActualBand()
+            await("Confirmed tear") { coordinator().state.value.step == OrdinaryPreparationStep.PREPARE }
+            assertEquals(HapticFeedbackConstants.CONFIRM, shadowOf(surface).lastHapticFeedbackPerformed())
             assertIdleAndNoRecord()
         }
     }
@@ -522,8 +536,10 @@ class OrdinaryFlightWindowTest {
         await("Tear band laid out") { band.width > 0 && band.height > 0 }
         val now = SystemClock.uptimeMillis()
         val y = band.height * .5f
+        val paper = activity.findViewById<View>(PassR.id.boarding_pass_root)
+        val end = band.width * .1f + paper.width * paper.scaleX * .82f
         for ((action, delta, x) in listOf(Triple(MotionEvent.ACTION_DOWN, 0L, band.width * .1f),
-            Triple(MotionEvent.ACTION_MOVE, 100L, band.width * .1f + 300f), Triple(MotionEvent.ACTION_UP, 200L, band.width * .1f + 300f))) {
+            Triple(MotionEvent.ACTION_MOVE, 100L, end), Triple(MotionEvent.ACTION_UP, 200L, end))) {
             MotionEvent.obtain(now, now + delta, action, x, y, 0).also { band.dispatchTouchEvent(it); it.recycle() }
         }
     }

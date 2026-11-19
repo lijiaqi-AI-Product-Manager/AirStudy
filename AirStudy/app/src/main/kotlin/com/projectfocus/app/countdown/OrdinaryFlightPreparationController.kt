@@ -45,6 +45,8 @@ class OrdinaryFlightPreparationController(
     private var preparingBoarding = false
     private var blockingEnabled = false
     private var blockedAppCount = 0
+    private var printHaptics = false
+    private var tearHaptics = false
     val isActive: Boolean get() = !detached && coordinator.state.value.active
     private val back = object : OnBackPressedCallback(false) {
         override fun handleOnBackPressed() {
@@ -62,6 +64,15 @@ class OrdinaryFlightPreparationController(
     init {
         activity.onBackPressedDispatcher.addCallback(activity, back)
         scope.launch { coordinator.state.collect(::render) }
+        scope.launch {
+            val keys = listOf(PrefKey.HapticMaster, PrefKey.HapticBoardingPass, PrefKey.HapticTear)
+            activity.settingsRepository.observeAllKeys(keys).collect { values ->
+                val enabled = values[PrefKey.HapticMaster.name] == true
+                printHaptics = enabled && values[PrefKey.HapticBoardingPass.name] == true
+                tearHaptics = enabled && values[PrefKey.HapticTear.name] == true
+                boarding?.updateHaptics(printHaptics, tearHaptics)
+            }
+        }
         scope.launch {
             combine(activity.settingsRepository.observe(PrefKey.BlacklistEnabled),
                 activity.settingsRepository.observe(PrefKey.SelectedCategoryId),
@@ -111,7 +122,8 @@ class OrdinaryFlightPreparationController(
                     clear(); attach()
                     boarding = OrdinaryBoardingPassSurface(activity, state, night,
                         { coordinator.checkIn(request) }, { coordinator.inspectionCompleted(request) },
-                        { prepareBoarding(request) }).also {
+                        { prepareBoarding(request) }, { coordinator.consumePrintingCue(request) }).also {
+                        it.updateHaptics(printHaptics, tearHaptics)
                         root.addView(it, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
                         it.updateBlocking(blockingEnabled, blockedAppCount)
                     }

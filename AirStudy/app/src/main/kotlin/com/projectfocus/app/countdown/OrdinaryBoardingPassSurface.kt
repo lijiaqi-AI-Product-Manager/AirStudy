@@ -41,6 +41,7 @@ internal class OrdinaryBoardingPassSurface(
     private val onCheckIn: () -> Unit,
     private val onInspected: () -> Unit,
     onPrepare: () -> Unit,
+    private val consumePrintingCue: () -> Boolean,
 ) : FrameLayout(context) {
     private val paperContext = android.view.ContextThemeWrapper(context, R.style.Theme_ProjectFocus).apply {
         applyOverrideConfiguration(Configuration(context.resources.configuration).apply { fontScale = 1f })
@@ -97,11 +98,20 @@ internal class OrdinaryBoardingPassSurface(
     private var released = false
     private var completed = false
     private var downX = 0f
+    private var tearDistance = 1f
     private var dragging = false
     private var progress = 0f
     private var tearAnimation: ValueAnimator? = null
-    private val finished = Runnable { if (!released && completed && !preparing) onInspected() }
+    private val feedback = BoardingFeedback(this)
+    private val finished = Runnable {
+        if (!released && completed && !preparing) {
+            feedback.tearCompleted()
+            onInspected()
+        }
+    }
     private val printing = BoardingPrintController(this, paper, feed, checkIn) { phase ->
+        if (phase == BoardingPrintController.Phase.PRINTING && consumePrintingCue()) feedback.printStarted()
+        if (phase == BoardingPrintController.Phase.COMPLETE) feedback.stop()
         if (!released && !inspection && !preparing) {
             printStatus.setText(when (phase) {
                 BoardingPrintController.Phase.WAITING -> R.string.sky_boarding_preparing
@@ -195,10 +205,16 @@ internal class OrdinaryBoardingPassSurface(
         positionViews()
     }
 
+    fun updateHaptics(print: Boolean, tear: Boolean) {
+        feedback.printHaptics = print
+        feedback.tearHaptics = tear
+    }
+
     @SuppressLint("ClickableViewAccessibility")
     private fun installInspection() {
         val band = paper.findViewById<View>(PassR.id.tear_touch_band)
         band.setOnClickListener { finishTear() }
+        band.isSoundEffectsEnabled = false
         band.isClickable = false
         band.isFocusable = false
         band.importantForAccessibility = IMPORTANT_FOR_ACCESSIBILITY_NO
@@ -207,6 +223,7 @@ internal class OrdinaryBoardingPassSurface(
                 MotionEvent.ACTION_DOWN -> {
                     tearAnimation?.cancel()
                     downX = event.rawX
+                    tearDistance = (paper.width * paper.scaleX * .68f).coerceAtLeast(1f)
                     dragging = true
                     progress = 0f
                     artwork.showProgress(0f)
@@ -215,14 +232,14 @@ internal class OrdinaryBoardingPassSurface(
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (dragging) {
-                        val distance = ((event.rawX - downX) / 300f).coerceIn(0f, 1f)
+                        val distance = ((event.rawX - downX) / tearDistance).coerceIn(0f, 1f)
                         progress = distance * .5f
                         artwork.showProgress(progress)
                         if (distance >= 1f) finishTear()
                     }
                     true
                 }
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_POINTER_DOWN -> {
                     dragging = false
                     resetTear()
                     true
@@ -267,15 +284,22 @@ internal class OrdinaryBoardingPassSurface(
 
     override fun onWindowVisibilityChanged(visibility: Int) {
         super.onWindowVisibilityChanged(visibility)
+        if (visibility != VISIBLE) feedback.stop()
         printing.onHostVisibilityChanged(visibility == VISIBLE)
     }
 
     override fun onAttachedToWindow() {
         super.onAttachedToWindow()
+        feedback.attach()
         ViewCompat.getRootWindowInsets(this)?.let {
             applySafeInsets(it.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout()))
         }
         ViewCompat.requestApplyInsets(this)
+    }
+
+    override fun onDetachedFromWindow() {
+        feedback.release()
+        super.onDetachedFromWindow()
     }
 
     private fun applySafeInsets(value: Insets) {
@@ -364,6 +388,7 @@ internal class OrdinaryBoardingPassSurface(
         removeCallbacks(finished)
         tearAnimation?.cancel()
         printing.release()
+        feedback.release()
         artwork.release()
         paper.animate().cancel()
         checkIn.setOnClickListener(null)
