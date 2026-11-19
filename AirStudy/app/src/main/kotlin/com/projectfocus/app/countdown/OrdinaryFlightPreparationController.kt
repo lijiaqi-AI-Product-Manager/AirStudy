@@ -12,6 +12,7 @@ import com.projectfocus.app.MainActivity
 import com.projectfocus.app.R
 import com.projectfocus.core.datastore.PrefKey
 import com.projectfocus.app.freeflight.AndroidFreeFlightPreparationPrompts
+import com.projectfocus.app.freeflight.DepartureDetails
 import com.projectfocus.app.freeflight.FreeFlightPermissionDecision
 import com.projectfocus.app.freeflight.FreeFlightNightPolicy
 import com.projectfocus.app.freeflight.FreeFlightReadySurface
@@ -133,7 +134,7 @@ class OrdinaryFlightPreparationController(
             }
             OrdinaryPreparationStep.READY -> if (changed && request != null) {
                 clear(); attach()
-                ready = FreeFlightReadySurface(activity, night).also { surface ->
+                ready = FreeFlightReadySurface(activity, night, departureDetails(state)).also { surface ->
                     surface.id = R.id.ordinaryReady
                     root.addView(surface, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
                     surface.depart.setOnClickListener { coordinator.depart(request) }
@@ -143,7 +144,7 @@ class OrdinaryFlightPreparationController(
             OrdinaryPreparationStep.STARTING -> {
                 if (ready == null) {
                     clear(); attach()
-                    ready = FreeFlightReadySurface(activity, night).also { surface ->
+                    ready = FreeFlightReadySurface(activity, night, departureDetails(state)).also { surface ->
                         surface.id = R.id.ordinaryReady
                         root.addView(surface, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
                     }
@@ -167,6 +168,11 @@ class OrdinaryFlightPreparationController(
             OrdinaryPreparationError.START -> R.string.ordinary_start_failed
         }, Toast.LENGTH_LONG).show()
         lastError = error
+    }
+
+    private fun departureDetails(state: OrdinaryPreparationState): DepartureDetails {
+        val route = state.route
+        return DepartureDetails(route?.departure?.code, route?.destination?.code, route?.seat)
     }
 
     fun refreshNight() {

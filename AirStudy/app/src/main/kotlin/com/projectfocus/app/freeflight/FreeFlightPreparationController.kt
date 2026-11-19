@@ -120,7 +120,8 @@ class FreeFlightPreparationController(
                 if (choice == null || catalog?.values?.any { it.optionId == choice.scene.optionId } != true) {
                     coordinator.unavailableRestoredScene();return
                 }
-                clearViews();attach();ready = FreeFlightReadySurface(activity, night).also { surface ->
+                val details = DepartureDetails(state.prepared?.departure?.code, null, choice.seat)
+                clearViews();attach();ready = FreeFlightReadySurface(activity, night, details).also { surface ->
                     root.addView(surface, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
                     surface.depart.setOnClickListener { coordinator.submit() };surface.enter()
                 }

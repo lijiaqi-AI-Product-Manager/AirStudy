@@ -208,11 +208,14 @@ class SettingsViewModelTest {
 
     @Test
     fun `连续写同一个键 最后一次生效`() = runTest {
+        repo.write(PrefKey.CruiseZoom, 9f)
         waitForValuesLoaded()
+        awaitReal { vm.valueOf(PrefKey.CruiseZoom) == 9f }
         vm.set(PrefKey.CruiseZoom, 5f)
         vm.set(PrefKey.CruiseZoom, 8f)
         vm.set(PrefKey.CruiseZoom, 12f)
         awaitSaved(PrefKey.CruiseZoom, 12f)
+        awaitReal { vm.valueOf(PrefKey.CruiseZoom) == 12f }
 
         assertThat(repo.read(PrefKey.CruiseZoom)).isEqualTo(12f)
         assertThat(vm.valueOf(PrefKey.CruiseZoom)).isEqualTo(12f)

@@ -208,10 +208,12 @@ class FreeFlightPreparationCoordinatorTest {
         return coordinator
     }
 
-    internal class Fixture : FreeFlightPreparationActions {
+    internal class Fixture(
+        departure: PlannedAirport = PlannedAirport(1L, "TEST", "Departure", "City", "Country", 1.0, 2.0),
+    ) : FreeFlightPreparationActions {
         override val preparationId = "fixture-preparation"
         val prepared = FreeFlightPrepared(preparationId, FreeFlightOwnerToken("fixture-owner", 1), "fixture-session",
-            PlannedAirport(1L, "TEST", "Departure", "City", "Country", 1.0, 2.0), null, null)
+            departure, null, null)
         val identity get() = FreeFlightStartIdentity(prepared.owner, prepared.sessionId)
         override var unavailableReason: String? = null
         override val rulerFeedback = object : FreeFlightRulerFeedback { override fun tickVolume() = 0f;override fun hapticIntensity() = 0 }

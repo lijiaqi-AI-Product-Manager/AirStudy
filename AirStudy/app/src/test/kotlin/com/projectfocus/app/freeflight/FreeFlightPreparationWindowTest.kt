@@ -3,7 +3,6 @@ package com.projectfocus.app.freeflight
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.os.Looper
 import android.os.SystemClock
@@ -19,6 +18,7 @@ import com.projectfocus.app.ProjectFocusApp
 import com.projectfocus.app.R
 import com.projectfocus.app.home.HomeMapStyleSelection
 import com.projectfocus.app.testing.shutdownRealApplicationAfterTest
+import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.ui.scene.AnchoredScenePickerDialog
 import com.projectfocus.feature.booking.seat.SeatSceneChoices
 import com.projectfocus.feature.booking.seat.SeatSelectionMapView
@@ -70,7 +70,7 @@ class FreeFlightPreparationWindowTest {
         val host = activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
         host.navController.navigate(R.id.action_permission_to_home)
         host.childFragmentManager.executePendingTransactions();idle()
-        actions = FreeFlightPreparationCoordinatorTest.Fixture()
+        actions = windowFixture()
     }
 
     @After fun tearDown() {
@@ -117,7 +117,7 @@ class FreeFlightPreparationWindowTest {
     @Test fun actualSeatSceneControlsReachSourceDayAndNightReadyInMainWindow() {
         for ((night, style) in listOf(false to 4, true to 2)) {
             controller?.detach();HomeMapStyleSelection.select(activity, style)
-            actions = FreeFlightPreparationCoordinatorTest.Fixture()
+            actions = windowFixture()
             controller = FreeFlightPreparationController(activity, actions).also { it.begin() }
             await { controller!!.coordinator.state.value.step == FreeFlightPreparationStep.HEADING };advance(500)
             activity.findViewById<View>(R.id.pf_ff_heading_continue).performClick()
@@ -139,14 +139,17 @@ class FreeFlightPreparationWindowTest {
             assertThat(confirm.isShown).isTrue();confirm.performClick();confirm.performClick()
             await { controller!!.coordinator.state.value.step == FreeFlightPreparationStep.READY };advance(600)
             val ready = activity.findViewById<View>(R.id.pf_ff_ready)
-            assertThat((ready.background as ColorDrawable).color).isEqualTo(if (night) 0xCC000000.toInt() else 0xCCFFFFFF.toInt())
             val status = activity.findViewById<TextView>(R.id.pf_ff_ready_status)
-            assertThat(status.currentTextColor).isEqualTo(if (night) Color.WHITE else Color.BLACK)
+            val luminance = Color.luminance(status.currentTextColor)
+            assertThat(if (night) luminance > .65f else luminance < .15f).isTrue()
             assertThat(status.text.toString()).isEqualTo(activity.getString(R.string.pf_ff_ready_to_fly_status))
+            assertThat(ready.findViewWithTag<TextView>("departure-route").text.toString())
+                .isEqualTo(controller!!.coordinator.state.value.prepared!!.departure.code)
+            assertThat(ready.findViewWithTag<TextView>("departure-seat").text.toString()).contains("1A")
             val button = activity.findViewById<FreeFlightDepartureButton>(R.id.pf_ff_depart)
-            assertThat(button.width).isEqualTo(120);assertThat(button.height).isEqualTo(40)
-            val paint = Bitmap.createBitmap(button.width, button.height, Bitmap.Config.ARGB_8888);button.draw(Canvas(paint))
-            assertThat(paint.getPixel(button.width / 4, (button.height * .85f).toInt())).isEqualTo(if (night) Color.WHITE else Color.BLACK)
+            assertThat(button.isShown).isTrue()
+            assertThat(button.width).isAtLeast(160)
+            assertThat(button.height).isAtLeast(48)
             capture(if (night) "ready-night-actual-main" else "ready-day-actual-main")
             assertThat(actions.requests).isEmpty();assertRealCountdownUntouched()
         }
@@ -266,21 +269,48 @@ class FreeFlightPreparationWindowTest {
 
     @Test
     @Config(qualifiers = "zh-rCN-w720dp-h432dp-land-mdpi")
-    fun compactMainWindowUsesSourceReady30TenTwentyDpMargins() {
+    fun compactReadyWindowKeepsTheRouteAndActionInsideSystemAreas() {
+        org.robolectric.RuntimeEnvironment.setFontScale(1.6f)
         controller = FreeFlightPreparationController(activity, actions).also { it.begin() }
         await { controller!!.coordinator.state.value.step == FreeFlightPreparationStep.HEADING }
         controller!!.coordinator.continueToSeat();await { controller!!.coordinator.state.value.step == FreeFlightPreparationStep.SEAT }
         val scene = (activity.seatSceneChoices(Bundle()) as SeatSceneChoices.Ready).values.first()
         controller!!.coordinator.confirmSeat(FreeFlightSeatChoice("1A", scene))
         await { controller!!.coordinator.state.value.step == FreeFlightPreparationStep.READY };advance(600)
-        val icon = activity.findViewById<View>(R.id.pf_ff_ready_plane)
+        val ready = activity.findViewById<View>(R.id.pf_ff_ready)
         val status = activity.findViewById<View>(R.id.pf_ff_ready_status)
         val button = activity.findViewById<View>(R.id.pf_ff_depart)
-        assertThat((icon.layoutParams as android.widget.FrameLayout.LayoutParams).topMargin).isEqualTo(30)
-        assertThat((status.layoutParams as android.widget.FrameLayout.LayoutParams).topMargin).isEqualTo(100)
-        assertThat((button.layoutParams as android.widget.FrameLayout.LayoutParams).bottomMargin).isEqualTo(20)
+        val types = androidx.core.view.WindowInsetsCompat.Type.systemBars() or androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+        val insets = androidx.core.view.WindowInsetsCompat.Builder()
+            .setInsets(types, androidx.core.graphics.Insets.of(38, 26, 24, 28)).build()
+        val previous = android.graphics.Rect()
+        repeat(2) { index ->
+            androidx.core.view.ViewCompat.dispatchApplyWindowInsets(ready, insets)
+            advance(48)
+            val bounds = android.graphics.Rect()
+            assertThat(button.getGlobalVisibleRect(bounds)).isTrue()
+            assertThat(bounds.left).isAtLeast(38)
+            assertThat(bounds.right).isAtMost(ready.width - 24)
+            assertThat(bounds.bottom).isAtMost(ready.height - 28)
+            assertThat(bounds.height()).isAtLeast(48)
+            if (index == 0) previous.set(bounds) else assertThat(bounds).isEqualTo(previous)
+        }
+        val plane = activity.findViewById<View>(R.id.pf_ff_ready_plane)
+        val seat = ready.findViewWithTag<TextView>("departure-seat")
+        for (view in listOf(plane, status, seat)) {
+            val bounds = android.graphics.Rect()
+            assertThat(view.getGlobalVisibleRect(bounds)).isTrue()
+            assertThat(bounds.height()).isEqualTo(view.height)
+        }
+        val planeBounds = android.graphics.Rect().also { plane.getGlobalVisibleRect(it) }
+        val statusBounds = android.graphics.Rect().also { status.getGlobalVisibleRect(it) }
+        assertThat(planeBounds.right).isLessThan(statusBounds.left)
         capture("ready-compact-actual-main");assertThat(actions.requests).isEmpty()
     }
+
+    private fun windowFixture() = FreeFlightPreparationCoordinatorTest.Fixture(
+        PlannedAirport(1L, "PEK", "Beijing Capital International Airport", "北京", "CN", 40.08, 116.59),
+    )
 
     private fun assertRealCountdownUntouched() {
         assertThat(activity.sessionRepository.state.value).isEqualTo(SessionState.Idle)
@@ -292,7 +322,8 @@ class FreeFlightPreparationWindowTest {
         val decor = activity.window.decorView
         assertThat(decor.width).isGreaterThan(0);assertThat(decor.height).isGreaterThan(0)
         val bitmap = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888);decor.draw(Canvas(bitmap))
-        val folder = File(System.getProperty("pf.r170.ui.captureDir", "build/r170-freeflight-ui"));folder.mkdirs()
+        val folder = File(System.getProperty("pf.r170.ui.captureDir", "build/reports/freeflight-home"))
+        folder.mkdirs()
         File(folder, "$name.png").outputStream().use { assertThat(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)).isTrue() }
     }
 

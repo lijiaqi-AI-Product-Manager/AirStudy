@@ -18,7 +18,6 @@ import android.view.animation.DecelerateInterpolator
 import android.view.animation.LinearInterpolator
 import android.view.animation.ScaleAnimation
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Space
@@ -87,36 +86,6 @@ internal class FreeFlightHeadingSurface(context: Context, initial: Float, feedba
 
     fun enter() { visibility = INVISIBLE;post { translationY = height.toFloat();visibility = VISIBLE;animate().translationY(0f).setDuration(400L).setInterpolator(DecelerateInterpolator()).start() } }
     fun leave(done: () -> Unit) { animate().cancel();animate().translationY(height.toFloat()).setDuration(300L).withEndAction(done).start() }
-}
-
-/** Source z0.S/g dimensions, with its dynamic day/night override rather than raw-XML black. */
-internal class FreeFlightReadySurface(context: Context, night: Boolean) : FrameLayout(context) {
-    val depart = FreeFlightDepartureButton(context).apply { id = R.id.pf_ff_depart;applyNight(night) }
-    init {
-        id = R.id.pf_ff_ready;isClickable = true;isFocusable = true;applyNight(night)
-        val compact = resources.displayMetrics.heightPixels / resources.displayMetrics.density < 550f
-        val iconTop = if (compact) 30f else 180f;val statusGap = if (compact) 10f else 40f
-        addView(ImageView(context).apply {
-            id = R.id.pf_ff_ready_plane;setImageResource(R.drawable.pf_ff_ready_plane)
-            contentDescription = context.getString(R.string.pf_ff_ready_to_fly_plane_icon_desc)
-        }, LayoutParams(context.ffDp(60f), context.ffDp(60f), Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = context.ffDp(iconTop) })
-        addView(TextView(context).apply {
-            id = R.id.pf_ff_ready_status;setText(R.string.pf_ff_ready_to_fly_status);gravity = Gravity.CENTER
-            setTextSize(TypedValue.COMPLEX_UNIT_DIP, 18f);setLineSpacing(8f * resources.displayMetrics.density, 1f)
-            typeface = ResourcesCompat.getFont(context, CoreUiR.font.harmonyos_sans_sc_medium)
-        }, LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT, Gravity.TOP or Gravity.CENTER_HORIZONTAL).apply { topMargin = context.ffDp(iconTop + 60f + statusGap) })
-        addView(depart, LayoutParams(context.ffDp(120f), context.ffDp(40f), Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL).apply { bottomMargin = context.ffDp(if (compact) 20f else 100f) })
-        applyNight(night)
-    }
-
-    fun applyNight(night: Boolean) {
-        val foreground = if (night) Color.WHITE else Color.BLACK
-        setBackgroundResource(if (night) R.color.pf_ff_black80 else R.color.pf_ff_ready_day)
-        findViewById<ImageView>(R.id.pf_ff_ready_plane)?.setColorFilter(foreground)
-        findViewById<TextView>(R.id.pf_ff_ready_status)?.setTextColor(foreground);depart.applyNight(night)
-    }
-
-    fun enter() { alpha = 0f;animate().alpha(1f).setDuration(500L).setInterpolator(DecelerateInterpolator()).start() }
 }
 
 /** Existing source-shaped airframe + independent real catalog/editor. No BookingDraft or history writes. */

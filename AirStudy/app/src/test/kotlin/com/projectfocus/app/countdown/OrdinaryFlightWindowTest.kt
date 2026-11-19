@@ -115,6 +115,9 @@ class OrdinaryFlightWindowTest {
         await("Ready surface") { activity.findViewById<View>(R.id.ordinaryReady)?.isShown == true }
         assertIdleAndNoRecord()
         advance(550)
+        val ready = activity.findViewById<View>(R.id.ordinaryReady)
+        assertEquals("PEK → TSN", ready.findViewWithTag<TextView>("departure-route").text.toString())
+        assertTrue(ready.findViewWithTag<TextView>("departure-seat").text.toString().contains(opened.seat!!))
         capture("ordinary-ready-day")
         val depart = activity.findViewById<View>(R.id.pf_ff_depart)
         depart.performClick(); depart.performClick()
