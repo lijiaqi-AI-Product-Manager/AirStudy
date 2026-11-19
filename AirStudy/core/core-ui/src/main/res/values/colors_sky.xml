@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="sky_canvas">#F5F7FD</color>
+    <color name="sky_ink">#17243F</color>
+    <color name="sky_ink_secondary">#62718B</color>
+    <color name="sky_primary">#2263D4</color>
+    <color name="sky_primary_end">#6052CA</color>
+    <color name="sky_card_top">#F7FFFFFF</color>
+    <color name="sky_card_bottom">#F5EDF3FF</color>
+    <color name="sky_card_solid">#FFFFFF</color>
+    <color name="sky_edge">#DFFFFFFF</color>
+    <color name="sky_divider">#E4EAF5</color>
+    <color name="sky_glow_blue">#B8DBFF</color>
+    <color name="sky_glow_violet">#D9D0FF</color>
+    <color name="sky_selected">#E4ECFF</color>
+    <color name="sky_success">#267D68</color>
+    <color name="sky_spark">#F3B54A</color>
+</resources>

@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="pf_ff_battery_opt_warning_guide_action">查看設定指引</string><string name="pf_ff_battery_opt_warning_message">手機省電策略可能導致背景執行時無法存檔甚至進程中斷，為確保背景存檔正常，請將本應用加入手機省電白名單／允許背景執行。</string><string name="pf_ff_battery_opt_warning_title">背景執行提醒</string><string name="pf_ff_confirm">確認</string></resources>

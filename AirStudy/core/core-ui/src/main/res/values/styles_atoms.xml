@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <!-- ==================== 基础：所有 Pf 按钮的共同点 ==================== -->
+    <style name="Widget.Pf.Button" parent="Widget.Material3.Button">
+        <item name="android:minHeight">@dimen/touch_target_min</item>
+        <item name="android:textAppearance">@style/TextAppearance.Pf.Button</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="cornerRadius">@dimen/radius_m</item>
+        <item name="android:paddingStart">@dimen/space_l</item>
+        <item name="android:paddingEnd">@dimen/space_l</item>
+        <item name="iconPadding">@dimen/space_s</item>
+        <item name="iconSize">@dimen/icon_s</item>
+        <item name="iconGravity">textStart</item>
+    </style>
+
+
+
+    <style name="Widget.Pf.Button.Primary">
+        <item name="backgroundTint">@null</item>
+        <item name="android:background">@drawable/bg_button_primary</item>
+        <item name="android:minHeight">@dimen/button_primary_height</item>
+        <item name="cornerRadius">@dimen/radius_pill</item>
+        <item name="android:textColor">@color/text_on_accent</item>
+        <item name="iconTint">@color/text_on_accent</item>
+        <item name="rippleColor">@color/text_on_accent</item>
+        <item name="elevation">0dp</item>
+    </style>
+
+
+    <style name="Widget.Pf.Button.Secondary">
+        <item name="backgroundTint">@null</item>
+        <item name="android:background">@drawable/bg_button_secondary</item>
+        <item name="cornerRadius">@dimen/radius_pill</item>
+        <item name="android:textColor">@color/accent_text</item>
+        <item name="iconTint">@color/accent_text</item>
+        <item name="rippleColor">@color/accent_container</item>
+        <item name="elevation">0dp</item>
+    </style>
+
+    <!-- 危险按钮：用于「取消航班」「退出房间」 -->
+    <style name="Widget.Pf.Button.Danger">
+        <item name="cornerRadius">@dimen/radius_pill</item>
+        <item name="backgroundTint">@color/semantic_error</item>
+        <item name="android:textColor">@color/text_on_accent</item>
+        <item name="iconTint">@color/text_on_accent</item>
+        <item name="rippleColor">@color/text_on_accent</item>
+        <item name="elevation">0dp</item>
+    </style>
+
+    <!-- 文字按钮：无背景 -->
+    <style name="Widget.Pf.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:minHeight">@dimen/touch_target_min</item>
+        <item name="android:textAppearance">@style/TextAppearance.Pf.Button</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:textColor">@color/accent_text</item>
+        <item name="rippleColor">@color/accent_container</item>
+    </style>
+
+    <!-- 图标按钮（圆形，40dp 视觉 / 48dp 触控） -->
+    <style name="Widget.Pf.Button.Icon" parent="Widget.Material3.Button.IconButton">
+        <item name="android:minWidth">@dimen/touch_target_min</item>
+        <item name="android:minHeight">@dimen/touch_target_min</item>
+        <item name="iconSize">@dimen/icon_m</item>
+        <item name="iconTint">@color/text_primary</item>
+        <item name="rippleColor">@color/accent_container</item>
+    </style>
+
+    <!-- 胶囊按钮：飞行页底部三个按钮用它 -->
+    <style name="Widget.Pf.Button.Pill" parent="Widget.Pf.Button.Primary">
+        <item name="cornerRadius">@dimen/radius_pill</item>
+        <item name="android:minHeight">56dp</item>
+        <item name="android:paddingStart">@dimen/space_xl</item>
+        <item name="android:paddingEnd">@dimen/space_xl</item>
+    </style>
+
+    <!-- ==================== 卡片 ==================== -->
+
+
+    <style name="Widget.Pf.Card" parent="Widget.Material3.CardView.Filled">
+        <item name="cardBackgroundColor">@color/bg_elevated</item>
+        <item name="cardCornerRadius">@dimen/radius_xl</item>
+        <item name="cardElevation">@dimen/space_xs</item>
+        <item name="android:outlineSpotShadowColor" tools:targetApi="28">@color/shadow_brand</item>
+        <item name="android:outlineAmbientShadowColor" tools:targetApi="28">@color/shadow_ambient</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="rippleColor">@color/accent_container</item>
+        <!-- 卡片内部统一 16dp 内边距，业务不再各写各的 -->
+        <item name="contentPadding">@dimen/space_l</item>
+    </style>
+
+    <!-- 可点卡片：加按压反馈 -->
+    <style name="Widget.Pf.Card.Clickable" parent="Widget.Pf.Card">
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+    </style>
+
+    <!-- 玻璃卡片：半透明白 + 高光边 + 更明显的彩色柔阴影。
+         需要渐变填充的地方直接用 @drawable/bg_glass_card 当 View 背景（MaterialCardView 只吃纯色）。 -->
+    <style name="Widget.Pf.Card.Glass" parent="Widget.Pf.Card">
+        <item name="cardBackgroundColor">@color/surface_glass</item>
+        <item name="cardElevation">@dimen/elevation_card_glow</item>
+        <item name="strokeColor">@color/surface_glass_stroke</item>
+        <item name="strokeWidth">@dimen/stroke_hairline</item>
+    </style>
+
+    <!-- 普通 View（LinearLayout 等）当玻璃卡：背景 + 彩色阴影一次给齐 -->
+    <style name="Widget.Pf.GlassPanel">
+        <item name="android:background">@drawable/bg_glass_card</item>
+        <item name="android:elevation">@dimen/elevation_card_glow</item>
+        <item name="android:outlineSpotShadowColor" tools:targetApi="28">@color/shadow_brand</item>
+        <item name="android:outlineAmbientShadowColor" tools:targetApi="28">@color/shadow_ambient</item>
+        <item name="android:padding">@dimen/space_l</item>
+    </style>
+
+    <!-- 主视觉卡（页面里最大的那张）：32dp 圆角 + 底部品牌光 -->
+    <style name="Widget.Pf.GlassPanel.Hero">
+        <item name="android:background">@drawable/bg_glass_hero</item>
+        <item name="android:padding">@dimen/space_xl</item>
+    </style>
+
+    <!-- 「进行中」角标：橙色描边 + 橙底（报告：不是蓝色文字） -->
+    <style name="Widget.Pf.Badge.Doing" parent="Widget.Pf">
+        <item name="android:background">@drawable/bg_badge_doing</item>
+        <item name="android:textAppearance">@style/TextAppearance.Pf.Micro</item>
+        <item name="android:textColor">@color/semantic_warning</item>
+        <item name="android:paddingStart">@dimen/space_s</item>
+        <item name="android:paddingEnd">@dimen/space_s</item>
+        <item name="android:paddingTop">@dimen/space_xxs</item>
+        <item name="android:paddingBottom">@dimen/space_xxs</item>
+    </style>
+
+    <!-- ==================== Chip ==================== -->
+
+    <style name="Widget.Pf.Chip" parent="Widget.Material3.Chip.Filter">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.Caption</item>
+        <item name="chipMinHeight">32dp</item>
+        <item name="chipCornerRadius">@dimen/radius_pill</item>
+        <item name="chipBackgroundColor">@color/pf_chip_background</item>
+        <item name="android:textColor">@color/pf_chip_text</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipStrokeWidth">0dp</item>
+        <item name="rippleColor">@color/accent_container</item>
+    </style>
+
+    <!-- ==================== 输入框 ==================== -->
+    <style name="Widget.Pf.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxCornerRadiusTopStart">@dimen/radius_m</item>
+        <item name="boxCornerRadiusTopEnd">@dimen/radius_m</item>
+        <item name="boxCornerRadiusBottomStart">@dimen/radius_m</item>
+        <item name="boxCornerRadiusBottomEnd">@dimen/radius_m</item>
+        <item name="boxStrokeColor">@color/accent_primary</item>
+        <item name="boxStrokeWidth">@dimen/stroke_hairline</item>
+        <item name="boxStrokeWidthFocused">@dimen/stroke_thick</item>
+        <item name="hintTextColor">@color/text_tertiary</item>
+        <item name="android:textColorHint">@color/text_tertiary</item>
+        <item name="errorTextColor">@color/semantic_error</item>
+        <item name="android:minHeight">@dimen/touch_target_comfortable</item>
+    </style>
+
+    <!-- ==================== 分隔线 ==================== -->
+    <style name="Widget.Pf.Divider">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">@dimen/stroke_hairline</item>
+        <item name="android:background">@color/divider</item>
+    </style>
+
+</resources>

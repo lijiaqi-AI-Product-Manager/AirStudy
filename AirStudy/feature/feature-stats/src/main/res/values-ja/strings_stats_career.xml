@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_career_title">通算データ</string>
+    <string name="stats_career_subtitle">全成功フライトに基づく集計</string>
+    <string name="stats_total_mileage_label">合計距離</string>
+    <string name="stats_completed_flights_label">完了フライト</string>
+    <string name="stats_ontime_label">定時運航率</string>
+    <string name="stats_current_streak_title">連続フライト</string>
+    <string name="stats_streak_best_value_fmt">最長 %1$d 日</string>
+    <string name="stats_streak_days_fmt">%1$d 日</string>
+    <string name="stats_km_value_fmt">%1$s km</string>
+    <string name="stats_ontime_rate_value_fmt">%1$d%%</string>
+    <string name="stats_record_city_stats_title">市内への到着に関する統計</string>
+    <string name="stats_record_top_countries_title">よく行く国</string>
+    <string name="stats_top_country_most_visited_label">最も訪問された国</string>
+</resources>

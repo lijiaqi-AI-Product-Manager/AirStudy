@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="320.0dip" android:minWidth="240.0dip" android:elevation="10.0dip" android:layout_marginHorizontal="16.0dip" android:layout_marginVertical="6.0dip" android:paddingHorizontal="14.0dip" android:paddingVertical="12.0dip"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <FrameLayout android:layout_width="28.0dip" android:layout_height="28.0dip" android:layout_marginEnd="10.0dip">
+        <ImageView android:layout_gravity="center" android:id="@id/pf_auth_toast_icon" android:layout_width="18.0dip" android:layout_height="18.0dip" />
+    </FrameLayout>
+    <LinearLayout android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0">
+        <TextView android:textSize="13.0sp" android:textStyle="bold" android:ellipsize="end" android:id="@id/pf_auth_toast_title" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxLines="1" />
+        <TextView android:textAppearance="@style/pf_auth_text_appearance_caption" android:textSize="12.0sp" android:ellipsize="end" android:id="@id/pf_auth_toast_message" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="1.0dip" android:maxLines="2" />
+    </LinearLayout>
+</LinearLayout>

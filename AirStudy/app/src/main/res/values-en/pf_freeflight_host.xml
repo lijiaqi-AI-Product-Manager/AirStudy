@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_ff_preparation_expired">This flight preparation has expired. Please prepare again.</string>
+    <string name="pf_ff_map_not_ready">The map is not ready. Please wait for it to load and prepare again.</string>
+    <string name="pf_ff_notifications_unavailable">Notifications could not be enabled. Please try again in system settings.</string>
+    <string name="pf_ff_retry_runtime_action">Retry</string>
+</resources>

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_pg_toast_syncing_flight_status">"Syncing flight status…"</string>
+</resources>

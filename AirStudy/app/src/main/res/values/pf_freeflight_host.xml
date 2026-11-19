@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_ff_preparation_expired">当前飞行准备已失效，请重新准备</string>
+    <string name="pf_ff_map_not_ready">地图暂未就绪，请待地图加载完成后重新准备</string>
+    <string name="pf_ff_notifications_unavailable">暂时无法开启通知，请稍后在系统设置中重试</string>
+    <string name="pf_ff_retry_runtime_action">重试</string>
+    <item type="id" name="pf_ff_retry_runtime" />
+</resources>

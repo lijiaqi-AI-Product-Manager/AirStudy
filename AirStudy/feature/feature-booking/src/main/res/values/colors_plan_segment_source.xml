@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="pf_tp_segment_primary_day">#ff1c1c1e</color>
+    <color name="pf_tp_segment_secondary_day">#cc000000</color>
+    <color name="pf_tp_segment_secondary_night">#ccffffff</color>
+    <color name="pf_tp_segment_bg_day">#ccd8d8d8</color>
+    <color name="pf_tp_segment_bg_night">#cc222224</color>
+    <color name="pf_tp_segment_bg_blur_day">#ebffffff</color>
+    <color name="pf_tp_segment_bg_blur_night">#33ffffff</color>
+    <color name="pf_tp_plan_status_waiting">#fff2bb31</color>
+    <color name="pf_tp_plan_status_in_progress">#ff2196f3</color>
+    <color name="pf_tp_plan_status_canceled">#ffff4444</color>
+    <color name="pf_tp_plan_status_completed_on_time">#ff4caf50</color>
+    <color name="pf_tp_plan_status_completed_early">#ff00bcd4</color>
+    <color name="pf_tp_plan_status_completed_delayed">#ffff9800</color>
+    <color name="pf_tp_segment_menu_bg_night">#ff2c2c2e</color>
+    <color name="pf_tp_segment_menu_stroke_day">#ffe0e0e0</color>
+    <color name="pf_tp_segment_menu_stroke_night">#ff3a3a3c</color>
+    <color name="pf_tp_segment_menu_text_day">#ff111111</color>
+    <color name="pf_tp_segment_menu_disabled_day">#99000000</color>
+    <color name="pf_tp_segment_menu_disabled_night">#88ffffff</color>
+    <color name="pf_tp_segment_menu_danger">#ffff3b30</color>
+</resources>

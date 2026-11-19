@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_tp_common_km">км</string>
+    <string name="pf_tp_segment_context_edit">Редактировать</string>
+    <string name="pf_tp_segment_context_delete">Удалить</string>
+    <string name="pf_tp_plan_status_in_progress">В полёте</string>
+    <string name="pf_tp_plan_status_completed">Завершено</string>
+    <string name="pf_tp_plan_status_canceled">Отменено</string>
+    <string name="pf_tp_plan_status_completed_on_time">По расп.</string>
+    <string name="pf_tp_plan_status_completed_early_fmt">Ранее %1$d мин</string>
+    <string name="pf_tp_plan_status_completed_delayed_fmt">+%1$d мин</string>
+    <string name="pf_tp_segment_context_batch_delete_canceled">Удалить все отмененные сегменты</string>
+    <string name="pf_tp_plan_deleted_canceled_legs_fmt">Удалено %1$d отменённых сегментов</string>
+    <string name="pf_tp_plan_no_deletable_canceled_legs">Нет отменённых сегментов для удаления</string>
+</resources>

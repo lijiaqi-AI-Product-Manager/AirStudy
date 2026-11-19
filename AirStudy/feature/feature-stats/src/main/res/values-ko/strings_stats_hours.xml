@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_hour_of_day_title">시간대별 집중</string>
+    <string name="stats_peak_period_label">집중 시간대</string>
+    <string name="stats_active_hours_label">활동 시간</string>
+    <string name="stats_hour_value_fmt">%1$02d:00</string>
+    <string name="stats_peak_hour_value_fmt">%1$02d:00–%2$02d:00</string>
+    <string name="stats_hours_count_fmt">%1$d시간</string>
+    <string name="stats_hour_chart_accessibility_hint">24시간 집중 분포입니다. 터치하여 시간별 데이터를 확인하세요</string>
+    <string name="stats_hour_chart_selected_fmt">%1$s, 집중 %2$s</string>
+</resources>

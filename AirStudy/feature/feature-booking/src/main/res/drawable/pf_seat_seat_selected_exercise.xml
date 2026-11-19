@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <item>
+        <shape android:shape="rectangle">
+            <gradient android:startColor="#ffff7043" android:endColor="#ffff5722" android:angle="135.0" />
+            <corners android:radius="8.0dip" />
+            <stroke android:width="3.0dip" android:color="#ffd84315" />
+        </shape>
+    </item>
+    <item android:gravity="center" android:height="16.0dip" android:width="16.0dip" android:drawable="@drawable/pf_seat_ic_focus_exercise" />
+</layer-list>

@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <!-- ============ 展示级：一屏最多一个 ============ -->
+    <style name="Widget.Pf.Text.Display" parent="android:Widget.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.Display</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <!-- ============ 标题 ============ -->
+    <style name="Widget.Pf.Text.TitleL" parent="android:Widget.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.TitleL</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="Widget.Pf.Text.TitleM" parent="android:Widget.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.TitleM</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <!-- ============ 正文 ============ -->
+    <style name="Widget.Pf.Text.BodyL" parent="android:Widget.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.BodyL</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:maxLines">10</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="Widget.Pf.Text.BodyM" parent="android:Widget.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.BodyM</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:maxLines">10</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <!-- ============ 辅助 ============ -->
+    
+    <style name="Widget.Pf.Text.Caption" parent="android:Widget.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.Caption</item>
+        <item name="android:textColor">@color/text_tertiary</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <style name="Widget.Pf.Text.Micro" parent="android:Widget.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.Micro</item>
+        <item name="android:textColor">@color/text_tertiary</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">end</item>
+    </style>
+
+    <!-- ============ 数字（等宽，倒计时/距离/耗时）============ -->
+    <style name="Widget.Pf.Text.NumericXL" parent="android:Widget.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.NumericXL</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:maxLines">1</item>
+
+
+
+
+
+        <item name="android:ellipsize">none</item>
+    </style>
+
+    <style name="Widget.Pf.Text.NumericL" parent="android:Widget.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.NumericL</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">none</item>
+    </style>
+
+    <style name="Widget.Pf.Text.NumericM" parent="android:Widget.TextView">
+        <item name="android:textAppearance">@style/TextAppearance.Pf.NumericM</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:maxLines">1</item>
+        <item name="android:ellipsize">none</item>
+    </style>
+
+</resources>

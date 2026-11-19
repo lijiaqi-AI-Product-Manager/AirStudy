@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_hour_of_day_title">Focus by hour</string>
+    <string name="stats_peak_period_label">Peak period</string>
+    <string name="stats_active_hours_label">Active hours</string>
+    <string name="stats_hour_value_fmt">%1$02d:00</string>
+    <string name="stats_peak_hour_value_fmt">%1$02d:00–%2$02d:00</string>
+    <string name="stats_hours_count_fmt">%1$d hours</string>
+    <string name="stats_hour_chart_accessibility_hint">24-hour focus distribution. Touch to inspect an hour.</string>
+    <string name="stats_hour_chart_selected_fmt">%1$s, focused for %2$s</string>
+</resources>

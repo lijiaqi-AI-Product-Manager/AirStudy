@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="110dp"
+    android:height="110dp"
+    android:viewportWidth="110"
+    android:viewportHeight="110">
+
+    <!-- 卡片底 -->
+    <path
+        android:fillColor="@color/widget_preview_bg"
+        android:pathData="M20,0 L90,0 A20,20 0 0 1 110,20 L110,90 A20,20 0 0 1 90,110 L20,110 A20,20 0 0 1 0,90 L0,20 A20,20 0 0 1 20,0 Z" />
+
+    <!-- 小标题占位 -->
+    <path
+        android:fillColor="@color/widget_preview_text_secondary"
+        android:pathData="M14,18 L58,18 L58,23 L14,23 Z" />
+
+    <!-- 大数字占位 -->
+    <path
+        android:fillColor="@color/widget_preview_text_primary"
+        android:pathData="M14,34 L54,34 L54,60 L14,60 Z" />
+
+    <!-- 单位占位 -->
+    <path
+        android:fillColor="@color/widget_preview_text_secondary"
+        android:pathData="M14,66 L34,66 L34,70 L14,70 Z" />
+
+    <!-- 底部药丸 -->
+    <path
+        android:fillColor="@color/widget_preview_accent"
+        android:pathData="M14,82 L96,82 A12,12 0 0 1 96,98 L14,98 A12,12 0 0 1 14,82 Z" />
+</vector>

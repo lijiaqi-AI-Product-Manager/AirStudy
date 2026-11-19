@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+    <!-- 时长分段：与通用 SegmentChip 同形，沿用主页自己的 drawable / 文字色名（校验器按名字找） -->
+    <style name="Widget.Pf.DurationChip" parent="Widget.Pf.SegmentChip">
+        <item name="android:background">@drawable/bg_duration_chip</item>
+        <item name="android:textColor">@color/duration_chip_text</item>
+    </style>
+
+    <!-- 地图风格胶囊（底部横滑条） -->
+    <style name="Widget.Pf.MapStyleChip">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">32dp</item>
+        <item name="android:layout_marginStart">6dp</item>
+        <item name="android:background">@drawable/bg_map_style_chip</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingStart">@dimen/space_m</item>
+        <item name="android:paddingEnd">@dimen/space_m</item>
+        <item name="android:textAppearance">@style/TextAppearance.Pf.Caption</item>
+        <item name="android:textColor">@color/map_style_chip_text</item>
+    </style>
+
+    <!-- 地图风格面板里的格子（两列各 4 个，等高） -->
+    <style name="Widget.Pf.MapStylePanelChip">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">0dp</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:layout_marginTop">@dimen/space_xs</item>
+        <item name="android:background">@drawable/bg_map_style_chip</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textAppearance">@style/TextAppearance.Pf.Caption</item>
+        <item name="android:textColor">@color/map_style_chip_text</item>
+    </style>
+</resources>

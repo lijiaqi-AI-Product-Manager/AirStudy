@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="seat_selection_title">选择座位</string>
+    <string name="seat_selection_subtitle">航班 %1$s</string>
+    <string name="seat_selection_selected_none">未选择</string>
+    <string name="seat_selection_selected_fmt">已选 %1$s</string>
+    <string name="seat_selection_confirm">确认选座</string>
+    <string name="seat_selection_back">返回</string>
+    <string name="seat_selection_confirmed_fmt">已选座位 %1$s</string>
+    <string name="seat_selection_save_failed">座位保存失败，请重试</string>
+    <string name="seat_selection_invalid_record_seat">记录中的座位无效，请重新选择</string>
+    <string name="seat_selection_record_update_failed">座位已保存到草稿，但记录更新失败</string>
+    <string name="seat_selection_flight_route_fmt">%1$s · %2$s → %3$s</string>
+    <string name="seat_selection_route_fmt">%1$s → %2$s</string>
+    <string name="seat_clear_draft">清除选座草稿</string>
+    <string name="seat_clear_draft_done">已清除选座草稿</string>
+</resources>

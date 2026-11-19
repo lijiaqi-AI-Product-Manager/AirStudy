@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp">
+    <TextView android:id="@+id/tvSeatSelected"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:fontFamily="@font/pf_apk2_harmonyos_sans"
+        android:text="@string/seat_selection_selected_none" android:textSize="20sp" />
+    <TextView android:id="@+id/tvSeatFlight"
+        android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp"
+        android:fontFamily="@font/pf_apk2_harmonyos_sans" android:textSize="14sp" />
+    <TextView android:id="@+id/btnClearDraft"
+        android:layout_width="wrap_content" android:layout_height="48dp"
+        android:background="?android:attr/selectableItemBackground" android:gravity="center_vertical"
+        android:text="@string/seat_clear_draft" android:visibility="gone" />
+    <Button android:id="@+id/btnConfirmSeat"
+        android:layout_width="match_parent" android:layout_height="48dp" android:layout_marginTop="16dp"
+        android:fontFamily="@font/pf_apk2_harmonyos_sans"
+        android:text="@string/seat_selection_confirm" android:textAllCaps="false" />
+    <Button android:id="@+id/btnSeatBack"
+        android:layout_width="match_parent" android:layout_height="48dp"
+        android:fontFamily="@font/pf_apk2_harmonyos_sans"
+        android:text="@string/pf_seat_continue_selection" android:textAllCaps="false" />
+</LinearLayout>

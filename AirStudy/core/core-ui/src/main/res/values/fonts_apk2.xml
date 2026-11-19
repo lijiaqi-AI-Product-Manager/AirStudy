@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="pf_apk2_harmonyos_sans_sc_light" type="font">@font/harmonyos_sans_sc_light</item>
+    <item name="pf_apk2_harmonyos_sans_sc_medium" type="font">@font/harmonyos_sans_sc_medium</item>
+    <item name="pf_apk2_harmonyos_sans_sc_bold" type="font">@font/harmonyos_sans_sc_bold</item>
+    <item name="pf_apk2_harmonyos_sans_sc_black" type="font">@font/harmonyos_sans_sc_black</item>
+    <item name="pf_apk2_jetbrainsmono_medium" type="font">@font/jetbrainsmono_medium</item>
+    <item name="pf_apk2_montserrat_bold" type="font">@font/montserrat_bold</item>
+    <item name="pf_apk2_montserrat_extra_bold" type="font">@font/montserrat_extra_bold</item>
+    <item name="pf_apk2_segment" type="font">@font/segment</item>
+</resources>

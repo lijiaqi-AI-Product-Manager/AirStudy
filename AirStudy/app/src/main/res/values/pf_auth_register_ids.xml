@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><item name="pf_auth_btn_register" type="id" /><item name="pf_auth_civ_email" type="id" /><item name="pf_auth_civ_password" type="id" /><item name="pf_auth_et_code" type="id" /><item name="pf_auth_toast_icon" type="id" /><item name="pf_auth_toast_message" type="id" /><item name="pf_auth_toast_title" type="id" /><item name="pf_auth_tv_privacy" type="id" /><item name="pf_auth_tv_send_code" type="id" /><item name="pf_auth_tv_terms" type="id" /></resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="nav_label_permission">起飞前检查</string>
+    <string name="nav_label_home">主页</string>
+    <string name="nav_label_airport">选择机场</string>
+    <string name="nav_label_record">飞行记录</string>
+    <string name="nav_label_boarding_pass">登机牌</string>
+    <string name="nav_label_completion">落地</string>
+</resources>

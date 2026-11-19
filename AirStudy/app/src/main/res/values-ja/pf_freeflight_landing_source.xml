@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources><string name="pf_ff_land_airport_badge_arrived">到着済み</string>
+    <string name="pf_ff_land_common_cancel">キャンセル</string>
+    <string name="pf_ff_land_common_confirm">確認</string>
+    <string name="pf_ff_land_confirm_landing">着陸を確認</string>
+    <string name="pf_ff_land_free_flight_landing_action">着陸</string>
+    <string name="pf_ff_land_free_flight_landing_confirm_message">カウントアップを終了して着地しますか？</string>
+    <string name="pf_ff_land_free_flight_landing_confirm_title">着陸確認</string>
+    <string name="pf_ff_land_free_flight_landing_prepare_message">タイムラインをスライドして着陸範囲を選択してください</string>
+    <string name="pf_ff_land_free_flight_landing_prepare_title">着陸準備</string>
+    <string name="pf_ff_land_heading_to_landing_point">着陸地点に向かっています...</string>
+    <string name="pf_ff_land_please_select_landing_airport">着陸する空港を選択してください</string>
+    </resources>

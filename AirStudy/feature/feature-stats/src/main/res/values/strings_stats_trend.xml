@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_dashboard_trend_title">成功飞行趋势</string>
+    <string name="stats_trend_mode_line">折线图</string>
+    <string name="stats_trend_mode_stacked_bar">柱状图</string>
+    <string name="stats_trend_completed">成功航班</string>
+    <string name="stats_trend_focus_time">专注时长</string>
+    <string name="stats_trend_total_label">合计</string>
+    <string name="stats_trend_peak_label">峰值</string>
+    <string name="stats_times_fmt">%1$d 次</string>
+    <string name="stats_duration_minutes">%dm</string>
+    <string name="stats_duration_hours">%dh</string>
+    <string name="stats_duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="stats_completed_trend_accessibility_hint">成功航班趋势图，可触摸查看各时段数据</string>
+    <string name="stats_completed_trend_selected_fmt">%1$s，成功航班 %2$d 次</string>
+    <string name="stats_focus_trend_accessibility_hint">专注时长趋势图，可触摸查看各时段数据</string>
+    <string name="stats_trend_chart_selected_fmt">%1$s，专注 %2$s</string>
+    <string name="stats_trend_axis_hour_format">HH:mm</string>
+    <string name="stats_trend_axis_day_format">M/d</string>
+    <string name="stats_trend_axis_week_format">M/d</string>
+    <string name="stats_trend_axis_month_format">M月</string>
+    <string name="stats_scene_time_pct_fmt">%1$s · %2$s</string>
+    <string name="stats_trend_detail_more_scenes">还有 %d 个场景</string>
+</resources>

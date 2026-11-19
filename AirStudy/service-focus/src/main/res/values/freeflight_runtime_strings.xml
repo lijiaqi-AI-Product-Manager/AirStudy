@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="freeflight_runtime_channel">专注飞行运行</string>
+    <string name="freeflight_runtime_title">正计时飞行</string>
+    <string name="freeflight_runtime_metrics">已飞 %1$s · %2$s</string>
+    <string name="freeflight_runtime_pause">暂停飞行</string>
+    <string name="freeflight_runtime_resume">继续飞行</string>
+    <string name="freeflight_runtime_metres">%1$d 米</string>
+    <string name="freeflight_runtime_kilometres">%1$d 公里</string>
+    <string name="freeflight_runtime_seconds">%1$d 秒</string>
+    <string name="freeflight_runtime_minutes">%1$d 分钟</string>
+    <string name="freeflight_runtime_return_title">专注飞行中，请返回应用</string>
+</resources>

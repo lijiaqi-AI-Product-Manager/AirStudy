@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources><item name="pf_ff_root" type="id" /><item name="pf_ff_heading_body" type="id" /><item name="pf_ff_heading_ruler" type="id" /><item name="pf_ff_heading_title" type="id" /><item name="pf_ff_heading_cancel" type="id" /><item name="pf_ff_heading_continue" type="id" /><item name="pf_ff_seat_map" type="id" /><item name="pf_ff_seat_confirm" type="id" /><item name="pf_ff_ready" type="id" /><item name="pf_ff_ready_plane" type="id" /><item name="pf_ff_ready_status" type="id" /><item name="pf_ff_depart" type="id" /></resources>

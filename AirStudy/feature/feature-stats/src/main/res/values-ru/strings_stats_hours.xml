@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_hour_of_day_title">Фокус по часам</string>
+    <string name="stats_peak_period_label">Пиковый период</string>
+    <string name="stats_active_hours_label">Активные часы</string>
+    <string name="stats_hour_value_fmt">%1$02d:00</string>
+    <string name="stats_peak_hour_value_fmt">%1$02d:00–%2$02d:00</string>
+    <string name="stats_hours_count_fmt">%1$d ч.</string>
+    <string name="stats_hour_chart_accessibility_hint">Распределение фокуса по 24 часам. Коснитесь для просмотра.</string>
+    <string name="stats_hour_chart_selected_fmt">%1$s, фокус %2$s</string>
+</resources>

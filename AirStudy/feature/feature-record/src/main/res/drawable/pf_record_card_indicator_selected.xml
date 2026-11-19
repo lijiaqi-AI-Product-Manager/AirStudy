@@ -1,0 +1,5 @@
+<?xml version='1.0' encoding='utf-8'?>
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="@color/pf_record_card_primary_color" />
+    <size android:height="8.0dip" android:width="8.0dip" />
+</shape>

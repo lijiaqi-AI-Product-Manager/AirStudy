@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <!-- 前台服务通知 -->
+    <string name="focus_channel_name">专注监控</string>
+    <string name="focus_channel_description">专注飞行进行中时，用于持续检测是否有分心应用被打开</string>
+
+    <string name="focus_notification_title">专注飞行进行中</string>
+    <string name="focus_notification_text_active">正在守护 %1$d 个应用</string>
+    <string name="focus_notification_text_idle">专注守护已启动</string>
+    <string name="focus_notification_text_paused">已暂停 · 点击返回继续飞行</string>
+
+    <string name="focus_action_pause">暂停 5 分钟</string>
+    <string name="focus_action_stop">结束专注</string>
+
+    
+    <string name="focus_perm_core_missing">还有必须的权限未开启</string>
+
+    <!-- 遮挡页 -->
+    <string name="focus_blocked_title">航班暂不经过此地</string>
+    <string name="focus_blocked_body">你正在打开 %1$s</string>
+    <string name="focus_blocked_body_category">%1$s 属于「%2$s」</string>
+    <string name="focus_blocked_back">返回客舱</string>
+    <string name="focus_blocked_hint">放弃本次飞行？长按下方按钮</string>
+
+
+    <!-- 遮挡页补充 -->
+    <string name="focus_blocked_unknown_app">这个应用</string>
+    <string name="focus_blocked_elapsed">已停留 %1$d 秒</string>
+    <string name="focus_blocked_give_up">放弃本次飞行</string>
+    <string name="focus_blocked_give_up_confirm">再点一次确认放弃</string>
+
+    <!-- 遮挡降级通知 -->
+    <string name="focus_blocked_channel_name">分心提醒</string>
+    <string name="focus_blocked_channel_description">尝试打开被屏蔽的应用时的提醒</string>
+    <string name="focus_notification_blocked_title">航线不经过这里</string>
+    <string name="focus_notification_blocked_body">你打开了 %1$s</string>
+    <string name="focus_notification_blocked_body_category">%1$s（%2$s）不在本次航线内</string>
+
+</resources>

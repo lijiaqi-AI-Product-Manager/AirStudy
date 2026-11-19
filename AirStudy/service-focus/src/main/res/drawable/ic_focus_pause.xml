@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 暂停：两条竖杠（媒体播放器的「暂停」是业界通用语言，不需要图例说明） -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="@color/focus_icon_on_surface">
+    <path
+        android:fillColor="@color/focus_icon_on_surface"
+        android:pathData="M7,5h3.2v14H7zM13.8,5H17v14h-3.2z" />
+</vector>

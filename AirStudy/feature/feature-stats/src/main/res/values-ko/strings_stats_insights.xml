@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_dashboard_insights_title">집중 인사이트</string>
+    <string name="stats_insight_best_day">최고의 날</string>
+    <string name="stats_insight_top_scenario">주요 시나리오</string>
+    <string name="stats_insight_top_period">효율적인 시간대</string>
+    <string name="stats_insight_day_value_fmt">%1$s · %2$s</string>
+    <string name="stats_insight_scenario_value_fmt">%1$s · %2$s</string>
+    <string name="stats_period_dawn">새벽</string>
+    <string name="stats_period_morning">오전</string>
+    <string name="stats_period_afternoon">오후</string>
+    <string name="stats_period_evening">저녁</string>
+    <string name="stats_highlights_title">하이라이트</string>
+    <string name="stats_highlight_rank_value_fmt">%1$d</string>
+    <string name="stats_insight_no_data_short">데이터 없음</string>
+</resources>

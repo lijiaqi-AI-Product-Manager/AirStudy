@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+
+
+
+
+
+
+
+    <color name="bg_base">#FF13192A</color>
+    <color name="bg_elevated">#FF1B2236</color>
+    <color name="bg_overlay">#FF252D45</color>
+    <color name="scrim">#B3000000</color>
+
+    <!-- 玻璃：6–12% 白（报告） -->
+    <color name="surface_glass">#1FFFFFFF</color>
+    <color name="surface_glass_stroke">#33FFFFFF</color>
+    <color name="glass_fill_top">#0FFFFFFF</color>
+    <color name="glass_fill_bottom">#1FFFFFFF</color>
+    <color name="glass_stroke_top">#4DFFFFFF</color>
+    <color name="glass_stroke_bottom">#0FFFFFFF</color>
+
+    <color name="text_primary">#FFF2F4FA</color>
+    <color name="text_secondary">#FFAAB2C6</color>
+    <color name="text_tertiary">#FF7D869E</color>
+    <color name="text_disabled">#FF465069</color>
+    <color name="text_on_accent">#FFFFFFFF</color>
+
+    <color name="divider">#14FFFFFF</color>
+    <color name="stroke_subtle">#1FFFFFFF</color>
+
+    <!-- 深色：填充色要让白字过 AA（#1A73E0 白字 ≈4.6:1）；
+         而品牌色「文字」压在蓝黑底上需要更亮的蓝 —— 一个色值顾不了两头，所以拆成 accent_text。 -->
+    <color name="_accent_primary">#FF1A73E0</color>
+    <color name="accent_primary_pressed">#FF0069D9</color>
+    <color name="accent_text">#FF8CC4FF</color>
+    <color name="accent_container">#331A73E0</color>
+    <!-- 品牌浅色在深色下是「品牌色的暗容器」，次按钮底不能是亮浅蓝 -->
+    <color name="brand_soft">#FF1E3150</color>
+    <color name="accent_pop_container">#33FFAF33</color>
+
+    <!-- 深色页的光更浓：报告「顶部或底部必有一层发光」 -->
+    <color name="glow_brand">#663496FF</color>
+    <color name="glow_pop">#26FFAF33</color>
+    <color name="shadow_brand">#80000000</color>
+    <color name="shadow_ambient">#40000000</color>
+
+    <color name="semantic_success">#FF7FB89A</color>
+    <color name="semantic_warning">#FFFFA51F</color>
+    <color name="semantic_error">#FFFF5577</color>
+
+    <color name="semantic_success_container">#267FB89A</color>
+    <color name="semantic_warning_container">#29FFA51F</color>
+    <color name="semantic_error_container">#29FF5577</color>
+    <color name="semantic_info_container">#291A73E0</color>
+
+    <color name="seat_empty">#1FFFFFFF</color>
+    <color name="seat_taken">#4DAAB2C6</color>
+    <color name="seat_disabled">#14FFFFFF</color>
+
+    <color name="sky_takeoff_top">#FF1B2A4A</color>
+    <color name="sky_takeoff_bottom">#FF3C5B8C</color>
+    <color name="sky_cruise_top">#FF0A1020</color>
+    <color name="sky_cruise_bottom">#FF16233B</color>
+    <color name="sky_landing_top">#FF2A1B36</color>
+    <color name="sky_landing_bottom">#FF6B4A5A</color>
+
+
+    <color name="flight_mode_overlay">#9B0F0F0F</color>
+    <color name="flight_mode_indicator_active">#FFFFFFFF</color>
+    <color name="flight_mode_indicator_inactive">#FF474A4D</color>
+    <color name="flight_mode_beta_bg">#FFD1D1D1</color>
+    <color name="flight_mode_back_bg">#19FFFFFF</color>
+    <color name="flight_mode_back_stroke">#FF565656</color>
+</resources>

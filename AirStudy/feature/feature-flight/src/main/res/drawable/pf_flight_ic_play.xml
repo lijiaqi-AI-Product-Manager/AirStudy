@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector android:height="24.0dip" android:width="24.0dip" android:viewportWidth="24.0" android:viewportHeight="24.0"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <group android:pivotX="12.0" android:pivotY="12.0" android:scaleX="0.8" android:scaleY="0.8">
+        <path android:fillColor="@color/pf_flight_ic_play_source_0" android:pathData="M6.77 2.35Q5.95 1.9 5.08 2.06Q4.2 2.23 3.61 2.9Q3.02 3.58 3.02 4.51L3.02 19.46Q3.02 20.4 3.61 21.08Q4.2 21.77 5.08 21.94Q5.95 22.1 6.77 21.65L19.73 14.16Q20.54 13.7 20.83 12.85Q21.12 12 20.83 11.15Q20.54 10.3 19.73 9.84L6.77 2.35Z" />
+    </group>
+</vector>

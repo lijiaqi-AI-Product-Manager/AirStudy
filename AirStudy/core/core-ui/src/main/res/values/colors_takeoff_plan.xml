@@ -1,0 +1,24 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <color name="pf_tp_plan_card_bg">#e8ffffff</color>
+    <color name="pf_tp_plan_card_btn_bg">#1f000000</color>
+    <color name="pf_tp_plan_card_picker_selected">#ff1a1a2e</color>
+    <color name="pf_tp_plan_card_scene_bg">#19000000</color>
+    <color name="pf_tp_plan_card_text_hint">#ff808099</color>
+    <color name="pf_tp_plan_card_text_primary">#ff1a1a2e</color>
+    <color name="pf_tp_plan_card_text_secondary">#ff4d4d66</color>
+    <color name="pf_tp_plan_toggle_label_text">#ff1a1a2e</color>
+    <color name="pf_tp_literal_335c6b78">#335c6b78</color>
+    <color name="pf_tp_literal_4d000000">#4d000000</color>
+    <color name="pf_tp_literal_4d3a3a3a">#4d3a3a3a</color>
+    <color name="pf_tp_literal_5a6e7580">#5a6e7580</color>
+    <color name="pf_tp_literal_66000000">#66000000</color>
+    <color name="pf_tp_literal_ccffffff">#ccffffff</color>
+    <color name="pf_tp_literal_eb17191c">#eb17191c</color>
+    <color name="pf_tp_literal_ff1e7cff">#ff1e7cff</color>
+    <color name="pf_tp_literal_ffcccccc">#ffcccccc</color>
+    <color name="pf_tp_literal_fff2bb31">#fff2bb31</color>
+    <color name="pf_tp_literal_ffff4444">#ffff4444</color>
+    <color name="pf_tp_literal_ffffffff">#ffffffff</color>
+    <color name="pf_tp_plan_card_picker_normal">#80000000</color>
+</resources>

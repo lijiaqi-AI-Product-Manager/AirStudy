@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_history_source_note">Only completed flights are included. Statistics remain unavailable where historical details are missing.</string>
+    <string name="stats_history_incomplete">Some historical details are unavailable. Related statistics cannot yet be calculated.</string>
+    <string name="stats_history_retry">Some historical details are unavailable · Tap to retry</string>
+    <string name="stats_share_partial">Completed flights: %1$s\nDistance: %2$s km\nFocus: %3$s min\nAirports visited: %4$s\nCountries visited: %5$s\nSome historical details are unavailable.</string>
+</resources>

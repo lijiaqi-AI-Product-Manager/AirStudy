@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<resources>
+
+    <!-- ========== 底色层 ========== -->
+    <!-- 全屏最底层（报告 变量 bg）。页面实际铺的是 @drawable/bg_page_glow（顶部品牌光晕下沉到它）。 -->
+    <color name="bg_base">#FFF6F6FA</color>
+    <!-- 卡片 / 弹层的底（报告 变量 surface）。比 bg_base 亮一档：报告要求「背景比卡片至少深一个层级」 -->
+    <color name="bg_elevated">#FFFFFFFF</color>
+    <!-- 再上一层（选中态 / 输入框 / 二级弹层） -->
+    <color name="bg_overlay">#FFEEF0F6</color>
+    <!-- 压在内容上的遮罩（弹窗背板） -->
+    <color name="scrim">#66000000</color>
+
+    <!-- ========== 玻璃（报告 §三.1 毛玻璃配方）========== -->
+    <!-- 单色兜底（MaterialCardView 只能吃纯色时用）：约等于渐变的中点 -->
+    <color name="surface_glass">#D9FFFFFF</color>
+    <color name="surface_glass_stroke">#B3FFFFFF</color>
+    <!-- 填充：上透下实，白 72% → 95% -->
+    <color name="glass_fill_top">#B8FFFFFF</color>
+    <color name="glass_fill_bottom">#F2FFFFFF</color>
+    <!-- 描边：与填充方向相反，上亮下淡，白 100% → 40%（模拟玻璃边缘折射的厚度） -->
+    <color name="glass_stroke_top">#FFFFFFFF</color>
+    <color name="glass_stroke_bottom">#66FFFFFF</color>
+
+    <!-- ========== 文字（报告 变量 text-1/2/3）========== -->
+    <color name="text_primary">#FF17171C</color>
+    <color name="text_secondary">#FF5C5C66</color>
+
+
+
+    <color name="text_tertiary">#FF80808C</color>
+    <!-- 禁用态（比 tertiary 再低一档，且不参与对比度校验） -->
+    <color name="text_disabled">#FFC2C2CC</color>
+    <!-- 反色文字：压在 accent / 亮色块上 -->
+    <color name="text_on_accent">#FFFFFFFF</color>
+
+    <!-- ========== 分割线 / 边框（报告：不用描边分隔，只留极淡的线）========== -->
+    <color name="divider">#0F17171C</color>
+    <color name="stroke_subtle">#1417171C</color>
+
+    <!-- ========== 品牌色（晴空蓝预设）========== -->
+    <!-- 报告原值：晴空蓝 #3496FF。只用于不承载文字的地方（光晕、渐变高光、装饰）。 -->
+    <color name="brand_bright">#FF3496FF</color>
+
+
+
+    <color name="_accent_primary">#FF0069D9</color>
+    <color name="accent_primary">@color/_accent_primary</color>
+    <color name="accent_primary_pressed">#FF005BBF</color>
+    <!-- 品牌色文字（次按钮、快捷入口、文字按钮）。日间与填充同色；深色下单独提亮（见 values-night）。 -->
+    <color name="accent_text">@color/_accent_primary</color>
+    <!-- 品牌色的低透明度容器（选中行底色、chip 选中底） -->
+    <color name="accent_container">#1F0069D9</color>
+    <!-- 品牌浅色（报告 变量 brand-soft）：顶部光晕的起点、次按钮的底 -->
+    <color name="brand_soft">#FFE3F1FF</color>
+    <!-- 撞色（报告 变量 accent）：只占 5–10%，用在进行中、关键字、四角星以外的小点缀 -->
+    <color name="accent_pop">#FFFFAF33</color>
+    <color name="accent_pop_container">#29FFAF33</color>
+
+    <!-- ========== 光与阴影（报告 §二.2 渐变用法、§三 彩色柔阴影）========== -->
+    <!-- 顶部径向光晕：品牌色 28% / 撞色 22%，边缘完全透明 -->
+    <color name="glow_brand">#473496FF</color>
+    <color name="glow_pop">#38FFAF33</color>
+    <color name="glow_transparent">#003496FF</color>
+    <!-- 彩色投影（API 28+ outlineSpotShadowColor）：品牌色而不是灰黑硬阴影 -->
+    <color name="shadow_brand">#593496FF</color>
+    <color name="shadow_ambient">#1F3496FF</color>
+
+
+
+    <color name="btn_gradient_start">#FF0069D9</color>
+    <color name="btn_gradient_end">#FF1F80EE</color>
+    <color name="btn_gradient_start_pressed">#FF005BBF</color>
+    <color name="btn_gradient_end_pressed">#FF1A70D6</color>
+    <!-- 黄色四角星 ✦（报告：出现频率极高的点缀） -->
+    <color name="sparkle">#FFFFD43B</color>
+
+    <!-- ========== 语义三态（报告：状态色不死板）========== -->
+    <!-- 已完成：灰绿弱化（报告 变量 done） -->
+    <color name="semantic_success">#FF4E9A72</color>
+    <!-- 进行中 / 即将结束：橙色描边 + 角标（报告 变量 doing） -->
+    <color name="semantic_warning">#FFE08A00</color>
+    <!-- 错误 / 取消（报告 变量 danger 热烈红） -->
+    <color name="semantic_error">#FFFF2C59</color>
+    <!-- 信息：直接用品牌色，不再另起一个蓝 -->
+    <color name="semantic_info">@color/_accent_primary</color>
+
+    <!-- 三态的容器底色 -->
+    <color name="semantic_success_container">#1F7FB89A</color>
+    <color name="semantic_warning_container">#24FFA51F</color>
+    <color name="semantic_error_container">#1FFF2C59</color>
+    <color name="semantic_info_container">#1F3496FF</color>
+
+    <!-- ========== 座位 / 房间状态 ========== -->
+    <!-- 空座：几乎不可见的描边，只用于提示「这里可以坐」 -->
+    <color name="seat_empty">#1A000000</color>
+    <!-- 已占：比空座明显，但不是强调色（避免抢占视线） -->
+    <color name="seat_taken">#4D4E5A6B</color>
+    <!-- 自己：强调色 -->
+    <color name="seat_mine">@color/_accent_primary</color>
+    <!-- 不可选（房间已开始 / 非本人座位） -->
+    <color name="seat_disabled">#0F000000</color>
+
+    <!-- ========== 飞行阶段的天空渐变（占位，三档）========== -->
+    
+    <color name="sky_takeoff_top">#FFCFE0F5</color>
+    <color name="sky_takeoff_bottom">#FFF2F6FB</color>
+    <color name="sky_cruise_top">#FFBFD4EE</color>
+    <color name="sky_cruise_bottom">#FFE8F0FA</color>
+    <color name="sky_landing_top">#FFF0E2EC</color>
+    <color name="sky_landing_bottom">#FFFBF3F6</color>
+
+
+    <color name="flight_mode_overlay">#D8FFFFFF</color>
+    <color name="flight_mode_indicator_active">#FF000000</color>
+    <color name="flight_mode_indicator_inactive">#FFE5E5E5</color>
+    <color name="flight_mode_beta_bg">#FFD1D1D1</color>
+    <color name="flight_mode_back_bg">#19FFFFFF</color>
+    <color name="flight_mode_back_stroke">#FFD6D6D6</color>
+
+</resources>

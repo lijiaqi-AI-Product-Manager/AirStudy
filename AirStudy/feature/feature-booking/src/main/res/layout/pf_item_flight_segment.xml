@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='utf-8'?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="10.0dip" app:cardBackgroundColor="@color/pf_tp_literal_eb17191c" app:cardCornerRadius="15.0dip" app:cardElevation="0.0dip" app:strokeWidth="0.0dip" android:id="@+id/pf_tp_segment_card">
+    <LinearLayout android:orientation="vertical" android:padding="10.0dip" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <TextView android:textSize="10.0sp" android:textColor="@android:color/white" android:id="@+id/pf_tp_segment_tag" android:background="@drawable/pf_tp_bg_segment_tag" android:paddingTop="3.0dip" android:paddingBottom="3.0dip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pf_tp_common_na" android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_medium" android:paddingStart="8.0dip" android:paddingEnd="8.0dip" />
+            <TextView android:textSize="10.0sp" android:textColor="@color/pf_tp_literal_fff2bb31" android:gravity="end" android:id="@+id/pf_tp_segment_status" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="@string/pf_tp_takeoff_plan_status_waiting_takeoff" android:layout_weight="1.0" android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_medium" />
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="6.0dip">
+            <LinearLayout android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="0.85">
+                <TextView android:textSize="9.0sp" android:textColor="@color/pf_tp_literal_ccffffff" android:id="@+id/pf_tp_dep_city" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--" android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_medium" />
+                <TextView android:textSize="18.0sp" android:textColor="@android:color/white" android:id="@+id/pf_tp_dep_code" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="HSC" android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_bold" />
+            </LinearLayout>
+            <LinearLayout android:gravity="center_vertical" android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.6" android:layout_marginStart="8.0dip" android:layout_marginEnd="8.0dip">
+                <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                    <TextView android:textSize="8.0sp" android:textColor="@color/pf_tp_literal_ccffffff" android:id="@+id/pf_tp_departure_label" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_marginTop="6.0dip" android:text="@string/pf_tp_takeoff_plan_departure_label" android:layout_weight="1.0" android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_medium" />
+                    <TextView android:textSize="8.0sp" android:textColor="@color/pf_tp_literal_ccffffff" android:gravity="end" android:id="@+id/pf_tp_arrival_label" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_marginTop="6.0dip" android:text="@string/pf_tp_takeoff_plan_arrival_label" android:layout_weight="1.0" android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_medium" />
+                </LinearLayout>
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="-5.0dip">
+                    <TextView android:textSize="10.0sp" android:textColor="@android:color/white" android:id="@+id/pf_tp_departure_time" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_marginTop="4.0dip" android:text="8:00" android:layout_weight="1.0" android:fontFamily="@font/pf_apk2_jetbrainsmono_medium" />
+                    <LinearLayout android:gravity="center" android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.5">
+                        <ImageView android:id="@+id/pf_tp_flight_arrow" android:layout_width="48.0dip" android:layout_height="12.0dip" android:src="@drawable/pf_tp_ic_flight_arrow" android:importantForAccessibility="no" />
+                    </LinearLayout>
+                    <TextView android:textSize="10.0sp" android:textColor="@android:color/white" android:gravity="end" android:id="@+id/pf_tp_arrival_time" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_marginTop="4.0dip" android:text="8:45" android:layout_weight="1.0" android:fontFamily="@font/pf_apk2_jetbrainsmono_medium" />
+                </LinearLayout>
+                <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                    <TextView android:textSize="9.0sp" android:textColor="@color/pf_tp_literal_ffff4444" android:id="@+id/pf_tp_departure_delay" android:visibility="gone" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:fontFamily="@font/pf_apk2_jetbrainsmono_medium" />
+                    <View android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.5" />
+                    <TextView android:textSize="9.0sp" android:textColor="@color/pf_tp_literal_ffff4444" android:gravity="end" android:id="@+id/pf_tp_arrival_delay" android:visibility="gone" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:fontFamily="@font/pf_apk2_jetbrainsmono_medium" />
+                </LinearLayout>
+            </LinearLayout>
+            <LinearLayout android:gravity="end" android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="0.85">
+                <TextView android:textSize="9.0sp" android:textColor="@color/pf_tp_literal_ccffffff" android:id="@+id/pf_tp_arr_city" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="--" android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_medium" />
+                <TextView android:textSize="18.0sp" android:textColor="@android:color/white" android:id="@+id/pf_tp_arr_code" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="FOC" android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_bold" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="4.0dip">
+            <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                <ImageView android:id="@+id/pf_tp_focus_icon" android:layout_width="12.0dip" android:layout_height="12.0dip" android:src="@drawable/pf_tp_ic_focus_study" android:layout_marginEnd="4.0dip" app:tint="@color/pf_tp_literal_fff2bb31" android:importantForAccessibility="no" />
+                <TextView android:textSize="10.0sp" android:textColor="@color/pf_tp_literal_fff2bb31" android:id="@+id/pf_tp_focus_scene" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pf_tp_common_not_set" android:fontFamily="@font/pf_apk2_harmonyos_sans_sc_medium" />
+            </LinearLayout>
+            <TextView android:textSize="10.0sp" android:textColor="@android:color/white" android:gravity="end" android:id="@+id/pf_tp_distance" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="@string/pf_tp_common_na" android:layout_weight="1.0" android:fontFamily="@font/pf_apk2_montserrat_bold" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+
+    <!-- 与 core-ui/values/dimens.xml 保持一致（DimensParityTest 会校验） -->
+    <dimen name="space_s">8dp</dimen>
+    <dimen name="space_m">12dp</dimen>
+    <dimen name="space_l">16dp</dimen>
+    <dimen name="space_xxl">32dp</dimen>
+
+    <!-- 屏幕左右安全边距，与 core-ui 同名同值 -->
+    <dimen name="screen_margin">18dp</dimen>
+
+</resources>

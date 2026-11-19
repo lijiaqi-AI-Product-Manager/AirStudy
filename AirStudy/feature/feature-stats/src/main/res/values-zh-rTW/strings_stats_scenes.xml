@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_all_time_label">全部歷史</string>
+    <string name="stats_all_time_scenario_subtitle">情境占比固定按全部歷史成功飛行計算</string>
+    <string name="stats_all_time_scenario_title">全歷史情境</string>
+    <string name="stats_clear_scenario_filter">清除情境篩選</string>
+    <string name="stats_current_period_label">目前週期</string>
+    <string name="stats_empty">暫無專注數據</string>
+    <string name="stats_percent_value_fmt">%1$d%%</string>
+    <string name="stats_scenario_chart_accessibility_hint">全歷史情境占比圖，可觸控查看情境時長</string>
+    <string name="stats_period_scenario_chart_accessibility_hint">目前週期情境占比圖，可觸控查看情境時長</string>
+    <string name="stats_scenario_period_subtitle">按目前所選日期範圍計算情境占比</string>
+    <string name="stats_scenario_period_title">專注情境</string>
+    <string name="stats_show_all_scenarios">顯示全部情境</string>
+    <string name="stats_show_current_period">返回目前週期</string>
+    <string name="stats_scene_accessibility_fmt">%1$s，%2$s，點擊篩選</string>
+    <string name="stats_scene_time_count_pct_fmt">%1$s · %2$d次 · %3$s</string>
+    <string name="stats_scene_label_study">學習</string>
+    <string name="stats_scene_label_work">工作</string>
+    <string name="stats_scene_label_reading">閱讀</string>
+    <string name="stats_scene_label_meditation">睡眠</string>
+    <string name="stats_scene_label_creative">創作</string>
+    <string name="stats_scene_label_relax">放鬆</string>
+    <string name="stats_scene_label_exercise">運動</string>
+    <string name="stats_scene_label_music">音樂</string>
+    <string name="stats_scene_label_programming">程式設計</string>
+    <string name="stats_scene_label_gaming">遊戲</string>
+    <string name="stats_scene_label_starchasing">追星</string>
+</resources>

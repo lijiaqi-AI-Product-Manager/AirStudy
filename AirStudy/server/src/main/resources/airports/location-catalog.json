@@ -1,0 +1,10 @@
+{
+  "source_reference": "OurAirports CC0 airport data",
+  "source_sha256": "190fa7298bfbbfe60ff49336ce6a2422f8c57754b615dab3ded67e9cf94081c0",
+  "source_rows": 83798,
+  "output_rows": 83798,
+  "output_sha256": "d78ba7773b2d07da114415b4dc76366e95c305f97a419ad3b73407e240adb99d",
+  "license": "OurAirports CC0 public domain",
+  "display_alias_fields": 7,
+  "display_alias_policy": "Selected display names use airport-code aliases; identifiers, coordinates and country values are retained."
+}

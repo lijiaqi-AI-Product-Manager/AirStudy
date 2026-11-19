@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <color name="pf_auth_notice_title_dark">#FFFFFFFF</color>
+    <color name="pf_auth_notice_message_dark">#D2FFFFFF</color>
+    <color name="pf_auth_notice_title_light">#FF111827</color>
+    <color name="pf_auth_notice_message_light">#B9111827</color>
+    <color name="pf_auth_notice_background_dark">#FF000000</color>
+    <color name="pf_auth_notice_background_light">#FFFFFFFF</color>
+    <color name="pf_auth_notice_success_dark">#FF34D399</color>
+    <color name="pf_auth_notice_success_light">#FF059669</color>
+    <color name="pf_auth_notice_error_dark">#FFF87171</color>
+    <color name="pf_auth_notice_error_light">#FFDC2626</color>
+    <color name="pf_auth_notice_warning_dark">#FFFBBF24</color>
+    <color name="pf_auth_notice_warning_light">#FFD97706</color>
+</resources>

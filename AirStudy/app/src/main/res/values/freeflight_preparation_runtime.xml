@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_ff_runtime_waiting">飞行已保存，正在启动后台运行，请稍候</string>
+</resources>

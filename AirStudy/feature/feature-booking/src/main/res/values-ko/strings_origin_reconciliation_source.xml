@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_pg_toast_syncing_flight_status">"비행 상태 동기화 중…"</string>
+</resources>

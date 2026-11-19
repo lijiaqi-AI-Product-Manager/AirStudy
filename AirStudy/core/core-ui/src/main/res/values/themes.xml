@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <!-- ==================== 暗色（默认） ==================== -->
+
+
+    <style name="Theme.Pf.Base" parent="Theme.Material3.DayNight.NoActionBar">
+
+        
+
+        <!-- 系统栏 -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+
+        <item name="android:windowLightStatusBar">@bool/pf_light_system_bars</item>
+        <item name="android:windowBackground">@drawable/bg_page_glow</item>
+        <!-- 边到边：Android 15+ 强制 edge-to-edge，提前适配，避免将来一刀切崩溃 -->
+        <item name="android:enforceStatusBarContrast" tools:targetApi="29">false</item>
+        <item name="android:enforceNavigationBarContrast" tools:targetApi="29">false</item>
+
+        
+        <item name="colorPrimary">@color/accent_primary</item>
+        <item name="colorOnPrimary">@color/text_on_accent</item>
+        <item name="colorPrimaryContainer">@color/accent_container</item>
+        <item name="colorOnPrimaryContainer">@color/accent_primary</item>
+
+        <item name="colorSecondary">@color/text_secondary</item>
+        <item name="colorOnSecondary">@color/bg_base</item>
+        <item name="colorSecondaryContainer">@color/bg_overlay</item>
+        <item name="colorOnSecondaryContainer">@color/text_primary</item>
+
+        <item name="colorTertiary">@color/semantic_info</item>
+        <item name="colorOnTertiary">@color/text_on_accent</item>
+
+        <item name="colorError">@color/semantic_error</item>
+        <item name="colorOnError">@color/text_on_accent</item>
+        <item name="colorErrorContainer">@color/semantic_error_container</item>
+        <item name="colorOnErrorContainer">@color/semantic_error</item>
+
+        <item name="android:colorBackground">@color/bg_base</item>
+        <item name="colorOnBackground">@color/text_primary</item>
+        <item name="colorSurface">@color/bg_elevated</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/bg_overlay</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorSurfaceContainer">@color/bg_elevated</item>
+        <item name="colorSurfaceContainerHigh">@color/bg_overlay</item>
+        <item name="colorSurfaceContainerHighest">@color/bg_overlay</item>
+
+        <item name="colorOutline">@color/stroke_subtle</item>
+        <item name="colorOutlineVariant">@color/divider</item>
+        <item name="colorControlHighlight">@color/accent_container</item>
+        <item name="colorSurfaceInverse">@color/text_primary</item>
+        <item name="colorOnSurfaceInverse">@color/bg_base</item>
+
+        
+        <item name="dynamicColorThemeOverlay">@null</item>
+        <item name="isMaterial3DynamicColorApplied" tools:targetApi="31">false</item>
+
+        <!-- ===== 字体 ===== -->
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="fontFamily">@string/pf_font_family_sans</item>
+        <item name="textAppearanceBodyLarge">@style/TextAppearance.Pf.BodyL</item>
+        <item name="textAppearanceBodyMedium">@style/TextAppearance.Pf.BodyM</item>
+        <item name="textAppearanceTitleMedium">@style/TextAppearance.Pf.TitleM</item>
+        <item name="textAppearanceTitleLarge">@style/TextAppearance.Pf.TitleL</item>
+        <item name="textAppearanceLabelLarge">@style/TextAppearance.Pf.Button</item>
+
+        <!-- ===== 形 ===== -->
+        <item name="shapeAppearanceCornerSmall">@style/ShapeAppearance.Pf.Small</item>
+        <item name="shapeAppearanceCornerMedium">@style/ShapeAppearance.Pf.Medium</item>
+        <item name="shapeAppearanceCornerLarge">@style/ShapeAppearance.Pf.Large</item>
+
+        <!-- ===== 动效 ===== 弹窗/抽屉用 Material 的标准曲线；业务转场在 nav 里配 -->
+        <item name="motionEasingStandardInterpolator">@interpolator/pf_standard</item>
+        <item name="motionEasingEmphasizedInterpolator">@interpolator/pf_emphasized</item>
+    </style>
+
+    
+
+    <!-- ══════════ API 26/27 的 Theme.Pf（无导航栏图标模式）══════════ -->
+    <style name="Theme.Pf" parent="Theme.Pf.Base" />
+
+    <!-- ══════════ API 26/27 的日间主题 ══════════ -->
+    <style name="Theme.Pf.Day" parent="Theme.Pf.Base.Day" />
+
+    <!-- ══════════ API 26/27 的全屏主题 ══════════ -->
+    
+    <style name="Theme.Pf.Immersive" parent="Theme.Pf.Base.Immersive" />
+
+    <!-- ==================== 日间 ==================== -->
+    
+    <style name="Theme.Pf.Base.Day" parent="Theme.Pf.Base">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowBackground">@drawable/bg_page_glow</item>
+        <!-- 颜色角色全部指向同名 token，token 本身在 values-night 里被覆盖，
+             所以这里不需要重新映射一遍 —— 这是「语义色」的核心好处。 -->
+    </style>
+
+    <!-- ==================== 全屏（飞行中 / 舷窗） ==================== -->
+    <style name="Theme.Pf.Base.Immersive" parent="Theme.Pf.Base">
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@color/sky_cruise_top</item>
+    </style>
+
+    <!-- ==================== 透明壳（弹窗 Activity） ==================== -->
+    <style name="Theme.Pf.Transparent" parent="Theme.Pf.Base">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
+    <!-- ==================== 形 ==================== -->
+    <style name="ShapeAppearance.Pf.Small" parent="ShapeAppearance.Material3.Corner.Small">
+        <item name="cornerSize">@dimen/radius_s</item>
+    </style>
+    <style name="ShapeAppearance.Pf.Medium" parent="ShapeAppearance.Material3.Corner.Medium">
+        <item name="cornerSize">@dimen/radius_m</item>
+    </style>
+    <style name="ShapeAppearance.Pf.Large" parent="ShapeAppearance.Material3.Corner.Large">
+        <item name="cornerSize">@dimen/radius_l</item>
+    </style>
+
+</resources>

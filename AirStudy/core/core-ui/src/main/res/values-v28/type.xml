@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<resources>
+
+    <style name="TextAppearance.Pf.Display" parent="TextAppearance.Material3.DisplaySmall">
+        <item name="android:textSize">@dimen/text_display</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.02</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:lineHeight">40sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.TitleL" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">@dimen/text_title_l</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">-0.01</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:lineHeight">31sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.TitleM" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">@dimen/text_title_m</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:lineHeight">25sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.BodyL" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">@dimen/text_body_l</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:lineHeight">23sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.BodyM" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">@dimen/text_body_m</item>
+        <item name="android:textColor">@color/text_secondary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:lineHeight">20sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.Caption" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">@dimen/text_caption</item>
+        <item name="android:textColor">@color/text_tertiary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:lineHeight">17sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.Micro" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">@dimen/text_micro</item>
+        <item name="android:textColor">@color/text_tertiary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:letterSpacing">0.04</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:lineHeight">14sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.NumericXL" parent="TextAppearance.Pf.Display">
+        <item name="android:textSize">@dimen/text_numeric_xl</item>
+        <item name="android:fontFamily">@string/pf_font_family_mono</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:lineHeight">46sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.NumericL" parent="TextAppearance.Pf.TitleL">
+        <item name="android:textSize">@dimen/text_numeric_l</item>
+        <item name="android:fontFamily">@string/pf_font_family_mono</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:lineHeight">34sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.NumericM" parent="TextAppearance.Pf.TitleM">
+        <item name="android:textSize">@dimen/text_numeric_m</item>
+        <item name="android:fontFamily">@string/pf_font_family_mono</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:fontFeatureSettings">tnum</item>
+        <item name="android:lineHeight">26sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.BoardingSerif" parent="TextAppearance.Pf.TitleM">
+        <item name="android:fontFamily">@string/pf_font_family_serif</item>
+        <item name="android:letterSpacing">0.08</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:lineHeight">25sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.Button" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">@dimen/text_body_l</item>
+        <item name="android:textColor">@color/text_on_accent</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:letterSpacing">0.02</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:lineHeight">21sp</item>
+    </style>
+
+    <style name="TextAppearance.Pf.DefaultTextView" parent="android:Widget.TextView">
+        <item name="android:textSize">@dimen/text_body_l</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:fontFamily">@string/pf_font_family_sans</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textCursorDrawable">@null</item>
+        <item name="android:lineHeight">23sp</item>
+    </style>
+
+</resources>

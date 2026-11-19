@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<font-family xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <font android:font="@font/pf_apk2_harmonyos_sans_sc_light" android:fontWeight="300" android:fontStyle="normal" app:font="@font/pf_apk2_harmonyos_sans_sc_light" app:fontWeight="300" app:fontStyle="normal" />
+    <font android:font="@font/pf_apk2_harmonyos_sans_sc_medium" android:fontWeight="400" android:fontStyle="normal" app:font="@font/pf_apk2_harmonyos_sans_sc_medium" app:fontWeight="400" app:fontStyle="normal" />
+    <font android:font="@font/pf_apk2_harmonyos_sans_sc_bold" android:fontWeight="700" android:fontStyle="normal" app:font="@font/pf_apk2_harmonyos_sans_sc_bold" app:fontWeight="700" app:fontStyle="normal" />
+    <font android:font="@font/pf_apk2_harmonyos_sans_sc_black" android:fontWeight="900" android:fontStyle="normal" app:font="@font/pf_apk2_harmonyos_sans_sc_black" app:fontWeight="900" app:fontStyle="normal" />
+</font-family>

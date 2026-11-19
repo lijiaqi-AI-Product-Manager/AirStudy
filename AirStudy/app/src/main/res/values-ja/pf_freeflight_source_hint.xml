@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="pf_ff_battery_opt_warning_guide_action">設定ガイドを見る</string><string name="pf_ff_battery_opt_warning_message">端末の省電力設定により、バックグラウンドでの保存が妨げられたりアプリが強制終了される場合があります。正常にバックグラウンド保存するために、本アプリを省電力の例外リストに追加するか、バックグラウンド実行を許可してください。</string><string name="pf_ff_battery_opt_warning_title">バックグラウンド実行のご案内</string><string name="pf_ff_confirm">確認</string></resources>

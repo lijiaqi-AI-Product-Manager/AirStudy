@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="seat_selection_scenes_unavailable">专注场景加载失败，请重试</string>
+    <string name="seat_selection_scenes_loading">正在加载专注场景</string>
+    <string name="pf_seat_scene_seat_format">座位 %1$s</string>
+    <string name="pf_seat_confirm_selection">确认选座</string>
+</resources>

@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:scrollbars="none">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="@dimen/screen_margin"
+        android:paddingTop="@dimen/space_xxl"
+        android:paddingBottom="@dimen/space_xxl">
+
+        <TextView
+            android:id="@+id/tv_title"
+            style="@style/Widget.Pf.Text.TitleL"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="M1 骨架已连通" />
+
+        <TextView
+            android:id="@+id/tv_subtitle"
+            style="@style/Widget.Pf.Text.BodyM"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xs"
+            android:text="@string/skeleton_subtitle"
+            android:textColor="@color/text_tertiary" />
+
+        <!-- 玻璃容器：验证三档降级链 -->
+        <com.projectfocus.core.ui.glass.LiquidGlassView
+            android:id="@+id/glass_self_check"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xl"
+            app:glassCornerRadius="@dimen/radius_l">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="@dimen/space_l">
+
+                <TextView
+                    style="@style/Widget.Pf.Text.Caption"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/skeleton_glass_level"
+                    android:textColor="@color/text_tertiary" />
+
+                <TextView
+                    android:id="@+id/tv_glass_level"
+                    style="@style/Widget.Pf.Text.NumericM"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_xs"
+                    tools:text="FULL（AGSL 运行时着色器）" />
+            </LinearLayout>
+        </com.projectfocus.core.ui.glass.LiquidGlassView>
+
+        <TextView
+            style="@style/Widget.Pf.Text.Caption"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xl"
+            android:text="@string/skeleton_math_title"
+            android:textColor="@color/text_tertiary" />
+
+        <TextView
+            android:id="@+id/tv_detail"
+            style="@style/Widget.Pf.Text.NumericM"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_s"
+            android:lineHeight="@dimen/space_xl"
+            tools:targetApi="28"
+            tools:text="45 分钟 → 600 km" />
+
+        <!-- 三个语义色小样：验证 semantics 分组 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_xl"
+            android:orientation="horizontal">
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="@dimen/space_s"
+                android:layout_weight="1"
+                android:background="@color/semantic_success" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="@dimen/space_s"
+                android:layout_marginStart="@dimen/space_xs"
+                android:layout_weight="1"
+                android:background="@color/semantic_warning" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="@dimen/space_s"
+                android:layout_marginStart="@dimen/space_xs"
+                android:layout_weight="1"
+                android:background="@color/semantic_error" />
+        </LinearLayout>
+    </LinearLayout>
+</ScrollView>

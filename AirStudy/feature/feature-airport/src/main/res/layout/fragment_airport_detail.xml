@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/arrival_detail_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_airport_detail_gradient">
+
+    <View
+        android:id="@+id/arrival_detail_background_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@drawable/bg_airport_detail_gradient" />
+
+    <View
+        android:id="@+id/arrival_detail_background_image_next"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <View
+        android:id="@+id/arrival_detail_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#66000000" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/arrival_detail_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingStart="24dp"
+        android:paddingTop="132dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="180dp">
+
+        <TextView
+            android:id="@+id/arrival_detail_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif"
+            android:includeFontPadding="false"
+            android:lineSpacingExtra="6dp"
+            android:textColor="#F5FFFFFF"
+            android:textSize="18sp" />
+    </androidx.core.widget.NestedScrollView>
+
+    <LinearLayout
+        android:id="@+id/arrival_detail_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="24dp"
+        android:layout_marginEnd="24dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:id="@+id/arrival_detail_media_frame"
+            android:layout_width="76dp"
+            android:layout_height="76dp"
+            android:background="@drawable/bg_airport_detail_thumb">
+
+            <FrameLayout
+                android:id="@+id/arrival_detail_media_pager"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <LinearLayout
+                android:id="@+id/arrival_detail_media_indicator"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|center_horizontal"
+                android:layout_marginBottom="6dp"
+                android:orientation="horizontal"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/arrival_detail_airport_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:includeFontPadding="false"
+                android:maxLines="2"
+                android:textColor="@android:color/white"
+                android:textSize="23sp"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/arrival_detail_airport_code"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:includeFontPadding="false"
+                    android:textColor="@android:color/white"
+                    android:textSize="19sp" />
+
+                <ImageView
+                    android:id="@+id/arrival_detail_flag"
+                    android:layout_width="30dp"
+                    android:layout_height="20dp"
+                    android:layout_marginStart="8dp"
+                    android:contentDescription="@null"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <FrameLayout
+        android:id="@+id/arrival_detail_bottom_mask"
+        android:layout_width="match_parent"
+        android:layout_height="140dp"
+        android:layout_gravity="bottom">
+
+        <View
+            android:id="@+id/arrival_detail_bottom_scrim"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_airport_detail_scrim" />
+
+        <LinearLayout
+            android:id="@+id/arrival_detail_actions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="28dp">
+
+            <ImageButton
+                android:id="@+id/arrival_detail_restart_button"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:background="@drawable/bg_airport_detail_action"
+                android:contentDescription="@string/airport_detail_restart"
+                android:padding="14dp"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_menu_share"
+                app:tint="@android:color/white" />
+
+            <ImageButton
+                android:id="@+id/arrival_detail_report_button"
+                android:layout_width="52dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="14dp"
+                android:background="@drawable/bg_airport_detail_action"
+                android:contentDescription="@string/airport_detail_report"
+                android:padding="14dp"
+                android:scaleType="centerInside"
+                android:src="@android:drawable/ic_dialog_alert"
+                app:tint="@android:color/white" />
+
+            <TextView
+                android:id="@+id/arrival_detail_back_button"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_marginStart="18dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_airport_detail_primary"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:text="@string/airport_detail_back"
+                android:textColor="#FF111111"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

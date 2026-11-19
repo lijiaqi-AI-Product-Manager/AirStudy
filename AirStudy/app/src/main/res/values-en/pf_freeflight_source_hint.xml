@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="pf_ff_battery_opt_warning_guide_action">View Setup Guide</string><string name="pf_ff_battery_opt_warning_message">Your phone\'s battery saver may prevent background saving or even terminate the process. To ensure saving works correctly in the background, please whitelist this app in battery settings or allow it to run in the background.</string><string name="pf_ff_battery_opt_warning_title">Background Running Reminder</string><string name="pf_ff_confirm">Confirm</string></resources>

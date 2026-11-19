@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="SkyHomeText">
+        <item name="android:fontFamily">@font/harmonyos_sans_sc_medium</item>
+        <item name="android:includeFontPadding">false</item>
+        <item name="android:textColor">@color/sky_ink</item>
+        <item name="android:textSize">15sp</item>
+    </style>
+    <style name="SkyHomeMenu" parent="SkyHomeText">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:minHeight">60dp</item>
+        <item name="android:gravity">center</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">8dp</item>
+        <item name="android:textSize">11sp</item>
+        <item name="android:drawablePadding">5dp</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:background">?android:attr/selectableItemBackgroundBorderless</item>
+    </style>
+    <style name="SkyAirportCode" parent="SkyHomeText">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">30sp</item>
+        <item name="android:fontFamily">@font/montserrat_bold</item>
+        <item name="android:layout_marginTop">10dp</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+    <style name="SkyAirportCity" parent="SkyHomeText">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:layout_marginTop">6dp</item>
+        <item name="android:maxLines">2</item>
+        <item name="android:ellipsize">end</item>
+        <item name="android:importantForAccessibility">no</item>
+    </style>
+</resources>

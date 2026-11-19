@@ -1,0 +1,27 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><style name="pf_auth_text_appearance_metric" parent="@style/TextAppearance.AppCompat">
+        <item name="android:fontFamily">@font/pf_apk2_harmonyos_sans_sc_black</item>
+        <item name="fontFamily">@font/pf_apk2_harmonyos_sans_sc_black</item>
+    </style>
+    <style name="pf_auth_text_appearance_caption" parent="@style/TextAppearance.AppCompat">
+        <item name="android:fontFamily">@font/pf_apk2_harmonyos_sans_sc_light</item>
+        <item name="fontFamily">@font/pf_apk2_harmonyos_sans_sc_light</item>
+    </style>
+    <style name="pf_auth_rounded_corner_image">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">24.0dip</item>
+    </style>
+    <style name="pf_auth_source_theme" parent="@style/Theme.Material3.DayNight.NoActionBar">
+        <item name="android:fontFamily">@font/pf_apk2_harmonyos_sans</item>
+        <item name="android:colorControlActivated">@color/pf_auth_black</item>
+        <item name="android:statusBarColor">?colorPrimaryVariant</item>
+        <item name="colorControlActivated">@color/pf_auth_black</item>
+        <item name="colorOnPrimary">@color/pf_auth_white</item>
+        <item name="colorOnSecondary">@color/pf_auth_white</item>
+        <item name="colorPrimary">@color/pf_auth_huawei_blue</item>
+        <item name="colorPrimaryVariant">@color/pf_auth_black</item>
+        <item name="colorSecondary">@color/pf_auth_primary_color</item>
+        <item name="colorSecondaryVariant">@color/pf_auth_primary_color</item>
+        <item name="colorSwitchThumbNormal">@android:color/white</item>
+    </style>
+    </resources>

@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><string name="pf_ff_battery_opt_warning_guide_action">Смотреть инструкцию по настройке</string><string name="pf_ff_battery_opt_warning_message">Режим экономии заряда может помешать сохранению в фоне или прервать процесс. Для корректного фонового сохранения добавьте это приложение в белый список энергосберегателя или разрешите фоновую работу.</string><string name="pf_ff_battery_opt_warning_title">Напоминание о фоновой работе</string><string name="pf_ff_confirm">Подтвердить</string></resources>

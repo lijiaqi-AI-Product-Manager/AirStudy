@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auth_own_wechat_unavailable">当前版本尚未接入微信登录，请使用邮箱登录。</string>
+    <string name="auth_own_register_unavailable">注册页面仍在还原中，当前版本尚不提供注册。</string>
+    <string name="auth_own_reset_unavailable">当前版本尚未接入找回密码服务。</string>
+    <string name="auth_own_legal_unavailable">本项目尚未提供用户协议和隐私政策正文。请等待协议上线后再登录。</string>
+    <string name="auth_own_subscription_unavailable">当前版本尚未开放订阅购买。</string>
+</resources>

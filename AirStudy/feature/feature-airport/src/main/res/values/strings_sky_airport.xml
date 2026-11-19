@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sky_airport_origin_title">从哪里出发</string>
+    <string name="sky_airport_destination_title">下一站，去哪里</string>
+    <string name="sky_airport_explore_title">探索机场</string>
+    <string name="sky_airport_origin_intro">选择这一段专注旅程的出发地。</string>
+    <string name="sky_airport_destination_intro">让一段专注，带你抵达新的地方。</string>
+    <string name="sky_airport_explore_intro">用城市、机场名称或代码，寻找一片天空。</string>
+</resources>

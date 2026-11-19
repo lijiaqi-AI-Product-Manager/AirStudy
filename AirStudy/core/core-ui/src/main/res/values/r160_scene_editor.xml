@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources><string name="pf_scene_dialog_delete_title">删除场景</string><string name="pf_scene_dialog_delete_message">确定要删除“%s”吗？</string><string name="pf_scene_dialog_delete_confirm">删除</string><string name="pf_scene_cancel">取消</string><item type="id" name="pf_scene_add"/></resources>

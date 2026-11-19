@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <declare-styleable name="LiquidGlassView">
+        <attr name="glassCornerRadius" format="dimension" />
+    </declare-styleable>
+
+</resources>

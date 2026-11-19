@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_annual_heatmap_title">年間集中ヒートマップ</string>
+    <string name="stats_heatmap_previous_year">前年</string>
+    <string name="stats_heatmap_next_year">翌年</string>
+    <string name="stats_heatmap_year_value_fmt">%1$d年</string>
+    <string name="stats_heatmap_unavailable">ヒートマップを一時的に読み込めません</string>
+    <string name="stats_heatmap_month_pattern">M月</string>
+    <string name="stats_heatmap_accessibility_hint">年間集中ヒートマップ。タッチして日別データを確認できます</string>
+    <string name="stats_heatmap_selected_fmt">%1$s、集中 %2$s</string>
+    <string name="stats_heatmap_no_data_short">データなし</string>
+</resources>

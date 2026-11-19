@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources><string name="pf_ff_land_airport_badge_arrived">도착함</string>
+    <string name="pf_ff_land_common_cancel">취소</string>
+    <string name="pf_ff_land_common_confirm">확인</string>
+    <string name="pf_ff_land_confirm_landing">착륙 확인</string>
+    <string name="pf_ff_land_free_flight_landing_action">착륙</string>
+    <string name="pf_ff_land_free_flight_landing_confirm_message">카운트업을 종료하고 착륙하시겠습니까?</string>
+    <string name="pf_ff_land_free_flight_landing_confirm_title">착륙 확인</string>
+    <string name="pf_ff_land_free_flight_landing_prepare_message">타임라인을 슬라이드해 착륙 범위를 선택하세요</string>
+    <string name="pf_ff_land_free_flight_landing_prepare_title">착륙 준비</string>
+    <string name="pf_ff_land_heading_to_landing_point">착륙 지점으로 향하는 중...</string>
+    <string name="pf_ff_land_please_select_landing_airport">착륙 공항을 선택하세요</string>
+    </resources>

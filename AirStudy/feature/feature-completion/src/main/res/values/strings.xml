@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+<resources>
+    <string name="boarding_pass_label_departure_city">出发城市</string>
+    <string name="boarding_pass_label_destination_city">目的城市</string>
+    <string name="boarding_pass_label_flight">航班</string>
+    <string name="boarding_pass_label_boarding_time">登机时间</string>
+    <string name="boarding_pass_label_date">日期</string>
+    <string name="boarding_pass_label_passenger">乘客</string>
+    <string name="boarding_pass_label_seat">座位</string>
+    <string name="passenger_label">旅客 PASSENGER</string>
+    <string name="boarding_pass_instruction_swipe">请用手指在登机牌区域左右滑动撕开</string>
+    <string name="boarding_pass_close">关闭</string>
+    <string name="boarding_pass_page_title">登机牌</string>
+    <string name="boarding_pass_page_back">返回</string>
+    <string name="boarding_pass_page_done">完成</string>
+
+
+    <string name="arrival_welcome">欢迎抵达</string>
+    <string name="arrival_today_mileage">今日里程</string>
+    <string name="arrival_today_duration">今日总时长</string>
+    <string name="flight_completion_complete_button">完成飞行</string>
+    <string name="arrival_share_flight">分享飞行</string>
+    <string name="arrival_report_airport">报告机场信息</string>
+    <string name="common_km">km</string>
+    <string name="common_min">min</string>
+    <string name="flight_completion_settle_failed">结算失败，请重试</string>
+    <string name="flight_completion_settled">飞行已记录</string>
+    <string name="flight_completion_share_subject">ProjectFocus 飞行记录</string>
+    <string name="flight_completion_share_chooser">分享飞行记录</string>
+    <string name="arrival_report_coming_soon">机场报错入口将在机场百科模块接入</string>
+</resources>

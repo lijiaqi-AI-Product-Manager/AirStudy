@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_record_recovery_title">Record recovery</string>
+    <string name="pf_record_recovery_pending">%1$d records waiting for recovery</string>
+    <string name="pf_record_recovery_unavailable">Record recovery unavailable</string>
+    <string name="pf_record_recovery_login_short">Sign in to continue recovery</string>
+    <string name="pf_record_recovery_login">Your session has expired. Sign in again to recover your records.</string>
+    <string name="pf_record_recovery_missing">%1$d older records are missing complete details. Their available data will be kept.</string>
+    <string name="pf_record_recovery_unsupported">%1$d records use an unsupported scene. Their recovery data will be kept.</string>
+    <string name="pf_record_recovery_protected">%1$d records are in use or need confirmation. Your existing flights are kept. Finish the current flight or reopen records before retrying.</string>
+    <string name="pf_record_recovery_changes">%1$d changes are waiting to sync and will continue when connected.</string>
+    <string name="pf_record_recovery_uploads">%1$d flight records are waiting to upload and will continue when connected.</string>
+    <string name="pf_record_recovery_network">The recovery service is unavailable. Try again later.</string>
+    <string name="pf_record_recovery_safe">When the missing details are available, choose Retry recovery to continue.</string>
+    <string name="pf_record_recovery_view">Details</string>
+    <string name="pf_record_recovery_retry">Retry recovery</string>
+    <string name="pf_record_recovery_retrying">Recovering…</string>
+    <string name="pf_record_recovery_login_action">Sign in again</string>
+    <string name="pf_record_recovery_close">Close</string>
+</resources>

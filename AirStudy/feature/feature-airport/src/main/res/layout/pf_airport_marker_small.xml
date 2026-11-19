@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:layout_width="wrap_content" android:layout_height="wrap_content"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <ImageView android:id="@+id/pf_airport_airport_icon" android:layout_width="61.0dip" android:layout_height="38.0dip" android:src="@drawable/pf_airport_marker_background" android:scaleType="centerInside" />
+    <TextView android:textSize="14.0dip" android:textStyle="bold" android:textColor="#ff000000" android:id="@+id/pf_airport_airport_code" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="9.0dip" android:text="" android:fontFamily="@font/jetbrainsmono_medium" android:layout_marginStart="26.0dip" />
+</RelativeLayout>

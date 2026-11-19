@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="pf_record_page_airports_reached_zero">Airports Reached 0/0</string>
+    <string name="pf_record_page_all">All</string>
+    <string name="pf_record_page_cities_reached_zero">Cities Reached 0/0</string>
+    <string name="pf_record_page_common_back">Back</string>
+    <string name="pf_record_page_day">Day</string>
+    <string name="pf_record_page_month">Month</string>
+    <string name="pf_record_page_next_page">Next Page</string>
+    <string name="pf_record_page_no_records">No Records</string>
+    <string name="pf_record_page_page_1">Page 1</string>
+    <string name="pf_record_page_previous_page">Previous Page</string>
+    <string name="pf_record_page_record">Record</string>
+    <string name="pf_record_page_record_tab_records">Records</string>
+    <string name="pf_record_page_record_tab_statistics">Statistics</string>
+    <string name="pf_record_page_share_card">Share Card</string>
+    <string name="pf_record_page_total_flown_zero">Total Flown 0km</string>
+    <string name="pf_record_page_week">Week</string>
+</resources>

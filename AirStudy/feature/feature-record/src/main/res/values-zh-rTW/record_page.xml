@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="pf_record_page_airports_reached_zero">成功到達機場 0/0</string>
+    <string name="pf_record_page_all">全部</string>
+    <string name="pf_record_page_cities_reached_zero">成功到達城市 0/0</string>
+    <string name="pf_record_page_common_back">返回</string>
+    <string name="pf_record_page_day">日</string>
+    <string name="pf_record_page_month">月</string>
+    <string name="pf_record_page_next_page">下一頁</string>
+    <string name="pf_record_page_no_records">暫無記錄</string>
+    <string name="pf_record_page_page_1">第 1 頁</string>
+    <string name="pf_record_page_previous_page">上一頁</string>
+    <string name="pf_record_page_record">記錄</string>
+    <string name="pf_record_page_record_tab_records">記錄</string>
+    <string name="pf_record_page_record_tab_statistics">統計</string>
+    <string name="pf_record_page_share_card">分享卡片</string>
+    <string name="pf_record_page_total_flown_zero">共飛行 0 km</string>
+    <string name="pf_record_page_week">週</string>
+</resources>

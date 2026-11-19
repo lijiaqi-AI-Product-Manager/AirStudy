@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+    <FrameLayout android:id="@+id/pf_map_sdk_container" android:layout_width="match_parent" android:layout_height="match_parent" />
+    <LinearLayout android:id="@+id/pf_map_status_panel" android:layout_width="match_parent" android:layout_height="match_parent"
+        android:orientation="vertical" android:gravity="center" android:background="@color/bg_base" android:padding="24dp">
+        <TextView android:id="@+id/pf_map_message" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/pf_map_unavailable" android:textColor="@color/text_secondary" android:textSize="16sp" />
+        <Button android:id="@+id/pf_map_retry" android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text="@string/pf_map_retry" android:layout_marginTop="12dp" />
+    </LinearLayout>
+    <TextView android:id="@+id/pf_map_style_notice" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal" android:layout_marginBottom="16dp" android:padding="8dp"
+        android:text="@string/pf_map_style_rejected" android:background="@color/bg_base" android:textColor="@color/text_secondary"
+        android:visibility="gone" />
+</merge>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_history_source_note">仅统计已完成的航班。历史资料缺失时，相关统计暂不可用。</string>
+    <string name="stats_history_incomplete">部分历史资料待恢复，相关统计暂不可用</string>
+    <string name="stats_history_retry">部分历史资料待恢复 · 点此重试</string>
+    <string name="stats_share_partial">完成航班：%1$s 次\n里程：%2$s km\n专注：%3$s 分钟\n到访机场：%4$s\n到访国家：%5$s\n部分历史资料待恢复</string>
+</resources>

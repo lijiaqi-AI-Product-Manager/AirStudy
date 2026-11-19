@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_dashboard_insights_title">Аналитика фокуса</string>
+    <string name="stats_insight_best_day">Лучший день</string>
+    <string name="stats_insight_top_scenario">Главный сценарий</string>
+    <string name="stats_insight_top_period">Лучшее время</string>
+    <string name="stats_insight_day_value_fmt">%1$s · %2$s</string>
+    <string name="stats_insight_scenario_value_fmt">%1$s · %2$s</string>
+    <string name="stats_period_dawn">Раннее утро</string>
+    <string name="stats_period_morning">Утро</string>
+    <string name="stats_period_afternoon">День</string>
+    <string name="stats_period_evening">Вечер</string>
+    <string name="stats_highlights_title">Лучшие результаты</string>
+    <string name="stats_highlight_rank_value_fmt">%1$d</string>
+    <string name="stats_insight_no_data_short">Нет данных</string>
+</resources>

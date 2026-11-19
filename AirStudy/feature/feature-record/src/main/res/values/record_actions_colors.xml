@@ -1,0 +1,2 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources><color name="pf_record_delete_surface">#ffffffff</color><color name="pf_record_delete_primary">#ff1c1c1e</color><color name="pf_record_delete_secondary">#ff6c6c70</color><color name="pf_record_delete_close_surface">#10000000</color><color name="pf_record_delete_button_surface">#fff2f2f7</color><color name="pf_record_delete_button_text">#ff3c3c3e</color></resources>

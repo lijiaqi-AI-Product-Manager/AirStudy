@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shield_apps_subtitle">This list stays on this device.</string>
+    <string name="shield_apps_disabled">App blocking is off. You can still edit the list.</string>
+    <string name="shield_apps_permission_needed">Allow the required permissions to block apps during flights.</string>
+    <string name="shield_apps_usage_access">Allow usage access</string>
+    <string name="shield_apps_overlay_access">Allow display over other apps</string>
+    <string name="shield_apps_permission_unavailable">Could not open the permission settings.</string>
+    <string name="shield_apps_search">Search apps</string>
+    <string name="shield_apps_retry">Try again</string>
+    <string name="shield_apps_loading">Reading apps</string>
+    <string name="shield_apps_load_failed">Could not read apps or your list. Try again.</string>
+    <string name="shield_apps_save_failed">Could not save that choice. Try again.</string>
+    <string name="shield_apps_empty">There are no apps to choose.</string>
+    <string name="shield_apps_no_match">No matching apps.</string>
+    <string name="shield_apps_unavailable">%1$s (unavailable)</string>
+    <plurals name="shield_apps_selected">
+        <item quantity="one">%d app selected</item>
+        <item quantity="other">%d apps selected</item>
+    </plurals>
+</resources>

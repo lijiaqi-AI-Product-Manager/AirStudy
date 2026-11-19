@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<resources>
+
+    <!-- ==================== 页面 ==================== -->
+    <string name="pref_title">设置</string>
+    <string name="pref_back">返回</string>
+    <string name="pref_reset_action">恢复默认</string>
+    <string name="pref_reset_confirm_title">恢复默认设置？</string>
+    <string name="pref_reset_confirm_body">所有偏好会回到初始值。飞行记录和统计数据不受影响。</string>
+    <string name="pref_reset_confirm_ok">恢复</string>
+    <string name="pref_reset_confirm_cancel">取消</string>
+    <string name="pref_reset_done">已恢复默认设置</string>
+
+    <!-- ==================== 分组标题 ==================== -->
+    <string name="pref_section_general">通用</string>
+    <string name="pref_section_flight">飞行偏好</string>
+    <string name="pref_section_glass">液态玻璃</string>
+    <string name="pref_section_haptics">触感与声音</string>
+    <string name="pref_section_tts">航班语音播报</string>
+    <string name="pref_section_push">推送消息</string>
+    <string name="pref_section_lab">实验室</string>
+
+    <!-- ==================== 通用 ==================== -->
+    <string name="pref_theme_mode">主题</string>
+    <string name="pref_theme_mode_desc">跟随系统，或固定在日间 / 夜间</string>
+    <string name="pref_theme_auto">跟随系统</string>
+    <string name="pref_theme_day">日间</string>
+    <string name="pref_theme_night">夜间</string>
+
+    <string name="pref_screen_orientation">屏幕方向</string>
+    <string name="pref_screen_orientation_desc">应用的显示方向。自动遵循系统设置</string>
+    <string name="pref_orientation_auto">自动</string>
+    <string name="pref_orientation_portrait">竖屏</string>
+    <string name="pref_orientation_landscape">横屏</string>
+
+    <string name="pref_blacklist">应用屏蔽</string>
+    <string name="pref_blacklist_desc">飞行中拦截分心应用。关掉后飞行照样计时，但不再拦</string>
+
+    <string name="pref_material_alpha">卡片透明度</string>
+    <string name="pref_material_alpha_desc">飞行页卡片与底图之间的透光程度</string>
+
+    <!-- ==================== 飞行偏好 ==================== -->
+    <string name="pref_countup">正计时飞行</string>
+    <string name="pref_countup_desc">飞行时长从零往上计，而不是从预计到达时间往下倒数</string>
+
+    <string name="pref_cruise_zoom">巡航缩放</string>
+    <string name="pref_cruise_zoom_desc">巡航阶段地图的放大倍数。越大越贴近地面</string>
+
+    <string name="pref_route_color">航线颜色</string>
+    <string name="pref_route_color_desc">地图上飞机身后的航迹颜色</string>
+
+    <!-- ==================== 液态玻璃 ==================== -->
+    <string name="pref_glass_enabled">液态玻璃</string>
+    <string name="pref_glass_enabled_desc">按钮与卡片使用毛玻璃材质。低端机建议关闭以省电</string>
+    <string name="pref_glass_blur">毛玻璃模糊</string>
+    <string name="pref_glass_refract_h">折射高度</string>
+    <string name="pref_glass_refract_off">折射偏移</string>
+    <string name="pref_glass_dispersion">色散</string>
+    <string name="pref_glass_liquid">液态流动</string>
+    <string name="pref_glass_tint_day">日间叠色</string>
+    <string name="pref_glass_tint_night">夜间叠色</string>
+
+    <!-- ==================== 触感与声音 ==================== -->
+    <string name="pref_haptic_master">全局震动</string>
+    <string name="pref_haptic_master_desc">总开关。关掉后下面所有震动都不会触发</string>
+    <string name="pref_haptic_arrival">抵达震动</string>
+    <string name="pref_haptic_tear">撕票震动</string>
+    <string name="pref_haptic_timeline">滑动标尺震动</string>
+    <string name="pref_haptic_pause">长按暂停震动</string>
+    <string name="pref_haptic_boarding">登机牌打印震动</string>
+
+    <string name="pref_white_noise">飞行白噪声</string>
+    <string name="pref_white_noise_desc">飞行中播放机舱环境音，盖住办公室噪音</string>
+    <string name="pref_white_noise_env_vol">环境音量</string>
+    <string name="pref_white_noise_plane_vol">飞机音量</string>
+
+    <!-- ==================== 语音播报 ==================== -->
+    <string name="pref_tts_enabled">航班语音播报</string>
+    <string name="pref_tts_enabled_desc">起飞、巡航、抵达时用机长口吻播报，由系统语音引擎离线合成</string>
+    <string name="pref_tts_gender">播报音色</string>
+    <string name="pref_tts_female">女声</string>
+    <string name="pref_tts_male">男声</string>
+    <string name="pref_tts_lang1">第一语言</string>
+    <string name="pref_tts_lang2">第二语言</string>
+
+    <!-- ==================== 推送 ==================== -->
+    <string name="pref_push_master">推送总开关</string>
+    <string name="pref_push_master_desc">关掉后不再接收任何来自本应用的通知</string>
+    <string name="pref_push_daily">专注日报</string>
+    <string name="pref_push_weekly">专注周报</string>
+    <string name="pref_push_monthly">专注月报</string>
+    <string name="pref_push_plan">飞行计划提醒</string>
+
+    <!-- ==================== 实验室 ==================== -->
+    <string name="pref_ws_latency">显示网络延迟</string>
+    <string name="pref_ws_latency_desc">在飞行页角落显示实时连接延迟。仅供排查卡顿</string>
+    <string name="pref_dev_mode">开发者模式</string>
+    <string name="pref_dev_mode_desc">解锁调试入口：日志导出、强制离线、时间旅行</string>
+
+    <string name="pref_save_failed">保存失败，请稍后再试</string>
+
+    <!-- ==================== 控件内的辅助文字 ==================== -->
+    <string name="pref_value_on">开</string>
+    <string name="pref_value_off">关</string>
+    <string name="pref_value_percent">%1$s%%</string>
+    <string name="pref_value_decimal">%1$s</string>
+    
+    <string name="pref_value_with_unit">%1$s%2$s</string>
+    <string name="pref_experimental_tag">实验室</string>
+    <string name="pref_expand">展开</string>
+    <string name="pref_collapse">收起</string>
+
+    <!-- ==================== 二级页：语言选择 ==================== -->
+    <string name="pref_lang_page_title">播报语言</string>
+    <string name="pref_lang_follow">跟随应用语言</string>
+    <string name="pref_lang_none">不播报</string>
+    <string name="pref_lang_cn">中文</string>
+    <string name="pref_lang_en">English</string>
+    <string name="pref_lang_jp">日本語</string>
+    <string name="pref_lang_ko">한국어</string>
+    <string name="pref_lang_ru">Русский</string>
+
+    <!-- ==================== 颜色选择器 ==================== -->
+    <string name="pref_color_title">航线颜色</string>
+    <string name="pref_color_hue">色相</string>
+    <string name="pref_color_saturation">饱和度</string>
+    <string name="pref_color_brightness">明度</string>
+    <string name="pref_color_hex">颜色代码</string>
+    <string name="pref_color_confirm">确定</string>
+    <string name="pref_color_cancel">取消</string>
+    <string name="pref_color_invalid">颜色代码格式应为 #RRGGBB</string>
+
+</resources>

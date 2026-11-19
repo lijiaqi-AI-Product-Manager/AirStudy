@@ -1,0 +1,352 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+
+
+
+
+
+
+
+<com.projectfocus.feature.completion.pass.BoardingPassPaperLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/boarding_pass_root"
+    android:layout_width="300dp"
+    android:layout_height="400dp"
+    android:background="@android:color/transparent"
+    android:padding="0dp">
+
+
+    <View
+        android:id="@+id/boarding_lottie"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent"
+        android:contentDescription="@null" />
+
+    <!-- 2. 内容层：padding 30dp，顶部先留 40dp -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="30dp">
+
+        <!-- 3. 顶部留白 40dp -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="40dp" />
+
+        <!-- 4. 城市标签行：gravity=bottom -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="bottom"
+            android:orientation="horizontal">
+
+            <!-- 5 -->
+            <TextView
+                android:id="@+id/tv_departure_city"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/harmonyos_sans_sc_medium"
+                android:text="@string/boarding_pass_label_departure_city"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="10sp" />
+
+            <!-- 6 -->
+            <TextView
+                android:id="@+id/tv_destination_city"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/harmonyos_sans_sc_medium"
+                android:gravity="end"
+                android:text="@string/boarding_pass_label_destination_city"
+                android:textColor="@android:color/darker_gray"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+        <!-- 7. 三字码行：gravity=center_vertical -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <!-- 8 -->
+            <TextView
+                android:id="@+id/tv_departure"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/harmonyos_sans_sc_black"
+                android:text="PEK"
+                android:textColor="@android:color/black"
+                android:textSize="25sp" />
+
+            <!-- 9 -->
+            <TextView
+                android:id="@+id/tv_destination"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="@font/harmonyos_sans_sc_black"
+                android:gravity="end"
+                android:text="SHA"
+                android:textColor="@android:color/black"
+                android:textSize="25sp" />
+        </LinearLayout>
+
+        <!-- 10. 航班 / 登机时间 / 日期 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="bottom"
+            android:orientation="horizontal">
+
+            <!-- 11 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <!-- 12 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/harmonyos_sans_sc_medium"
+                    android:text="@string/boarding_pass_label_flight"
+                    android:textColor="@android:color/darker_gray"
+                    android:textSize="10sp" />
+
+                <!-- 13 -->
+                <TextView
+                    android:id="@+id/tv_flight_code"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/jetbrainsmono_medium"
+                    android:text="MH8633"
+                    android:textColor="@android:color/black"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- 14 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <!-- 15 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/harmonyos_sans_sc_medium"
+                    android:text="@string/boarding_pass_label_boarding_time"
+                    android:textColor="@android:color/darker_gray"
+                    android:textSize="10sp" />
+
+                <!-- 16 -->
+                <TextView
+                    android:id="@+id/tv_boarding_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/jetbrainsmono_medium"
+                    android:text="08:20"
+                    android:textColor="@android:color/black"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- 17 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:orientation="vertical">
+
+                <!-- 18 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/harmonyos_sans_sc_medium"
+                    android:text="@string/boarding_pass_label_date"
+                    android:textColor="@android:color/darker_gray"
+                    android:textSize="10sp" />
+
+                <!-- 19 -->
+                <TextView
+                    android:id="@+id/tv_date"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/jetbrainsmono_medium"
+                    android:text="10DEC"
+                    android:textColor="@android:color/black"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 20. 乘客 / 座位 -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="bottom"
+            android:orientation="horizontal">
+
+            <!-- 21 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <!-- 22 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/harmonyos_sans_sc_medium"
+                    android:text="@string/boarding_pass_label_passenger"
+                    android:textColor="@android:color/darker_gray"
+                    android:textSize="10sp" />
+
+                <!-- 23 -->
+                <TextView
+                    android:id="@+id/tv_passenger_name"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/harmonyos_sans_sc_medium"
+                    android:text="@string/passenger_label"
+                    android:textColor="@android:color/black"
+                    android:textSize="13sp" />
+            </LinearLayout>
+
+            <!-- 24 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="end"
+                android:orientation="vertical">
+
+                <!-- 25 -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/harmonyos_sans_sc_medium"
+                    android:text="@string/boarding_pass_label_seat"
+                    android:textColor="@android:color/darker_gray"
+                    android:textSize="10sp" />
+
+                <!-- 26 -->
+                <TextView
+                    android:id="@+id/tv_seat"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/harmonyos_sans_sc_medium"
+                    android:text="11A"
+                    android:textColor="@android:color/black"
+                    android:textSize="13sp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- 27. 另一种票型的右存根，默认 gone -->
+        <LinearLayout
+            android:id="@+id/right_stub_section"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- 28 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="@font/harmonyos_sans_sc_medium"
+                android:text="PEK"
+                android:textColor="@android:color/white"
+                android:textSize="10sp" />
+
+            <!-- 29 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/harmonyos_sans_sc_medium"
+                android:text="SHA"
+                android:textColor="@android:color/white"
+                android:textSize="10sp" />
+
+            <!-- 30 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/harmonyos_sans_sc_medium"
+                android:text="MH8633"
+                android:textColor="@android:color/white"
+                android:textSize="10sp" />
+
+            <!-- 31 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/harmonyos_sans_sc_medium"
+                android:text="10DEC"
+                android:textColor="@android:color/white"
+                android:textSize="10sp" />
+
+            <!-- 32 -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:fontFamily="@font/harmonyos_sans_sc_medium"
+                android:text="08:20"
+                android:textColor="@android:color/white"
+                android:textSize="10sp" />
+        </LinearLayout>
+
+
+        <TextView
+            android:id="@+id/tv_flight_number"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <!-- 34. 1dp 分隔线，默认 gone -->
+        <View
+            android:id="@+id/divider_line"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="8dp"
+            android:background="@android:color/darker_gray"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- 35. 撕票命中区：40dp 高，透明，抬升 5dp -->
+    <View
+        android:id="@+id/tear_touch_band"
+        android:layout_width="match_parent"
+        android:layout_height="40dp"
+        android:layout_gravity="bottom"
+        android:background="@android:color/transparent"
+        android:elevation="5dp" />
+
+    <!-- 36. 提示圈：60dp，默认 invisible，抬升 11dp -->
+    <View
+        android:id="@+id/hint_circle_view"
+        android:layout_width="60dp"
+        android:layout_height="60dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:background="@drawable/hint_circle_bg"
+        android:elevation="11dp"
+        android:visibility="invisible" />
+</com.projectfocus.feature.completion.pass.BoardingPassPaperLayout>

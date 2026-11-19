@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_dashboard_trend_title">成功フライトの推移</string>
+    <string name="stats_trend_mode_line">折れ線グラフ</string>
+    <string name="stats_trend_mode_stacked_bar">棒グラフ</string>
+    <string name="stats_trend_completed">成功フライト</string>
+    <string name="stats_trend_focus_time">集中時間</string>
+    <string name="stats_trend_total_label">合計</string>
+    <string name="stats_trend_peak_label">ピーク</string>
+    <string name="stats_times_fmt">%1$d 回</string>
+    <string name="stats_duration_minutes">%d分</string>
+    <string name="stats_duration_hours">%d時間</string>
+    <string name="stats_duration_hours_minutes">%1$d時間%2$d分</string>
+    <string name="stats_completed_trend_accessibility_hint">成功フライト推移グラフ。タッチして各期間のデータを確認できます</string>
+    <string name="stats_completed_trend_selected_fmt">%1$s、成功フライト %2$d 回</string>
+    <string name="stats_focus_trend_accessibility_hint">集中時間の推移グラフ。タッチして各期間のデータを確認できます</string>
+    <string name="stats_trend_chart_selected_fmt">%1$s、集中 %2$s</string>
+    <string name="stats_trend_axis_hour_format">HH:mm</string>
+    <string name="stats_trend_axis_day_format">M/d</string>
+    <string name="stats_trend_axis_week_format">M/d</string>
+    <string name="stats_trend_axis_month_format">M月</string>
+    <string name="stats_scene_time_pct_fmt">%1$s · %2$s</string>
+    <string name="stats_trend_detail_more_scenes">他 %d シーン</string>
+</resources>

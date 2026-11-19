@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+
+
+
+<resources>
+    <color name="boarding_pass_page_background">#FFF7F8FA</color>
+    <color name="boarding_pass_page_text">#FF11151C</color>
+
+
+    <color name="arrival_ambient_background">#FF5E6F63</color>
+    <color name="arrival_ambient_overlay_fallback">#665E6F63</color>
+</resources>

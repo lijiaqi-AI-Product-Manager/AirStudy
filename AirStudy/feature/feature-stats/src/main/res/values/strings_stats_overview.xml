@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_headline_focus_total">总专注时长</string>
+    <string name="stats_completed_label">完成航班</string>
+    <string name="stats_active_days_label">活跃天数</string>
+    <string name="stats_longest_session_label">最长单次</string>
+    <string name="stats_best_streak_label">最长连续专注</string>
+    <string name="stats_compact_hour">h</string>
+    <string name="stats_compact_minute">m</string>
+    <string name="stats_streak_days">%1$d 天</string>
+    <string name="stats_compare_same">持平</string>
+    <string name="stats_compare_new">新增</string>
+    <string name="stats_compare_up">↑ %1$d%%</string>
+    <string name="stats_compare_down">↓ %1$d%%</string>
+    <string name="stats_compare_previous">较上期 %1$s</string>
+</resources>

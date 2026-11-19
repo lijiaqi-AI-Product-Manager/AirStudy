@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources><string name="pf_ff_land_airport_badge_arrived">到達過</string>
+    <string name="pf_ff_land_common_cancel">取消</string>
+    <string name="pf_ff_land_common_confirm">確認</string>
+    <string name="pf_ff_land_confirm_landing">確認降落</string>
+    <string name="pf_ff_land_free_flight_landing_action">降落</string>
+    <string name="pf_ff_land_free_flight_landing_confirm_message">是否確認結束正計時並進行降落</string>
+    <string name="pf_ff_land_free_flight_landing_confirm_title">確認降落</string>
+    <string name="pf_ff_land_free_flight_landing_prepare_message">請滑動時間軸選擇降落範圍</string>
+    <string name="pf_ff_land_free_flight_landing_prepare_title">準備降落</string>
+    <string name="pf_ff_land_heading_to_landing_point">正在前往降落點…</string>
+    <string name="pf_ff_land_please_select_landing_airport">請選擇降落機場</string>
+    </resources>

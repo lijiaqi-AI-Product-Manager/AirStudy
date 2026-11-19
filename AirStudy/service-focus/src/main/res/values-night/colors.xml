@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 与 core-ui 的夜间 token 保持一致，由 DimensParityTest 校验。 -->
+<resources>
+    <color name="focus_blocked_bg">#FF13192A</color>
+    <color name="focus_blocked_title">#FFF2F4FA</color>
+    <color name="focus_blocked_body">#FFAAB2C6</color>
+    <color name="focus_blocked_hint">#FF7D869E</color>
+    <color name="focus_blocked_action_bg">#FFF2F4FA</color>
+    <color name="focus_blocked_action_text">#FF13192A</color>
+    <color name="focus_blocked_icon_tint">#66F2F4FA</color>
+</resources>

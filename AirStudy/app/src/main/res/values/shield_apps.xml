@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shield_apps_subtitle">名单仅保存在这台设备。</string>
+    <string name="shield_apps_disabled">应用屏蔽已关闭，仍可编辑名单。</string>
+    <string name="shield_apps_permission_needed">请授予所需权限，屏蔽才会在飞行中生效。</string>
+    <string name="shield_apps_usage_access">开启使用情况访问</string>
+    <string name="shield_apps_overlay_access">允许显示在其他应用上层</string>
+    <string name="shield_apps_permission_unavailable">无法打开此权限的系统设置。</string>
+    <string name="shield_apps_search">搜索应用</string>
+    <string name="shield_apps_retry">重试</string>
+    <string name="shield_apps_loading">正在读取应用</string>
+    <string name="shield_apps_load_failed">无法读取应用及名单，请重试。</string>
+    <string name="shield_apps_save_failed">未能保存这次选择，请重试。</string>
+    <string name="shield_apps_empty">没有可选择的应用。</string>
+    <string name="shield_apps_no_match">没有匹配的应用。</string>
+    <string name="shield_apps_unavailable">%1$s（当前不可用）</string>
+    <plurals name="shield_apps_selected">
+        <item quantity="other">已选 %d 个应用</item>
+    </plurals>
+</resources>

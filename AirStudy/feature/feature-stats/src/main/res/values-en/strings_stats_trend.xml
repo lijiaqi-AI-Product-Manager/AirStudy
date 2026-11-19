@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_dashboard_trend_title">Successful flight trend</string>
+    <string name="stats_trend_mode_line">Line Chart</string>
+    <string name="stats_trend_mode_stacked_bar">Bar Chart</string>
+    <string name="stats_trend_completed">Successful flights</string>
+    <string name="stats_trend_focus_time">Focus time</string>
+    <string name="stats_trend_total_label">Total</string>
+    <string name="stats_trend_peak_label">Peak</string>
+    <string name="stats_times_fmt">%1$d times</string>
+    <string name="stats_duration_minutes">%dm</string>
+    <string name="stats_duration_hours">%dh</string>
+    <string name="stats_duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="stats_completed_trend_accessibility_hint">Successful flight trend chart. Touch to inspect each period.</string>
+    <string name="stats_completed_trend_selected_fmt">%1$s, %2$d successful flights</string>
+    <string name="stats_focus_trend_accessibility_hint">Focus time trend chart. Touch to inspect each period.</string>
+    <string name="stats_trend_chart_selected_fmt">%1$s, focused for %2$s</string>
+    <string name="stats_trend_axis_hour_format">HH:mm</string>
+    <string name="stats_trend_axis_day_format">M/d</string>
+    <string name="stats_trend_axis_week_format">M/d</string>
+    <string name="stats_trend_axis_month_format">MMM</string>
+    <string name="stats_scene_time_pct_fmt">%1$s · %2$s</string>
+    <string name="stats_trend_detail_more_scenes">%d more scenes</string>
+</resources>

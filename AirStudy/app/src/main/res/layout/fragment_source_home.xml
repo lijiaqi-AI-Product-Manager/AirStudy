@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+    <com.projectfocus.feature.home.map.SourceMapHostView android:id="@+id/sourceMap"
+        android:layout_width="match_parent" android:layout_height="match_parent" />
+    <com.projectfocus.feature.flight.window.FlightWindowView android:id="@+id/flightWindow"
+        android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
+    <FrameLayout android:id="@+id/groundHomeContent"
+        android:layout_width="match_parent" android:layout_height="match_parent">
+        <com.projectfocus.core.ui.sky.SkyBackdropView android:id="@+id/homeSkyBackdrop" android:layout_width="match_parent" android:layout_height="match_parent" />
+        <androidx.core.widget.NestedScrollView android:id="@+id/homeScroll"
+            android:layout_width="match_parent" android:layout_height="match_parent"
+            android:fillViewport="true" android:clipToPadding="false" android:paddingBottom="108dp" android:scrollbars="none">
+            <LinearLayout android:id="@+id/homePageContent"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal" android:paddingStart="22dp" android:paddingEnd="22dp"
+                android:paddingTop="18dp" android:paddingBottom="18dp" android:orientation="vertical">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:gravity="center_vertical" android:orientation="horizontal">
+                    <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:orientation="vertical">
+                        <TextView style="@style/SkyHomeText" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/app_name" android:textSize="23sp" android:fontFamily="@font/montserrat_bold" />
+                        <TextView style="@style/SkyHomeText" android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:layout_marginTop="5dp" android:text="@string/sky_home_tagline" android:textColor="@color/sky_ink_secondary" android:textSize="11sp" />
+                    </LinearLayout>
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnFlightPlan"
+                        android:layout_width="wrap_content" android:layout_height="48dp" android:minWidth="0dp"
+                        android:insetTop="0dp" android:insetBottom="0dp" android:paddingStart="16dp" android:paddingEnd="16dp"
+                        android:text="@string/ordinary_flight_plan" android:textSize="12sp"
+                        android:fontFamily="@font/harmonyos_sans_sc_medium" android:textAllCaps="false"
+                        android:textColor="@color/sky_primary" app:backgroundTint="@color/sky_card_top" app:cornerRadius="24dp" app:elevation="0dp" />
+                </LinearLayout>
+                <TextView style="@style/SkyHomeText" android:id="@+id/homeHeading"
+                    android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="28dp"
+                    android:text="@string/sky_home_heading" android:textSize="32sp" android:fontFamily="@font/harmonyos_sans_sc_bold" />
+                <TextView style="@style/SkyHomeText" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp" android:text="@string/sky_home_intro" android:textSize="13sp" android:textColor="@color/sky_ink_secondary" />
+                <com.projectfocus.app.home.FlightHeroView android:id="@+id/homeFlightHero"
+                    android:layout_width="match_parent" android:layout_height="232dp" android:layout_marginTop="-8dp" android:layout_marginBottom="4dp" />
+                <LinearLayout android:id="@+id/homeRouteCard" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="20dp">
+                    <TextView style="@style/SkyHomeText" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="@string/sky_home_route" android:textSize="12sp" android:textColor="@color/sky_ink_secondary" />
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="14dp" android:gravity="center_vertical" android:orientation="horizontal">
+                        <LinearLayout android:id="@+id/homeOrigin" android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:minHeight="108dp" android:padding="6dp" android:orientation="vertical" android:clickable="true" android:focusable="true">
+                            <TextView style="@style/SkyHomeText" android:layout_width="match_parent" android:layout_height="wrap_content"
+                                android:text="@string/sky_home_origin" android:textSize="11sp" android:textColor="@color/sky_ink_secondary" android:importantForAccessibility="no" />
+                            <TextView android:id="@+id/homeOriginCode" style="@style/SkyAirportCode" android:text="@string/sky_home_airport_unknown" />
+                            <TextView android:id="@+id/homeOriginCity" style="@style/SkyAirportCity" android:text="@string/sky_home_pick_origin" />
+                        </LinearLayout>
+                        <ImageView android:layout_width="34dp" android:layout_height="24dp"
+                            android:layout_marginStart="7dp" android:layout_marginEnd="7dp" android:src="@drawable/sky_nav_plane" android:importantForAccessibility="no" />
+                        <LinearLayout android:id="@+id/homeDestination" android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:minHeight="108dp" android:padding="6dp" android:orientation="vertical" android:clickable="true" android:focusable="true">
+                            <TextView style="@style/SkyHomeText" android:layout_width="match_parent" android:layout_height="wrap_content"
+                                android:text="@string/sky_home_destination" android:textSize="11sp" android:textColor="@color/sky_ink_secondary" android:importantForAccessibility="no" />
+                            <TextView android:id="@+id/homeDestinationCode" style="@style/SkyAirportCode" android:text="@string/sky_home_airport_unknown" />
+                            <TextView android:id="@+id/homeDestinationCity" style="@style/SkyAirportCity" android:text="@string/sky_home_pick_destination" />
+                        </LinearLayout>
+                    </LinearLayout>
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:layout_marginTop="14dp"
+                        android:layout_marginBottom="14dp" android:background="@color/sky_divider" />
+                    <TextView style="@style/SkyHomeText" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:text="@string/sky_home_route_hint" android:textSize="12sp" android:lineSpacingExtra="2dp" android:textColor="@color/sky_ink_secondary" />
+                </LinearLayout>
+                <LinearLayout android:id="@+id/bottomStack" android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp" android:orientation="vertical">
+                    <TextView android:id="@+id/tvHomeStatus" style="@style/SkyHomeText" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp" android:textSize="13sp" android:visibility="gone" />
+                    <com.google.android.material.button.MaterialButton android:id="@+id/btnStartFlight"
+                        android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="60dp"
+                        android:fontFamily="@font/harmonyos_sans_sc_bold" android:insetTop="0dp" android:insetBottom="0dp" android:stateListAnimator="@null"
+                        android:text="@string/home_action_search_airport" android:textAllCaps="false" android:textColor="@android:color/white"
+                        android:textSize="17sp" android:paddingTop="18dp" android:paddingBottom="18dp"
+                        app:backgroundTint="@null" app:cornerRadius="24dp" app:elevation="0dp" />
+                    <TextView style="@style/SkyHomeText" android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:layout_marginTop="15dp" android:gravity="center" android:text="@string/sky_home_footer" android:textSize="11sp" android:textColor="@color/sky_ink_secondary" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+        <LinearLayout android:id="@+id/right_menu_container" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_gravity="bottom|center_horizontal" android:layout_marginStart="22dp" android:layout_marginEnd="22dp" android:layout_marginBottom="18dp"
+            android:padding="7dp" android:gravity="center_vertical" android:orientation="horizontal">
+            <TextView android:id="@+id/menuTakeOff" style="@style/SkyHomeMenu" android:drawableTop="@drawable/sky_nav_plane"
+                android:text="@string/home_menu_takeoff" android:contentDescription="@string/sky_home_mode" />
+            <TextView android:id="@+id/menuRecord" style="@style/SkyHomeMenu" android:drawableTop="@drawable/sky_nav_record" android:text="@string/home_menu_record" />
+            <TextView android:id="@+id/menuMap" style="@style/SkyHomeMenu" android:drawableTop="@drawable/sky_nav_map" android:text="@string/sky_home_map" />
+            <TextView android:id="@+id/menuSettings" style="@style/SkyHomeMenu" android:drawableTop="@drawable/sky_nav_settings" android:text="@string/home_menu_settings" />
+        </LinearLayout>
+    </FrameLayout>
+    <TextView android:id="@+id/homeMapClose" style="@style/SkyHomeText" android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:minHeight="48dp" android:layout_gravity="top|start" android:layout_margin="18dp" android:gravity="center"
+        android:paddingStart="18dp" android:paddingEnd="18dp" android:text="@string/sky_home_close_map" android:textColor="@color/sky_primary"
+        android:clickable="true" android:focusable="true" android:visibility="gone" />
+    <com.projectfocus.feature.flight.hud.FlightHudView android:id="@+id/flightHudOverlay"
+        android:layout_width="match_parent" android:layout_height="match_parent" android:visibility="gone" />
+    <GridLayout android:id="@+id/mapStyleSelectorContainer" android:layout_width="240dp" android:layout_height="168dp"
+        android:layout_gravity="top|end" android:layout_marginTop="84dp" android:layout_marginEnd="18dp"
+        android:background="@drawable/bg_source_map_style_panel" android:columnCount="2" android:elevation="24dp"
+        android:padding="8dp" android:rowCount="4" android:visibility="gone">
+        <TextView android:id="@+id/mapStylePanelChip0" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_forest" />
+        <TextView android:id="@+id/mapStylePanelChip1" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_ocean" />
+        <TextView android:id="@+id/mapStylePanelChip2" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_night" />
+        <TextView android:id="@+id/mapStylePanelChip3" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_sunset" />
+        <TextView android:id="@+id/mapStylePanelChip4" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_vintage" />
+        <TextView android:id="@+id/mapStylePanelChip5" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_satellite" />
+        <TextView android:id="@+id/mapStylePanelChip6" style="@style/PfSourceMapStyleOption" android:text="@string/pf_source_map_style_day" />
+        <TextView android:id="@+id/mapStylePanelChip7" style="@style/PfSourceMapStyleOption" android:text="@string/home_map_style_violet" />
+    </GridLayout>
+</FrameLayout>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_share_artwork_title">집중 성과</string>
+    <string name="stats_share_artwork_subtitle">집중 비행 · 성과 기록</string>
+    <string name="stats_share_artwork_action">성과 공유</string>
+    <string name="stats_share_artwork_preview">집중 성과 미리보기</string>
+    <string name="stats_share_artwork_close">미리보기 닫기</string>
+    <string name="stats_share_artwork_focus">총 집중 시간</string>
+    <string name="stats_share_artwork_all_scenes">모든 장면</string>
+    <string name="stats_share_artwork_tagline">소중한 일에 시간을</string>
+    <string name="stats_share_artwork_failed">이미지를 만들 수 없습니다. 다시 시도해 주세요.</string>
+    <string name="stats_share_artwork_no_target">이미지를 받을 수 있는 앱이 없습니다.</string>
+    <string name="stats_share_artwork_current_period">선택한 기간</string>
+    <string name="stats_share_artwork_preparing">준비 중…</string>
+    <string name="stats_total_flights">비행 횟수</string>
+    <string name="stats_total_distance">총 비행거리</string>
+    <string name="stats_airports">방문 공항</string>
+    <string name="stats_countries">방문 국가/지역</string>
+    <string name="stats_unit_flights">회</string>
+    <string name="stats_unit_airports">개</string>
+    <string name="stats_unit_countries">개</string>
+    <string name="stats_focus_minutes_only">%1$d분</string>
+    <plurals name="stats_share_unit_flights">
+        <item quantity="other">회</item>
+    </plurals>
+    <plurals name="stats_share_unit_airports">
+        <item quantity="other">개</item>
+    </plurals>
+    <plurals name="stats_share_unit_countries">
+        <item quantity="other">개</item>
+    </plurals>
+</resources>

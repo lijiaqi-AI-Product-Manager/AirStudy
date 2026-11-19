@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="record_detail_title">フライトの詳細</string>
+    <string name="record_detail_prepare_again">再度準備する</string>
+    <string name="record_detail_replay_unavailable">空港情報と現在のフライトを確認して、もう一度お試しください。</string>
+    <string name="record_detail_retry">再試行</string>
+    <string name="record_detail_scene">集中シーン · %1$s</string>
+</resources>

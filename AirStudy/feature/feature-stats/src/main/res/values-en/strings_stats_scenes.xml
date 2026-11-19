@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_all_time_label">All time</string>
+    <string name="stats_all_time_scenario_subtitle">Scenario shares always use all successful flight history</string>
+    <string name="stats_all_time_scenario_title">All-time scenarios</string>
+    <string name="stats_clear_scenario_filter">Clear scenario filter</string>
+    <string name="stats_current_period_label">Current period</string>
+    <string name="stats_empty">No focus data</string>
+    <string name="stats_percent_value_fmt">%1$d%%</string>
+    <string name="stats_scenario_chart_accessibility_hint">All-time scenario share chart. Touch to inspect a scenario.</string>
+    <string name="stats_period_scenario_chart_accessibility_hint">Scenario share chart for the current period. Touch to inspect a scenario.</string>
+    <string name="stats_scenario_period_subtitle">Scenario shares for the selected date range</string>
+    <string name="stats_scenario_period_title">Focus scenarios</string>
+    <string name="stats_show_all_scenarios">Show all scenarios</string>
+    <string name="stats_show_current_period">Back to current period</string>
+    <string name="stats_scene_accessibility_fmt">%1$s, %2$s. Tap to filter.</string>
+    <string name="stats_scene_time_count_pct_fmt">%1$s · %2$d sessions · %3$s</string>
+    <string name="stats_scene_label_study">Study</string>
+    <string name="stats_scene_label_work">Work</string>
+    <string name="stats_scene_label_reading">Reading</string>
+    <string name="stats_scene_label_meditation">Sleep</string>
+    <string name="stats_scene_label_creative">Creative</string>
+    <string name="stats_scene_label_relax">Relax</string>
+    <string name="stats_scene_label_exercise">Exercise</string>
+    <string name="stats_scene_label_music">Music</string>
+    <string name="stats_scene_label_programming">Programming</string>
+    <string name="stats_scene_label_gaming">Gaming</string>
+    <string name="stats_scene_label_starchasing">Fandom</string>
+</resources>

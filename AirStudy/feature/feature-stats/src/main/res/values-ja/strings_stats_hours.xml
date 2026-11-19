@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_hour_of_day_title">時間帯別の集中</string>
+    <string name="stats_peak_period_label">ピーク時間帯</string>
+    <string name="stats_active_hours_label">活動時間数</string>
+    <string name="stats_hour_value_fmt">%1$02d:00</string>
+    <string name="stats_peak_hour_value_fmt">%1$02d:00–%2$02d:00</string>
+    <string name="stats_hours_count_fmt">%1$d 時間</string>
+    <string name="stats_hour_chart_accessibility_hint">24時間の集中分布。タッチして時間別データを確認できます</string>
+    <string name="stats_hour_chart_selected_fmt">%1$s、集中 %2$s</string>
+</resources>

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_dashboard_trend_title">성공 비행 추이</string>
+    <string name="stats_trend_mode_line">꺾은선형 차트</string>
+    <string name="stats_trend_mode_stacked_bar">막대형 차트</string>
+    <string name="stats_trend_completed">성공 비행</string>
+    <string name="stats_trend_focus_time">집중 시간</string>
+    <string name="stats_trend_total_label">합계</string>
+    <string name="stats_trend_peak_label">최고치</string>
+    <string name="stats_times_fmt">%1$d 회</string>
+    <string name="stats_duration_minutes">%d분</string>
+    <string name="stats_duration_hours">%d시간</string>
+    <string name="stats_duration_hours_minutes">%1$d시간 %2$d분</string>
+    <string name="stats_completed_trend_accessibility_hint">성공 비행 추이 차트입니다. 터치하여 기간별 데이터를 확인하세요</string>
+    <string name="stats_completed_trend_selected_fmt">%1$s, 성공 비행 %2$d회</string>
+    <string name="stats_focus_trend_accessibility_hint">집중 시간 추이 차트입니다. 터치하여 기간별 데이터를 확인하세요</string>
+    <string name="stats_trend_chart_selected_fmt">%1$s, 집중 %2$s</string>
+    <string name="stats_trend_axis_hour_format">HH:mm</string>
+    <string name="stats_trend_axis_day_format">M/d</string>
+    <string name="stats_trend_axis_week_format">M/d</string>
+    <string name="stats_trend_axis_month_format">M월</string>
+    <string name="stats_scene_time_pct_fmt">%1$s · %2$s</string>
+    <string name="stats_trend_detail_more_scenes">%d개 장면 더 있음</string>
+</resources>

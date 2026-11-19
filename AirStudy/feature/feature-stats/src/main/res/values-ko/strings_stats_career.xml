@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_career_title">누적 데이터</string>
+    <string name="stats_career_subtitle">모든 성공 비행을 기준으로 한 공식 합계</string>
+    <string name="stats_total_mileage_label">총 거리</string>
+    <string name="stats_completed_flights_label">완료한 비행</string>
+    <string name="stats_ontime_label">정시 운항률</string>
+    <string name="stats_current_streak_title">연속 비행</string>
+    <string name="stats_streak_best_value_fmt">최장 %1$d일</string>
+    <string name="stats_streak_days_fmt">%1$d 일</string>
+    <string name="stats_km_value_fmt">%1$s km</string>
+    <string name="stats_ontime_rate_value_fmt">%1$d%%</string>
+    <string name="stats_record_city_stats_title">도착 도시 통계</string>
+    <string name="stats_record_top_countries_title">자주 가는 국가</string>
+    <string name="stats_top_country_most_visited_label">가장 많이 방문한 국가</string>
+</resources>

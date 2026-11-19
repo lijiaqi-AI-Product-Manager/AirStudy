@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_annual_heatmap_title">Годовая карта фокуса</string>
+    <string name="stats_heatmap_previous_year">Предыдущий год</string>
+    <string name="stats_heatmap_next_year">Следующий год</string>
+    <string name="stats_heatmap_year_value_fmt">%1$d</string>
+    <string name="stats_heatmap_unavailable">Карта временно недоступна</string>
+    <string name="stats_heatmap_month_pattern">MMM</string>
+    <string name="stats_heatmap_accessibility_hint">Годовая карта фокуса. Коснитесь для просмотра дня.</string>
+    <string name="stats_heatmap_selected_fmt">%1$s, фокус %2$s</string>
+    <string name="stats_heatmap_no_data_short">Нет данных</string>
+</resources>

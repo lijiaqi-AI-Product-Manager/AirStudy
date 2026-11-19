@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="flight_preparation_title">准备起飞</string>
+    <string name="flight_preparation_back">返回</string>
+    <string name="flight_preparation_choose_origin">选择出发机场</string>
+    <string name="flight_preparation_origin_format">出发：%1$s · %2$s</string>
+    <string name="flight_preparation_metrics">航程 %1$s km · %2$d 分钟</string>
+    <string name="flight_preparation_metrics_missing">请选择机场以计算航程</string>
+    <string name="flight_preparation_choose_seat">选择座位</string>
+    <string name="flight_preparation_seat_format">座位：%1$s</string>
+    <string name="flight_preparation_save_hint">保存并确认路线后即可准备起飞。</string>
+    <string name="flight_preparation_confirmed">路线已保存，可以起飞。</string>
+    <string name="flight_preparation_loading">正在读取机场…</string>
+    <string name="flight_preparation_working">正在保存…</string>
+    <string name="flight_preparation_start">开始起飞</string>
+    <string name="flight_preparation_error_airport">请选择出发机场和目的地。</string>
+    <string name="flight_preparation_error_route">请选择不同且有有效航程的机场。</string>
+    <string name="flight_preparation_error_load">无法读取机场，请重新选择。</string>
+    <string name="flight_preparation_error_save">保存失败，请重试。</string>
+    <string name="flight_preparation_error_start">未能开始飞行，请重试。</string>
+    <string name="flight_preparation_error_active">已有进行中的飞行。</string>
+    <string name="flight_preparation_error_confirmation">请先保存并确认路线。</string>
+    <string name="flight_preparation_navigation_failed">飞行已开始，请返回主页查看进度。</string>
+</resources>

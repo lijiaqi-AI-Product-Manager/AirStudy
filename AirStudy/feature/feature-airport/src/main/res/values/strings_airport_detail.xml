@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="airport_detail_title">机场详情</string>
+    <string name="airport_detail_back">返回</string>
+    <string name="airport_detail_restart">再飞一次</string>
+    <string name="airport_detail_report">报告机场信息</string>
+    <string name="airport_detail_not_found">未找到机场</string>
+    <string name="airport_detail_restart_hint">请返回首页重新选择航线</string>
+    <string name="airport_detail_report_subject">机场信息报告</string>
+    <string name="airport_detail_report_text">请描述 %1$s（%2$s）的信息问题：\n\n</string>
+    <string name="airport_detail_report_message">请描述这个机场信息哪里需要修正。当前版本只保存到本地，不会自动提交，也不会进入审核流程。</string>
+    <string name="airport_detail_report_hint">例如：介绍内容过期、机场图片不准确、机场已停用等</string>
+    <string name="airport_detail_report_reason_required">请先填写报告原因</string>
+    <string name="airport_detail_report_submit">保存报告</string>
+    <string name="airport_detail_report_saved">已保存到本地，长按“报告机场”可查看</string>
+    <string name="airport_detail_report_failed">保存失败，请重试</string>
+    <string name="airport_detail_report_counter">%1$d / 300</string>
+    <string name="airport_detail_report_list_title">%1$s · 本地报告</string>
+    <string name="airport_detail_report_list_empty">这个机场还没有本地报告。</string>
+    <string name="airport_detail_report_list_item">%1$s · %2$s</string>
+    <string name="airport_detail_report_delete_title">删除这条本地报告？</string>
+    <string name="airport_detail_report_delete">删除</string>
+    <string name="airport_detail_report_deleted">已删除</string>
+    <string name="airport_detail_report_long_press_hint">长按“报告机场”可查看本地报告</string>
+    <string name="airport_detail_description">%1$s（%2$s）位于%3$s，海拔 %4$d m，机场类型：%5$s。\n\n坐标：%6$.2f, %7$.2f\n国家/地区：%8$s\n大洲：%9$s</string>
+</resources>

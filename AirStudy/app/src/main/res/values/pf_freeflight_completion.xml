@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pf_ff_completion_pending">飞行信息仍在保存，请稍后重试</string>
+    <string name="pf_ff_completion_share">%1$s → %2$s\n专注飞行 %3$d 分钟，累计 %4$s 公里</string>
+</resources>

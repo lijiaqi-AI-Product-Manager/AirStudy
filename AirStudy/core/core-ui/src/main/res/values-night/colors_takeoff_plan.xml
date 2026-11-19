@@ -1,0 +1,12 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <color name="pf_tp_plan_card_bg">#4d000000</color>
+    <color name="pf_tp_plan_card_btn_bg">#4d3a3a3a</color>
+    <color name="pf_tp_plan_card_picker_selected">#ffffffff</color>
+    <color name="pf_tp_plan_card_scene_bg">#33000000</color>
+    <color name="pf_tp_plan_card_text_hint">#80ffffff</color>
+    <color name="pf_tp_plan_card_text_primary">#ffffffff</color>
+    <color name="pf_tp_plan_card_text_secondary">#ccffffff</color>
+    <color name="pf_tp_plan_toggle_label_text">#ffffffff</color>
+    <color name="pf_tp_plan_card_picker_normal">#80ffffff</color>
+</resources>

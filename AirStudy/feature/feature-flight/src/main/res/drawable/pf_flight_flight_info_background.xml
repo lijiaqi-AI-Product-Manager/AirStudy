@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient android:startColor="@color/pf_flight_flight_info_background_source_0" android:endColor="@android:color/transparent" android:angle="90.0" android:type="linear" android:centerColor="@color/pf_flight_flight_info_background_source_1" />
+    <corners android:radius="8.0dip" />
+</shape>

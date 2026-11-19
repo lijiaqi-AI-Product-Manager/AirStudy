@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout android:id="@+id/pf_ff_card_airportCardMobileHorizon" android:background="@drawable/pf_airport_card_background" android:focusable="true" android:clickable="true" android:layout_width="wrap_content" android:layout_height="wrap_content" android:stateListAnimator="@animator/pf_airport_card_state_list_animator"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:paddingTop="10.0dip" android:paddingBottom="10.0dip" android:layout_width="wrap_content" android:layout_height="wrap_content" android:minHeight="80.0dip" android:paddingStart="10.0dip" android:paddingEnd="20.0dip">
+        <include layout="@layout/pf_airport_marker_small" />
+        <LinearLayout android:layout_gravity="center_vertical" android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginStart="4.0dip">
+            <TextView android:textSize="13.0sp" android:textColor="@color/pf_airport_card_text_color" android:ellipsize="end" android:id="@+id/pf_ff_card_tv_airport_name" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="140.0dip" android:text="" android:singleLine="true" android:fontFamily="@font/harmonyos_sans_sc_black" />
+            <TextView android:textSize="12.0sp" android:textColor="@color/pf_airport_source_subtitle" android:ellipsize="end" android:id="@+id/pf_ff_card_tv_airport_city" android:layout_width="wrap_content" android:layout_height="wrap_content" android:maxWidth="140.0dip" android:singleLine="true" android:fontFamily="@font/jetbrainsmono_medium" />
+        </LinearLayout>
+    </LinearLayout>
+    <ImageView android:layout_gravity="end|center|top" android:id="@+id/pf_ff_card_iv_arrived_check" android:visibility="gone" android:layout_width="16.0dip" android:layout_height="16.0dip" android:layout_margin="5.0dip" android:src="@drawable/pf_ff_ic_arrived_check" android:scaleType="fitCenter" android:contentDescription="@string/pf_ff_land_airport_badge_arrived" />
+</FrameLayout>

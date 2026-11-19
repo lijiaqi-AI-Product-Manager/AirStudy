@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_dashboard_insights_title">Focus insights</string>
+    <string name="stats_insight_best_day">Best day</string>
+    <string name="stats_insight_top_scenario">Top scenario</string>
+    <string name="stats_insight_top_period">Best period</string>
+    <string name="stats_insight_day_value_fmt">%1$s · %2$s</string>
+    <string name="stats_insight_scenario_value_fmt">%1$s · %2$s</string>
+    <string name="stats_period_dawn">Early morning</string>
+    <string name="stats_period_morning">Morning</string>
+    <string name="stats_period_afternoon">Afternoon</string>
+    <string name="stats_period_evening">Evening</string>
+    <string name="stats_highlights_title">Highlights</string>
+    <string name="stats_highlight_rank_value_fmt">%1$d</string>
+    <string name="stats_insight_no_data_short">No data</string>
+</resources>
