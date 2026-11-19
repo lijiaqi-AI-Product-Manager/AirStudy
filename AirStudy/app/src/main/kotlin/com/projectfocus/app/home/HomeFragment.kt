@@ -588,50 +588,51 @@ class HomeFragment : Fragment() {
             onLandOrReturn = { freeFlightLanding?.landOrReturn() },
         )
         val ambientButton = hud.ambientButton
-        ambientButton.text = getString(R.string.flight_hud_ambient_off)
         val order = listOf(
             AmbientSound.RAIN,
             AmbientSound.BONFIRE,
             AmbientSound.FOREST,
             AmbientSound.OCEAN,
         )
-        ambientButton.setOnClickListener {
+        hud.setAmbientLabels(order.map { getString(ambientLabelRes(it)) })
+
+        fun showAmbient(index: Int) {
+            ambientIndex = index
+            val sound = order.getOrNull(index)
+            ambientButton.text = when {
+                !whiteNoiseEnabled -> getString(R.string.flight_hud_ambient_disabled)
+                sound == null -> getString(R.string.flight_hud_ambient_off)
+                else -> getString(R.string.flight_hud_ambient_on, getString(ambientLabelRes(sound)))
+            }
+            hud.setAmbientPlayback(whiteNoiseEnabled, index)
+        }
+
+        fun selectAmbient(index: Int) {
             if (!whiteNoiseEnabled) {
                 Toast.makeText(
                     requireContext(),
                     R.string.flight_hud_ambient_disabled,
                     Toast.LENGTH_SHORT,
                 ).show()
-                return@setOnClickListener
+                return
+            }
+            if (index == ambientIndex || index !in order.indices) {
+                ambientPlayer?.let(AmbientPlaybackRegistry::stop)
+                showAmbient(-1)
+                return
             }
             val player = ambientPlayer
                 ?: AmbientSoundPlayer(requireContext()).also {
                     it.setVolume(ambientVolume)
-                    it.onStopped = {
-                        ambientIndex = -1
-                        ambientButton.text = getString(R.string.flight_hud_ambient_off)
-                    }
+                    it.onStopped = { showAmbient(-1) }
                     ambientPlayer = it
                 }
-            val next = ambientIndex + 1
-            if (next >= order.size) {
-                AmbientPlaybackRegistry.stop(player)
-                ambientIndex = -1
-                ambientButton.text = getString(R.string.flight_hud_ambient_off)
-                return@setOnClickListener
-            }
-            val sound = order[next]
-            if (AmbientPlaybackRegistry.play(player) { player.play(sound) }) {
-                ambientIndex = next
-                ambientButton.text = getString(
-                    R.string.flight_hud_ambient_on,
-                    getString(ambientLabelRes(sound)),
-                )
-            } else {
-                ambientIndex = -1
-                ambientButton.text = getString(R.string.flight_hud_ambient_off)
-            }
+            val started = AmbientPlaybackRegistry.play(player) { player.play(order[index]) }
+            showAmbient(if (started) index else -1)
         }
+        showAmbient(ambientIndex)
+        ambientButton.setOnClickListener { selectAmbient(ambientIndex + 1) }
+        hud.onAmbientTrackChosen = ::selectAmbient
 
         val volumeLabel = hud.volumeLabel
         val volumeSeek = hud.volumeControl
@@ -690,12 +691,10 @@ class HomeFragment : Fragment() {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 settingsRepository.observe(PrefKey.WhiteNoiseEnabled).collect { enabled ->
                     whiteNoiseEnabled = enabled
-                    volumeSeek.isEnabled = enabled
                     if (!enabled) {
                         ambientPlayer?.let { AmbientPlaybackRegistry.stop(it) }
-                        ambientIndex = -1
-                        ambientButton.text = getString(R.string.flight_hud_ambient_off)
                     }
+                    showAmbient(if (enabled) ambientIndex else -1)
                 }
             }
         }

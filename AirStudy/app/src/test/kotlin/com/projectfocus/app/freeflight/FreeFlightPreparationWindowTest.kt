@@ -9,6 +9,7 @@ import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
+import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.TextView
 import androidx.navigation.fragment.NavHostFragment
 import androidx.test.core.app.ApplicationProvider
@@ -87,7 +88,7 @@ class FreeFlightPreparationWindowTest {
         assertRealCountdownUntouched()
     }
 
-    @Test fun headingUsesActualNativeCanvasAndSourcePixelsWhileCancelRemovesOnlyOwnSurface() {
+    @Test fun headingUsesReadableNativeCompassAndCancelRemovesOnlyOwnSurface() {
         HomeMapStyleSelection.select(activity, 2)
         controller = FreeFlightPreparationController(activity, actions).also { it.begin() }
         await { controller!!.coordinator.state.value.step == FreeFlightPreparationStep.HEADING }
@@ -96,11 +97,18 @@ class FreeFlightPreparationWindowTest {
         assertThat(root.parent).isSameInstanceAs(activity.findViewById<ViewGroup>(android.R.id.content))
         assertThat(root.paddingTop).isEqualTo(0);assertThat(root.paddingBottom).isEqualTo(0)
         val ruler = activity.findViewById<FreeFlightHeadingRulerView>(R.id.pf_ff_heading_ruler)
-        assertThat(ruler.height).isEqualTo(300);assertThat(ruler.uiScale).isEqualTo(1f)
-        assertThat(activity.findViewById<TextView>(R.id.pf_ff_heading_title).text.toString()).isEqualTo(activity.getString(R.string.pf_ff_free_flight_adjust_heading))
+        assertThat(ruler.height).isEqualTo(140)
+        val title = activity.findViewById<TextView>(R.id.pf_ff_heading_title)
+        assertThat(title.text.toString()).isEqualTo(activity.getString(R.string.pf_ff_free_flight_adjust_heading))
+        assertThat(Color.luminance(title.currentTextColor)).isGreaterThan(.65f)
+        assertThat(ruler.contentDescription.toString()).isEqualTo("0°")
         val image = Bitmap.createBitmap(ruler.width, ruler.height, Bitmap.Config.ARGB_8888)
         ruler.draw(Canvas(image))
-        assertThat(image.getPixel(ruler.width / 2, ruler.height - 150 + 25)).isEqualTo(0xFFFFD700.toInt())
+        assertThat(image.getPixel(ruler.width / 2, ruler.height - (125f * ruler.uiScale).toInt())).isEqualTo(0xFFFFD700.toInt())
+        assertThat(ruler.performAccessibilityAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD, null)).isTrue()
+        assertThat(ruler.contentDescription.toString()).isEqualTo("355°")
+        assertThat(ruler.performAccessibilityAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, null)).isTrue()
+        assertThat(actions.headings.last()).isEqualTo(0f)
         val now = SystemClock.uptimeMillis()
         fun event(action: Int, time: Long, x: Float) = MotionEvent.obtain(now, time, action, x, 80f, 0)
         event(MotionEvent.ACTION_DOWN, now, 250f).also { ruler.dispatchTouchEvent(it);it.recycle() }
@@ -206,7 +214,7 @@ class FreeFlightPreparationWindowTest {
 
     @Test
     @Config(qualifiers = "zh-rCN-w400dp-h870dp-xxhdpi")
-    fun actualHighDensityPhoneKeepsSourcePixelsWithoutWrappingAndRestoresRealHomeAfterCancel() {
+    fun actualHighDensityPhoneKeepsHeadingTextOnOneLineAndRestoresHomeAfterCancel() {
         activity.findViewById<View>(R.id.menuMap).performClick();idle()
         assertThat(activity.findViewById<View>(R.id.mapStyleSelectorContainer).visibility).isEqualTo(View.VISIBLE)
         val map = activity.findViewById<SourceMapHostView>(R.id.sourceMap)
@@ -216,10 +224,11 @@ class FreeFlightPreparationWindowTest {
         assertThat(activity.window.decorView.width).isEqualTo(1200)
         assertThat(activity.resources.displayMetrics.density).isEqualTo(3f)
         val ruler = activity.findViewById<FreeFlightHeadingRulerView>(R.id.pf_ff_heading_ruler)
-        assertThat(ruler.height).isEqualTo(300)
+        assertThat(ruler.height).isEqualTo(420)
         val next = activity.findViewById<TextView>(R.id.pf_ff_heading_continue)
         assertThat(next.lineCount).isEqualTo(1)
-        assertThat(next.paddingLeft).isEqualTo(80);assertThat(next.paddingRight).isEqualTo(80)
+        assertThat(next.height).isAtLeast(150)
+        assertThat(next.text.toString()).isEqualTo(activity.getString(com.projectfocus.feature.booking.R.string.seat_selection_title))
         assertThat(activity.findViewById<View>(R.id.right_menu_container).visibility).isEqualTo(View.INVISIBLE)
         assertThat(activity.findViewById<View>(R.id.btnStartFlight).visibility).isEqualTo(View.GONE)
         assertThat(activity.findViewById<View>(R.id.mapStyleSelectorContainer).visibility).isEqualTo(View.GONE)
@@ -257,14 +266,44 @@ class FreeFlightPreparationWindowTest {
 
     @Test
     @Config(qualifiers = "zh-rCN-w800dp-h1280dp-mdpi")
-    fun tabletMainWindowKeepsActualSource420DpWidthAndPoint52Scale() {
+    fun tabletMainWindowLimitsTheHeadingPanelToAReadableWidth() {
         controller = FreeFlightPreparationController(activity, actions).also { it.begin() }
         await { controller!!.coordinator.state.value.step == FreeFlightPreparationStep.HEADING };advance(500)
         val ruler = activity.findViewById<FreeFlightHeadingRulerView>(R.id.pf_ff_heading_ruler)
-        assertThat(ruler.width).isEqualTo(420);assertThat(ruler.height).isEqualTo(105);assertThat(ruler.uiScale).isEqualTo(.52f)
-        val body = activity.findViewById<ViewGroup>(R.id.pf_ff_heading_body).getChildAt(0)
-        assertThat(body.paddingTop).isEqualTo(12);assertThat(body.paddingBottom).isEqualTo(56)
+        assertThat(ruler.width).isEqualTo(508)
+        assertThat(ruler.height).isEqualTo(140)
         capture("heading-tablet-actual-main");assertThat(actions.requests).isEmpty()
+    }
+
+    @Test
+    @Config(qualifiers = "zh-rCN-w720dp-h310dp-land-mdpi")
+    fun shortLandscapeHeadingKeepsTheCompassAndNextStepInsideSystemAreas() {
+        org.robolectric.RuntimeEnvironment.setFontScale(1.6f)
+        HomeMapStyleSelection.select(activity, 4)
+        controller = FreeFlightPreparationController(activity, actions).also { it.begin() }
+        await { controller!!.coordinator.state.value.step == FreeFlightPreparationStep.HEADING }
+        advance(500)
+        val surface = activity.findViewById<FreeFlightHeadingSurface>(R.id.pf_ff_heading_body)
+        val types = androidx.core.view.WindowInsetsCompat.Type.systemBars() or androidx.core.view.WindowInsetsCompat.Type.displayCutout()
+        val insets = androidx.core.view.WindowInsetsCompat.Builder()
+            .setInsets(types, androidx.core.graphics.Insets.of(38, 26, 24, 28)).build()
+        androidx.core.view.ViewCompat.dispatchApplyWindowInsets(surface, insets)
+        advance(48)
+        for (control in listOf(surface.ruler, surface.cancel, surface.next)) {
+            val bounds = android.graphics.Rect()
+            assertThat(control.getGlobalVisibleRect(bounds)).isTrue()
+            assertThat(bounds.height()).isEqualTo(control.height)
+            assertThat(bounds.height()).isAtLeast(48)
+            assertThat(bounds.left).isAtLeast(38)
+            assertThat(bounds.right).isAtMost(surface.width - 24)
+            assertThat(bounds.top).isAtLeast(26)
+            assertThat(bounds.bottom).isAtMost(surface.height - 28)
+        }
+        assertThat(surface.ruler.height).isEqualTo(112)
+        capture("heading-short-landscape-large-text")
+        surface.next.performClick()
+        await { activity.findViewById<SeatSelectionMapView>(R.id.pf_ff_seat_map) != null }
+        assertThat(actions.requests).isEmpty()
     }
 
     @Test

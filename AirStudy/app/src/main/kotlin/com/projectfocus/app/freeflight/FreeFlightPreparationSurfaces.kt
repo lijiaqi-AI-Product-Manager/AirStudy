@@ -20,7 +20,6 @@ import android.view.animation.ScaleAnimation
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
-import android.widget.Space
 import android.widget.TextView
 import android.widget.Toast
 import androidx.core.content.res.ResourcesCompat
@@ -48,45 +47,6 @@ import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 internal fun Context.ffDp(value: Float): Int = (value * resources.displayMetrics.density).roundToInt()
-
-/** Source Main.a0 creates this body in raw-pixel phone coordinates and dp tablet dimensions. */
-internal class FreeFlightHeadingSurface(context: Context, initial: Float, feedback: FreeFlightRulerFeedback) : FrameLayout(context) {
-    val ruler = FreeFlightHeadingRulerView(context).apply { id = R.id.pf_ff_heading_ruler;this.feedback = feedback;setHeading(initial) }
-    val cancel = TextView(context).apply { id = R.id.pf_ff_heading_cancel;setText(R.string.pf_ff_common_cancel);setTextColor(Color.WHITE);gravity = Gravity.CENTER }
-    val next = TextView(context).apply { id = R.id.pf_ff_heading_continue;setText(R.string.pf_ff_free_flight_start_button);setTextColor(Color.BLACK);gravity = Gravity.CENTER }
-    init {
-        id = R.id.pf_ff_heading_body
-        val dm = resources.displayMetrics;val tablet = min(dm.widthPixels, dm.heightPixels) / dm.density >= 600f
-        background = GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM, intArrayOf(Color.TRANSPARENT, context.getColor(R.color.pf_ff_black80)))
-        val body = LinearLayout(context).apply {
-            orientation = LinearLayout.VERTICAL;if (tablet) gravity = Gravity.CENTER_HORIZONTAL
-            setPadding(0, if (tablet) 12 else 50, 0, if (tablet) 56 else 150)
-        }
-        // Original Main.a0 adds this without explicit params: use FrameLayout's
-        // actual default child params, rather than invent a WRAP_CONTENT height.
-        addView(body)
-        body.addView(TextView(context).apply {
-            id = R.id.pf_ff_heading_title;setText(R.string.pf_ff_free_flight_adjust_heading);setTextColor(Color.WHITE)
-            gravity = Gravity.CENTER;textSize = if (tablet) 15f else 16f
-        }, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
-        if (tablet) {
-            val width = context.ffDp(420f)
-            body.addView(ruler, LinearLayout.LayoutParams(width, max(context.ffDp(96f), width / 4)).apply { topMargin = context.ffDp(16f) })
-            ruler.setUiScale(.52f)
-        } else body.addView(ruler, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 300))
-        val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL;gravity = Gravity.CENTER;setPadding(0, if (tablet) 10 else 20, 0, 0) }
-        body.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT))
-        val size = if (tablet) 15f else 16f;cancel.textSize = size;next.textSize = size
-        cancel.setPadding(if (tablet) 32 else 60, if (tablet) 18 else 30, if (tablet) 32 else 60, if (tablet) 18 else 30)
-        next.setPadding(if (tablet) 44 else 80, if (tablet) 20 else 30, if (tablet) 44 else 80, if (tablet) 20 else 30)
-        next.background = GradientDrawable().apply { setColor(Color.WHITE);cornerRadius = if (tablet) 55f else 100f }
-        runCatching { ResourcesCompat.getFont(context, CoreUiR.font.harmonyos_sans_sc_bold) }.getOrNull()?.let { next.typeface = it }
-        row.addView(cancel);row.addView(Space(context), LinearLayout.LayoutParams(if (tablet) 24 else 60, 1));row.addView(next)
-    }
-
-    fun enter() { visibility = INVISIBLE;post { translationY = height.toFloat();visibility = VISIBLE;animate().translationY(0f).setDuration(400L).setInterpolator(DecelerateInterpolator()).start() } }
-    fun leave(done: () -> Unit) { animate().cancel();animate().translationY(height.toFloat()).setDuration(300L).withEndAction(done).start() }
-}
 
 /** Existing source-shaped airframe + independent real catalog/editor. No BookingDraft or history writes. */
 internal class FreeFlightSeatSurface(

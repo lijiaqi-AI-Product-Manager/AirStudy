@@ -1,10 +1,13 @@
 package com.projectfocus.feature.flight.hud
 
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Color
 import android.graphics.Rect
+import android.graphics.drawable.RippleDrawable
+import android.graphics.drawable.StateListDrawable
 import android.util.AttributeSet
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -12,12 +15,18 @@ import android.view.MotionEvent
 import android.view.TouchDelegate
 import android.view.View
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.RelativeLayout
+import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.core.content.ContextCompat
 import androidx.core.widget.TextViewCompat
+import com.google.android.material.button.MaterialButton
+import com.projectfocus.core.ui.sky.SkyPressFeedback
+import com.projectfocus.core.ui.sky.SkySurfaces
 import com.projectfocus.feature.flight.R
+import com.projectfocus.core.ui.R as UiR
 
 data class FlightHudUiState(
     val active: Boolean = false, val paused: Boolean = false, val windowVisible: Boolean = false,
@@ -45,12 +54,15 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
     val ambientButton: TextView
     val volumeLabel: TextView
     val volumeControl: SeekBar
+    var onAmbientTrackChosen: (Int) -> Unit = {}
     private val pause: ImageView
     private val land: ImageView
     private val cancel: View
     private val window: ImageView
     private val audio: ImageView
-    private val volumePanel: View
+    private val volumeRegion: View
+    private val volumePanel: ScrollView
+    private val ambientChoices: List<MaterialButton>
     private val counterWidths = SourceHudWidthAnimator()
     private var focusCompact = false
     private var currentState = FlightHudUiState()
@@ -62,34 +74,114 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
         cancel = findViewById(R.id.pf_flight_cancel)
         window = findViewById(R.id.pf_flight_window_toggle)
         audio = findViewById(R.id.pf_flight_audio)
+        volumeRegion = findViewById(R.id.pf_flight_volume_region)
         volumePanel = findViewById(R.id.pf_flight_volume_panel)
         ambientButton = findViewById(R.id.pf_flight_ambient)
         volumeLabel = findViewById(R.id.pf_flight_volume_label)
         volumeControl = findViewById(R.id.pf_flight_volume)
+        ambientChoices = createAmbientChoices(findViewById(R.id.pf_flight_ambient_choices))
         pause.setOnClickListener { callbacks.onPauseResume() }
         land.setOnClickListener { callbacks.onLandOrReturn() }
         cancel.setOnLongClickListener { callbacks.onAbandon(); true }
         cancel.setOnClickListener { announceForAccessibility(context.getString(R.string.pf_flight_hold_cancel)) }
         window.setOnClickListener { callbacks.onToggleWindow() }
         findViewById<View>(R.id.pf_flight_map_style).setOnClickListener { callbacks.onMapStyle() }
-        audio.setOnClickListener { volumePanel.visibility = if (volumePanel.visibility == VISIBLE) GONE else VISIBLE }
+        audio.setOnClickListener { showVolumePanel(volumePanel.visibility != VISIBLE) }
         findViewById<View>(R.id.pf_flight_focus_retry).setOnClickListener { callbacks.onRetryMap() }
         listOf(R.id.pf_flight_left_controls, R.id.pf_flight_right_controls, R.id.pf_flight_volume_panel,
             R.id.pf_flight_distance_container, R.id.pf_flight_time_container).forEach {
             com.projectfocus.core.ui.sky.SkySurfaces.card(findViewById(it), radius = 24f, elevation = 4f, solid = true)
         }
-        listOf(pause, land, window, audio, cancel, findViewById(R.id.pf_flight_map_style),
+        listOf(pause, land, window, audio, cancel, ambientButton, findViewById(R.id.pf_flight_map_style),
             findViewById<View>(R.id.pf_flight_focus_retry)).forEach {
             com.projectfocus.core.ui.sky.SkyPressFeedback.install(it)
         }
         com.projectfocus.core.ui.sky.SkySurfaces.secondary(cancel)
+        setAmbientPlayback(false, -1)
         render(FlightHudUiState())
+    }
+
+    fun setAmbientLabels(labels: List<String>) {
+        require(labels.size == ambientChoices.size)
+        ambientChoices.zip(labels).forEach { (button, label) -> button.text = label }
+    }
+
+    fun setAmbientPlayback(enabled: Boolean, playing: Int) {
+        volumeControl.isEnabled = enabled
+        volumeControl.alpha = if (enabled) 1f else .5f
+        ambientChoices.forEachIndexed { index, button ->
+            button.isEnabled = enabled
+            button.isSelected = enabled && index == playing
+            button.alpha = if (enabled) 1f else .65f
+        }
+    }
+
+    private fun createAmbientChoices(group: LinearLayout): List<MaterialButton> = buildList {
+        repeat(2) { rowIndex ->
+            val row = LinearLayout(context).apply { orientation = LinearLayout.HORIZONTAL }
+            group.addView(row, LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT).apply {
+                if (rowIndex > 0) topMargin = SkySurfaces.dp(context, 8f)
+            })
+            repeat(2) { column ->
+                val index = rowIndex * 2 + column
+                val button = MaterialButton(context).apply {
+                    tag = "ambient-track-$index"
+                    isAllCaps = false
+                    textSize = 14f
+                    minWidth = 0
+                    minimumWidth = 0
+                    minHeight = SkySurfaces.dp(context, 48f)
+                    minimumHeight = minHeight
+                    insetTop = 0
+                    insetBottom = 0
+                    setTextColor(context.getColor(UiR.color.sky_ink))
+                    icon = AmbientTrackIcon(index, context.getColor(UiR.color.sky_ink))
+                    iconTint = null
+                    iconSize = SkySurfaces.dp(context, 18f)
+                    iconPadding = SkySurfaces.dp(context, 6f)
+                    iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
+                    backgroundTintList = null
+                    val pad = SkySurfaces.dp(context, 8f)
+                    setPadding(pad, pad, pad, pad)
+                    val backgroundStates = StateListDrawable().apply {
+                        addState(intArrayOf(android.R.attr.state_selected), SkySurfaces.shape(context, 14f, solid = true).apply {
+                            setColor(context.getColor(UiR.color.sky_selected))
+                        })
+                        addState(intArrayOf(), SkySurfaces.shape(context, 14f))
+                    }
+                    background = RippleDrawable(ColorStateList.valueOf(0x186A8FE8), backgroundStates, null)
+                    SkyPressFeedback.install(this)
+                    setOnClickListener {
+                        if (isEnabled && currentState.active && volumePanel.visibility == VISIBLE)
+                            onAmbientTrackChosen(index)
+                    }
+                }
+                row.addView(button, LinearLayout.LayoutParams(0, LayoutParams.WRAP_CONTENT, 1f).apply {
+                    if (column > 0) marginStart = SkySurfaces.dp(context, 8f)
+                })
+                add(button)
+            }
+        }
+    }
+
+    private fun showVolumePanel(show: Boolean) {
+        val visibility = if (show) VISIBLE else GONE
+        if (volumePanel.visibility == visibility) return
+        volumePanel.animate().cancel()
+        volumePanel.alpha = 1f
+        volumeRegion.visibility = visibility
+        volumePanel.visibility = visibility
+        if (show) volumePanel.scrollTo(0, 0)
+        if (show && ValueAnimator.areAnimatorsEnabled()) {
+            volumePanel.alpha = .48f
+            volumePanel.animate().alpha(1f).setDuration(160L).start()
+        }
     }
 
     fun render(state: FlightHudUiState) {
         currentState = state
         visibility = if (state.active) VISIBLE else GONE
-        if (!state.active) { volumePanel.visibility = GONE; return }
+        if (!state.active) { showVolumePanel(false); return }
         val selecting = state.freeFlightLandControl == FreeFlightLandControl.RETURN_TO_CRUISE
         pause.visibility = if (selecting) GONE else VISIBLE
         audio.visibility = if (selecting) GONE else VISIBLE
@@ -111,7 +203,7 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
         }
         renderCounters(state, night)
         findViewById<View>(R.id.pf_flight_stats).visibility = if (state.paused || selecting) GONE else VISIBLE
-        if (selecting) volumePanel.visibility = GONE
+        if (selecting) showVolumePanel(false)
         contentDescription = context.getString(R.string.pf_flight_summary, state.routeText,
             state.traveledKmText, state.remainingKmText, state.remainingTimeText)
     }
@@ -228,8 +320,12 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
         val availableHeight = MeasureSpec.getSize(heightMeasureSpec) - paddingTop - paddingBottom
         updateFocusGeometry(MeasureSpec.getMode(heightMeasureSpec) != MeasureSpec.UNSPECIFIED &&
             availableHeight > 0 && availableHeight / resources.displayMetrics.density < 640f)
-        if (MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED)
-            fitCounterCards(MeasureSpec.getSize(widthMeasureSpec) - paddingLeft - paddingRight)
+        if (MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.UNSPECIFIED) {
+            val width = MeasureSpec.getSize(widthMeasureSpec) - paddingLeft - paddingRight
+            fitCounterCards(width)
+            volumeRegion.layoutParams.width = minOf(SkySurfaces.dp(context, 288f),
+                (width - SkySurfaces.dp(context, 40f)).coerceAtLeast(1))
+        }
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
     }
 
@@ -241,6 +337,7 @@ class FlightHudView @JvmOverloads constructor(context: Context, attrs: Attribute
     }
 
     override fun onDetachedFromWindow() {
+        showVolumePanel(false)
         counterWidths.detach()
         super.onDetachedFromWindow()
     }

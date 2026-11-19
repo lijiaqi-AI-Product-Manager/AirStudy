@@ -122,14 +122,72 @@
             android:layout_centerHorizontal="true" android:layout_marginBottom="80dp" android:text="@string/pf_flight_paused"
             android:textSize="16sp" android:textStyle="bold" android:textColor="@android:color/white" android:fontFamily="@font/pf_apk2_harmonyos_sans" />
     </RelativeLayout>
-    <LinearLayout android:id="@+id/pf_flight_volume_panel" android:layout_width="240dp" android:layout_height="wrap_content"
-        android:layout_marginTop="80dp" android:layout_marginStart="24dp" android:padding="12dp"
-        android:background="@drawable/pf_flight_flight_info_background" android:orientation="vertical"
-        android:visibility="gone" android:elevation="22dp">
-        <TextView android:id="@+id/pf_flight_ambient" android:layout_width="match_parent" android:layout_height="48dp"
-            android:gravity="center_vertical" android:textSize="14sp" android:textColor="@color/text_primary" android:clickable="true" android:focusable="true" />
-        <TextView android:id="@+id/pf_flight_volume_label" android:layout_width="match_parent" android:layout_height="wrap_content"
-            android:textSize="12sp" android:textColor="@color/text_primary" />
-        <SeekBar android:id="@+id/pf_flight_volume" android:layout_width="match_parent" android:layout_height="48dp" android:max="100" />
-    </LinearLayout>
+    <FrameLayout
+        android:id="@+id/pf_flight_volume_region"
+        android:layout_width="288dp"
+        android:layout_height="match_parent"
+        android:layout_alignParentStart="true"
+        android:layout_below="@id/pf_flight_left_controls"
+        android:layout_above="@id/pf_flight_stats"
+        android:layout_alignWithParentIfMissing="true"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        android:elevation="22dp"
+        android:visibility="gone">
+        <ScrollView
+            android:id="@+id/pf_flight_volume_panel"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fadeScrollbars="false"
+            android:visibility="gone">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="14dp">
+
+                <TextView
+                    android:id="@+id/pf_flight_ambient"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:accessibilityLiveRegion="polite"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:gravity="center_vertical"
+                    android:textColor="@color/sky_ink"
+                    android:textSize="17sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/pf_flight_volume_label"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:labelFor="@id/pf_flight_volume"
+                    android:textColor="@color/sky_ink_secondary"
+                    android:textSize="14sp" />
+
+                <SeekBar
+                    android:id="@+id/pf_flight_volume"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:max="100"
+                    android:progressBackgroundTint="@color/sky_divider"
+                    android:progressTint="@color/sky_primary"
+                    android:thumbTint="@color/sky_primary" />
+
+                <LinearLayout
+                    android:id="@+id/pf_flight_ambient_choices"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:orientation="vertical" />
+            </LinearLayout>
+        </ScrollView>
+    </FrameLayout>
 </merge>

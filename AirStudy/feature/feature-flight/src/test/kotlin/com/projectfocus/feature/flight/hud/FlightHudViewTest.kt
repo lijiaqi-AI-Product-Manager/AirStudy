@@ -158,6 +158,67 @@ class FlightHudViewTest {
     }
 
     @Test
+    fun `ambient choices show the selected track and stay inside a small window`() {
+        val output = File("build/reports/flight-hud-preview").apply { mkdirs() }
+        for (night in listOf(false, true)) {
+            val view = newView(night, 1.6f)
+            view.applySafeInsets(16, 24, 12, 22)
+            view.render(running.copy(mapAvailable = false, routeText = "PEK → TSN", remainingTimeText = "18:32"))
+            view.setAmbientLabels(listOf("雨声", "篝火", "森林", "海浪"))
+            val selected = mutableListOf<Int>()
+            view.onAmbientTrackChosen = { track ->
+                selected.add(track)
+                view.setAmbientPlayback(true, track)
+            }
+            view.findViewById<View>(R.id.pf_flight_audio).performClick()
+            layout(view, 320, 480)
+            val tracks = List(4) { view.findViewWithTag<TextView>("ambient-track-$it") }
+            assertThat(tracks.all { !it.isEnabled }).isTrue()
+            assertThat(view.volumeControl.isEnabled).isFalse()
+            tracks[2].performClick()
+            assertThat(selected).isEmpty()
+
+            view.setAmbientPlayback(true, -1)
+            tracks[2].performClick()
+            assertThat(selected).containsExactly(2)
+            assertThat(tracks.count { it.isSelected }).isEqualTo(1)
+            assertThat(tracks[2].isSelected).isTrue()
+            assertThat(view.volumeControl.isEnabled).isTrue()
+            view.ambientButton.text = "森林 · 开"
+            view.volumeLabel.text = "环境音量 58%"
+            view.volumeControl.progress = 58
+            layout(view, 320, 480)
+            val panelBounds = bounds(view, R.id.pf_flight_volume_panel)
+            assertThat(panelBounds.left).isAtLeast(dp(view, 16))
+            assertThat(panelBounds.right).isAtMost(view.width - dp(view, 12))
+            assertThat(panelBounds.bottom).isAtMost(view.height - dp(view, 22))
+            assertThat(panelBounds.bottom).isAtMost(bounds(view, R.id.pf_flight_stats).top - dp(view, 8))
+            assertThat(tracks.all { it.height >= dp(view, 48) }).isTrue()
+            val panel = view.findViewById<View>(R.id.pf_flight_volume_panel)
+            assertThat(panel.canScrollVertically(1)).isTrue()
+            layout(view, 390, 720)
+            assertThat(panel.canScrollVertically(1)).isFalse()
+            assertThat(bounds(view, R.id.pf_flight_volume_panel).bottom).isAtMost(bounds(view, R.id.pf_flight_stats).top - dp(view, 8))
+            panel.animate().cancel()
+            panel.alpha = 1f
+            val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+            try {
+                view.draw(Canvas(bitmap))
+                val name = if (night) "ambient-panel-night" else "ambient-panel-day"
+                File(output, "$name.png").outputStream().use {
+                    assertThat(bitmap.compress(Bitmap.CompressFormat.PNG, 100, it)).isTrue()
+                }
+            } finally {
+                bitmap.recycle()
+            }
+            view.render(running.copy(freeFlightLandControl = FreeFlightLandControl.RETURN_TO_CRUISE))
+            assertThat(panel.visibility).isEqualTo(View.GONE)
+            tracks[1].performClick()
+            assertThat(selected).containsExactly(2)
+        }
+    }
+
+    @Test
     fun `native corner control previews cover day night small viewport and large text`() {
         val output = File("build/reports/flight-hud-preview").apply { mkdirs() }
         val previousPause = ShadowChoreographer.isPaused()

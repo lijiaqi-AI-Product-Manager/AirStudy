@@ -12,8 +12,11 @@ import com.projectfocus.app.MainActivity
 import com.projectfocus.app.R
 import com.projectfocus.feature.booking.seat.SeatSceneChoice
 import com.projectfocus.feature.booking.seat.SeatSceneChoices
+import com.projectfocus.feature.home.map.MapPhase
+import com.projectfocus.feature.home.map.SourceMapHostView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.collect
@@ -28,6 +31,7 @@ class FreeFlightPreparationController(
     val coordinator = FreeFlightPreparationCoordinator(actions, scope)
     private val root = FrameLayout(activity).apply { id = R.id.pf_ff_root;isClickable = true;isFocusable = true }
     private var heading: FreeFlightHeadingSurface? = null
+    private var headingMapJob: Job? = null
     private var seats: FreeFlightSeatSurface? = null
     private var ready: FreeFlightReadySurface? = null
     private var previous = FreeFlightPreparationStep.IDLE
@@ -88,6 +92,7 @@ class FreeFlightPreparationController(
         val current = FreeFlightNightPolicy.isNight(activity)
         if (current == night || destroyed) return
         night = current
+        heading?.applyNight(night)
         if (previous == FreeFlightPreparationStep.READY) ready?.applyNight(night)
         else if (previous == FreeFlightPreparationStep.SEAT) { seats?.release();root.removeAllViews();seats = null;showSeat(coordinator.state.value, animate = false) }
     }
@@ -167,8 +172,12 @@ class FreeFlightPreparationController(
     }
 
     private fun showHeading(state: FreeFlightPreparationUiState) {
-        clearViews();attach();heading = FreeFlightHeadingSurface(activity, state.heading, actions.rulerFeedback).also { surface ->
-            root.addView(surface, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
+        clearViews();attach();heading = FreeFlightHeadingSurface(activity, state.heading, actions.rulerFeedback, night).also { surface ->
+            root.addView(surface, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+            activity.findViewById<SourceMapHostView>(R.id.sourceMap)?.let { map ->
+                surface.showMapWhenLoaded(map.state.value.phase == MapPhase.LOADED)
+                headingMapJob = scope.launch { map.state.collect { surface.showMapWhenLoaded(it.phase == MapPhase.LOADED) } }
+            }
             surface.ruler.onHeadingChanged = coordinator::headingChanged
             surface.cancel.setOnClickListener { coordinator.dismiss(FreeFlightPreparationDismissal.HEADING_CANCEL) }
             surface.next.setOnClickListener { coordinator.continueToSeat() };surface.enter()
@@ -188,7 +197,9 @@ class FreeFlightPreparationController(
     }
 
     private fun clearViews() {
-        heading?.ruler?.onHeadingChanged = null;heading?.animate()?.cancel();ready?.animate()?.cancel();seats?.release()
+        headingMapJob?.cancel()
+        headingMapJob = null
+        heading?.ruler?.onHeadingChanged = null;ready?.animate()?.cancel();seats?.release()
         root.removeAllViews();heading = null;seats = null;ready = null
     }
 
