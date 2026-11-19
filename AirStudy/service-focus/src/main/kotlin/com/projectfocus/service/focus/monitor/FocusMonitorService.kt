@@ -210,7 +210,9 @@ class FocusMonitorService : Service() {
         if (rulesJob?.isActive == true) return
         rulesJob = serviceScope.launch {
             runCatching {
-                blockedAppDao.observeAll().collect { entities ->
+                combine(blockedAppDao.observeAll(), settings.observe(PrefKey.ShieldedPackages)) { rows, packages ->
+                    rows to packages
+                }.collect { (entities, packages) ->
 
                     //   这确实是一条 N+1，但 N = 分类数（≤ 20），且只在变更时跑一次。
                     //   更优解是把 JOIN 写进 DAO 的 @Query 返回一个投影 data class，
@@ -226,7 +228,7 @@ class FocusMonitorService : Service() {
                         )
                     }
 
-                    val rules = ruleAssembler.assemble(rows)
+                    val rules = ruleAssembler.assemble(rows, packages)
                     enforcer.configure(
                         selfPackage = packageName,
                         rules = effectiveRules(rules),
@@ -256,11 +258,13 @@ class FocusMonitorService : Service() {
                 combine(
                     settings.observe(PrefKey.ActiveSessionCategoryId),
                     settings.observe(PrefKey.SessionPaused),
-                ) { categoryId, paused -> categoryId to paused }.collect { (categoryId, paused) ->
+                    settings.observe(PrefKey.BlacklistEnabled),
+                ) { categoryId, paused, enabled -> Triple(categoryId, paused, enabled) }
+                    .collect { (categoryId, paused, enabled) ->
                     val inSession = categoryId != NO_SESSION
 
                     //   这是对的：会话结束后用户随便用手机不该被拦。
-                    enforcer.enabled = inSession
+                    enforcer.enabled = inSession && enabled
                     enforcer.paused = paused
                     Timber.d("会话状态：inSession=%s (categoryId=%d), paused=%s", inSession, categoryId, paused)
                     refreshNotification()

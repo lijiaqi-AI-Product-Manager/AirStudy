@@ -42,7 +42,7 @@ class BlockRuleAssembler @Inject constructor(
 
 
 
-    fun assemble(rows: List<BlockedRow>): List<BlockRule> {
+    fun assemble(rows: List<BlockedRow>, shieldedPackages: Set<String> = emptySet()): List<BlockRule> {
 
 
         //   合并后 1 次。表越大差距越明显（用户可能勾了 50 个）。
@@ -92,6 +92,15 @@ class BlockRuleAssembler @Inject constructor(
             )
         }
 
+        if (shieldedPackages.isNotEmpty()) {
+            val configured = rows.asSequence().filter { it.type == "APP" }.map { it.packageName }.toSet()
+            val protectedPackages = DeviceShieldProtection.protectedPackages(context)
+            (shieldedPackages - configured).forEach { packageName ->
+                if (!DeviceShieldProtection.isProtected(packageName, protectedPackages)) {
+                    packageRules += BlockRule(type = RuleType.PACKAGE, pattern = packageName)
+                }
+            }
+        }
         return packageRules + categoryRules
     }
 

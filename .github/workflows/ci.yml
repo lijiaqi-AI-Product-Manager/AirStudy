@@ -67,6 +67,7 @@ jobs:
           --tests 'com.projectfocus.app.route.RecordBrowserFlowTest'
           --tests 'com.projectfocus.app.route.StatisticsDateFlowTest'
           --tests 'com.projectfocus.app.auth.*'
+          --tests 'com.projectfocus.app.shield.*'
           --stacktrace
       - name: Verify flight records
         run: >-
@@ -108,4 +109,5 @@ jobs:
             AirStudy/**/build/reports/freeflight-home/
             AirStudy/**/build/reports/ui-arrival/
             AirStudy/**/build/reports/ui-account/
+            AirStudy/**/build/reports/ui-shield-apps/
           retention-days: 7

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="pref_shield_manage">Blocked apps</string>
+    <string name="pref_shield_manage_desc">Choose apps to block during flights</string>
+    <string name="pref_shield_count">%1$d</string>
+</resources>

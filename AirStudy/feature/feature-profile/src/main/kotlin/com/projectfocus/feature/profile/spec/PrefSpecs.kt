@@ -98,6 +98,12 @@ object PrefSpecs {
                     subtitleRes = R.string.pref_blacklist_desc,
                 ),
                 PrefItemSpec(
+                    key = PrefKey.ShieldedPackages,
+                    titleRes = R.string.pref_shield_manage,
+                    subtitleRes = R.string.pref_shield_manage_desc,
+                    control = PrefControl.Chevron,
+                ),
+                PrefItemSpec(
                     key = PrefKey.MaterialAlpha,
                     titleRes = R.string.pref_material_alpha,
                     subtitleRes = R.string.pref_material_alpha_desc,

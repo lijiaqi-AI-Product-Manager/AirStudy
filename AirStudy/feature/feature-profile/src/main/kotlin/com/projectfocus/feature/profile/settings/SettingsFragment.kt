@@ -434,6 +434,7 @@ class SettingsFragment : Fragment() {
     private fun openDetail(item: PrefItemSpec) {
         when (item.key) {
             is PrefKey.RouteColor -> openRouteColor()
+            is PrefKey.ShieldedPackages -> findNavController().navigate(R.id.actionSettingsToShieldApps)
             is PrefKey.TtsLang1, is PrefKey.TtsLang2 -> openLanguagePicker(item.key)
             else -> Timber.w("没有为 %s 配置二级页", item.key.id)
         }
@@ -561,6 +562,7 @@ class SettingsFragment : Fragment() {
 
     /** 带箭头的行右侧显示的"当前值" */
     private fun currentValueText(item: PrefItemSpec): String = when (val key = item.key) {
+        is PrefKey.ShieldedPackages -> getString(R.string.pref_shield_count, viewModel.valueOf(key).size)
         is PrefKey.RouteColor -> String.format(
             java.util.Locale.ROOT, "#%06X", 0xFFFFFF and viewModel.valueOf(key),
         )

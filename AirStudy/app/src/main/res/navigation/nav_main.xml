@@ -148,7 +148,14 @@
     <fragment
         android:id="@+id/settingsFragment"
         android:name="com.projectfocus.feature.profile.settings.SettingsFragment"
-        android:label="@string/pref_title" />
+        android:label="@string/pref_title">
+        <action android:id="@id/actionSettingsToShieldApps" app:destination="@id/shieldAppsFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/shieldAppsFragment"
+        android:name="com.projectfocus.app.shield.ShieldAppsFragment"
+        android:label="@string/pref_shield_manage" />
 
 
 

@@ -13,11 +13,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
+import java.io.IOException
 
 
 
@@ -60,6 +64,7 @@ import timber.log.Timber
 
 
 class SettingsRepository(private val store: DataStore<Preferences>) {
+    private val writes = Mutex()
 
     // ==================================================================
     // 读
@@ -147,6 +152,18 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
 
 
 
+    suspend fun setShieldedPackage(packageName: String, shielded: Boolean): Set<String> {
+        require(packageName.isNotBlank())
+        return writeOnStorageContext {
+            val key = PrefKey.ShieldedPackages
+            val updated = store.edit { prefs ->
+                val current = readFrom(prefs, key)
+                put(prefs, key, if (shielded) current + packageName else current - packageName)
+            }
+            readFrom(updated, key)
+        }
+    }
+
     suspend fun writeAll(pairs: List<Pair<PrefKey<*>, Any?>>) {
         if (pairs.isEmpty()) return
         writeOnStorageContext {
@@ -177,9 +194,21 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
         }
     }
 
-    private suspend fun writeOnStorageContext(block: suspend () -> Unit) = coroutineScope {
-        // Submit before yielding so rapid edits retain their invocation order.
-        async(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) { block() }.await()
+    private suspend fun <T> writeOnStorageContext(block: suspend () -> T): T = coroutineScope {
+        // Enter the write queue in call order and finish storage without the caller's dispatcher.
+        async(Dispatchers.IO, start = CoroutineStart.UNDISPATCHED) {
+            writes.withLock {
+                // Preference edits are idempotent. Keep later edits queued if file replacement needs a retry.
+                repeat(2) { attempt ->
+                    try {
+                        return@withLock block()
+                    } catch (_: IOException) {
+                        delay(40L * (attempt + 1))
+                    }
+                }
+                block()
+            }
+        }.await()
     }
 
     // ==================================================================
@@ -258,6 +287,7 @@ class SettingsRepository(private val store: DataStore<Preferences>) {
             is PrefKey.PushPlanReminder -> prefs[k as Preferences.Key<Boolean>] = value as Boolean
             is PrefKey.DeveloperMode -> prefs[k as Preferences.Key<Boolean>] = value as Boolean
             is PrefKey.ShowWsLatency -> prefs[k as Preferences.Key<Boolean>] = value as Boolean
+            is PrefKey.ShieldedPackages,
             is PrefKey.RecentAirportIds -> prefs[k as Preferences.Key<Set<String>>] = value as Set<String>
         }
     }

@@ -65,8 +65,11 @@ class OrdinaryFlightPreparationController(
         scope.launch {
             combine(activity.settingsRepository.observe(PrefKey.BlacklistEnabled),
                 activity.settingsRepository.observe(PrefKey.SelectedCategoryId),
-                activity.blockedApps.observeAll()) { enabled, category, rows ->
-                enabled to rows.filter { it.categoryId == category && it.type == "APP" }.map { it.packageName }.distinct().size
+                activity.blockedApps.observeAll(),
+                activity.settingsRepository.observe(PrefKey.ShieldedPackages),
+            ) { enabled, category, rows, packages ->
+                val sceneApps = rows.filter { it.categoryId == category && it.type == "APP" }.map { it.packageName }
+                enabled to (packages + sceneApps).size
             }.collect { (enabled, count) ->
                 blockingEnabled = enabled; blockedAppCount = count
                 boarding?.updateBlocking(enabled, count)

@@ -45,12 +45,17 @@ class FreeFlightShielding @Inject constructor(
         val rules = AtomicReference<Rules?>()
         val rulesJob = scope.launch {
             try {
-                combine(blocked.observeAll(), settings.observe(PrefKey.BlacklistEnabled)) { rows, enabled -> rows to enabled }
-                    .collect { (all, enabled) ->
+                combine(
+                    blocked.observeAll(),
+                    settings.observe(PrefKey.BlacklistEnabled),
+                    settings.observe(PrefKey.ShieldedPackages),
+                    ::Triple,
+                ).collect { (all, enabled, packages) ->
                         val target = registry.resolve(initial.key.sessionId, initial.key.driverId) ?: return@collect
                         val selected = target.archive.shieldingCategoryId?.let { id -> all.filter { it.categoryId == id } } ?: all
                         val labels = categories.getAll().associate { it.id to it.name }
-                        rules.set(Rules(enabled, assembler.assemble(selected.map { BlockedRow(it.type, it.packageName, labels[it.categoryId]) })))
+                        val rows = selected.map { BlockedRow(it.type, it.packageName, labels[it.categoryId]) }
+                        rules.set(Rules(enabled, assembler.assemble(rows, packages)))
                     }
             } catch (cancel: CancellationException) { throw cancel }
             catch (error: Exception) { rules.set(null); registry.shield(initial.key, FreeFlightShieldState.RULES_FAILED, error.message) }

@@ -1,6 +1,8 @@
 package com.projectfocus.core.datastore
 
+import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
+import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CoroutineDispatcher
@@ -27,6 +29,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
+import java.io.IOException
 
 
 
@@ -68,6 +71,51 @@ class SettingsRepositoryTest {
     // ==================================================================
     // 基础读写
     // ==================================================================
+
+    @Test
+    fun concurrentShieldEditsPreserveOtherSelections() = runBlocking {
+        assertThat(repo.read(PrefKey.ShieldedPackages)).isEmpty()
+        repo.setShieldedPackage("example.reader", true)
+        val add = launch(Dispatchers.IO) { repo.setShieldedPackage("example.social", true) }
+        val remove = launch(Dispatchers.IO) { repo.setShieldedPackage("example.reader", false) }
+        add.join()
+        remove.join()
+        assertThat(repo.read(PrefKey.ShieldedPackages)).containsExactly("example.social")
+        repo.setShieldedPackage("example.social", true)
+        assertThat(repo.read(PrefKey.ShieldedPackages)).containsExactly("example.social")
+        assertThat(repo.read(PrefKey.BlacklistEnabled)).isTrue()
+    }
+
+    @Test
+    fun repeatingAnAlreadyCommittedShieldEditKeepsOneEntry() = runBlocking {
+        var attempts = 0
+        val interrupted = object : DataStore<Preferences> by store {
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+                val saved = store.updateData(transform)
+                if (++attempts == 1) throw IOException("Temporary write acknowledgement failure")
+                return saved
+            }
+        }
+        val retried = SettingsRepository(interrupted)
+        assertThat(retried.setShieldedPackage("example.reader", true)).containsExactly("example.reader")
+        assertThat(repo.read(PrefKey.ShieldedPackages)).containsExactly("example.reader")
+        assertThat(attempts).isEqualTo(2)
+    }
+
+    @Test
+    fun repeatedStorageFailureStopsAndSurfacesTheError() = runBlocking {
+        var attempts = 0
+        val unavailable = object : DataStore<Preferences> by store {
+            override suspend fun updateData(transform: suspend (Preferences) -> Preferences): Preferences {
+                attempts++
+                throw IOException("Storage unavailable")
+            }
+        }
+        val failure = runCatching { SettingsRepository(unavailable).write(PrefKey.PushWeeklyReport, false) }
+        assertThat(failure.exceptionOrNull()).isInstanceOf(IOException::class.java)
+        assertThat(attempts).isEqualTo(3)
+        assertThat(repo.read(PrefKey.PushWeeklyReport)).isTrue()
+    }
 
     @Test
     fun `未写入时读到默认值`() = runBlocking {

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <LinearLayout
+        android:id="@+id/shield_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/pref_shield_manage_desc"
+            android:textColor="@color/sky_ink"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/summary"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:accessibilityLiveRegion="polite"
+            android:text="@string/shield_apps_subtitle"
+            android:textColor="@color/sky_ink_secondary"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/permission_notice"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="@color/sky_ink_secondary"
+            android:textSize="14sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/recover"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:minHeight="48dp"
+            android:gravity="center"
+            android:padding="8dp"
+            android:focusable="true"
+            android:clickable="true"
+            android:textColor="@color/sky_primary"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <EditText
+        android:id="@+id/search"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:minHeight="50dp"
+        android:paddingHorizontal="16dp"
+        android:paddingVertical="10dp"
+        android:hint="@string/shield_apps_search"
+        android:inputType="text"
+        android:imeOptions="actionDone"
+        android:singleLine="true"
+        android:textColor="@color/sky_ink"
+        android:textColorHint="@color/sky_ink_secondary"
+        android:textSize="16sp" />
+
+    <ProgressBar
+        android:id="@+id/progress"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="20dp"
+        android:indeterminateTint="@color/sky_primary"
+        android:importantForAccessibility="no"
+        android:visibility="gone" />
+
+    <TextView
+        android:id="@+id/empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="14dp"
+        android:gravity="center"
+        android:accessibilityLiveRegion="polite"
+        android:textColor="@color/sky_ink_secondary"
+        android:textSize="14sp" />
+</LinearLayout>

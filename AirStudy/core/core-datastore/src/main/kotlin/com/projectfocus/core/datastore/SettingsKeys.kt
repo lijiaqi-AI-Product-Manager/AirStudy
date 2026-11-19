@@ -58,6 +58,11 @@ sealed class PrefKey<T>(
         "pf_blacklist_enabled", true, listOf("isBlacklistEnabled"))
 
 
+    data object ShieldedPackages : PrefKey<Set<String>>(
+        id = "PrefKey.ShieldedPackages",
+        "pf_shielded_packages", emptySet(),
+    )
+
     data object SelectedCategoryId : PrefKey<Long>(
         id = "PrefKey.SelectedCategoryId",
         "pf_selected_category_id", -1L, emptyList())
@@ -305,7 +310,7 @@ sealed class PrefKey<T>(
 
         val ALL: List<PrefKey<*>> by lazy {
             arrayListOf(
-                BlacklistEnabled, SelectedCategoryId, ThemeMode, MaterialAlpha,
+                BlacklistEnabled, ShieldedPackages, SelectedCategoryId, ThemeMode, MaterialAlpha,
                 CountUpFlight, CruiseZoom, RouteColor, ScreenOrientation,
                 GlassEnabled, GlassBlurRadius, GlassRefractionHeight, GlassRefractionOffset,
                 GlassDispersion, GlassLiquid, GlassTintAlphaDay, GlassTintAlphaNight,

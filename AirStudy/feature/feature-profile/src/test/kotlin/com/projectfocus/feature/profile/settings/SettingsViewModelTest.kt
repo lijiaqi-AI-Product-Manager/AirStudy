@@ -261,19 +261,23 @@ class SettingsViewModelTest {
             .map { @Suppress("UNCHECKED_CAST") (it as PrefKey<Boolean>) }
         assertThat(booleans).isNotEmpty()
 
-        booleans.forEach { key ->
-            vm.set(key, !key.default)
-        }
-        // Independent writes may reach DataStore in a different order.
-        // Require every persisted value and its actual ViewModel value to settle.
-        awaitReal {
-            booleans.all { repo.read(it) == !it.default } &&
-                booleans.all { vm.valueOf(it) == !it.default }
-        }
-
-        booleans.forEach { key ->
-            assertWithMessage("persisted %s", key.id).that(repo.read(key)).isEqualTo(!key.default)
-            assertWithMessage("rendered %s", key.id).that(vm.valueOf(key)).isEqualTo(!key.default)
+        repeat(4) { attempt ->
+            val expected = booleans.map { if (attempt % 2 == 0) !it.default else it.default }
+            booleans.zip(expected).forEach { (key, value) -> vm.set(key, value) }
+            var persisted = emptyList<Boolean>()
+            var displayed = emptyList<Boolean>()
+            try {
+                awaitReal {
+                    persisted = repo.readAll(booleans)
+                    displayed = booleans.map(vm::valueOf)
+                    persisted == expected && displayed == expected
+                }
+            } catch (error: AssertionError) {
+                val keys = booleans.map { it.id }
+                throw AssertionError("Write batch $attempt. Expected: ${keys.zip(expected)}. " +
+                    "Stored: ${keys.zip(persisted)}. Interface: ${keys.zip(displayed)}. " +
+                    "Feedback: ${vm.message.value}.", error)
+            }
         }
     }
 

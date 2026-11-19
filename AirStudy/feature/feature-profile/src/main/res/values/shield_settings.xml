@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item type="id" name="actionSettingsToShieldApps" />
+    <string name="pref_shield_manage">屏蔽应用名单</string>
+    <string name="pref_shield_manage_desc">选择飞行期间要屏蔽的应用</string>
+    <string name="pref_shield_count">%1$d 个</string>
+</resources>
