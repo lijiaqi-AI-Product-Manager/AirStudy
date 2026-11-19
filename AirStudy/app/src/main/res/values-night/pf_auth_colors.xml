@@ -1,18 +1,18 @@
-<?xml version='1.0' encoding='utf-8'?>
-<resources><color name="pf_auth_background">#ff121212</color>
-    <color name="pf_auth_btn_back_bg">#ff333333</color>
-    <color name="pf_auth_btn_back_tint">#e6ffffff</color>
-    <color name="pf_auth_btn_entry_secondary_bg">#ffffffff</color>
-    <color name="pf_auth_btn_entry_secondary_text">#ff000000</color>
-    <color name="pf_auth_btn_solid_bg">#ffffffff</color>
-    <color name="pf_auth_btn_solid_text">#ff000000</color>
-    <color name="pf_auth_cursor">#ffffffff</color>
-    <color name="pf_auth_input_bg">#ff1e1e1e</color>
-    <color name="pf_auth_input_border">#ff3a3a3a</color>
-    <color name="pf_auth_input_hint">#80ffffff</color>
-    <color name="pf_auth_input_text">#ffffffff</color>
-    <color name="pf_auth_text_copyright">#ff666666</color>
-    <color name="pf_auth_text_primary">#ffffffff</color>
-    <color name="pf_auth_text_secondary">#80ffffff</color>
-    <color name="pf_auth_brand_classic">#ff317af7</color>
+<?xml version="1.0" encoding="utf-8"?>
+<resources><color name="pf_auth_background">@color/sky_canvas</color>
+    <color name="pf_auth_btn_back_bg">@color/sky_card_solid</color>
+    <color name="pf_auth_btn_back_tint">@color/sky_ink</color>
+    <color name="pf_auth_btn_entry_secondary_bg">@color/sky_card_solid</color>
+    <color name="pf_auth_btn_entry_secondary_text">@color/sky_ink</color>
+    <color name="pf_auth_btn_solid_bg">#2263D4</color>
+    <color name="pf_auth_btn_solid_text">#FFFFFF</color>
+    <color name="pf_auth_cursor">@color/sky_primary</color>
+    <color name="pf_auth_input_bg">@color/sky_card_solid</color>
+    <color name="pf_auth_input_border">@color/sky_divider</color>
+    <color name="pf_auth_input_hint">@color/sky_ink_secondary</color>
+    <color name="pf_auth_input_text">@color/sky_ink</color>
+    <color name="pf_auth_text_copyright">@color/sky_ink_secondary</color>
+    <color name="pf_auth_text_primary">@color/sky_ink</color>
+    <color name="pf_auth_text_secondary">@color/sky_ink_secondary</color>
+    <color name="pf_auth_brand_classic">@color/sky_primary</color>
     </resources>

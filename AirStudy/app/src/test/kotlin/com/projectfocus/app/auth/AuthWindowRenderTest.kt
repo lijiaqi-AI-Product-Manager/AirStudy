@@ -400,7 +400,8 @@ class AuthWindowRenderTest {
             assertTrue(details, row.getBoolean("foregroundMatchesSource"))
             assertTrue("Source label ink must paint inside its actual line region: $details", row.getInt("labelSourceInkPixels") > 8)
             if (row.getBoolean("needsWhiteIcon")) {
-                assertEquals(details, "#FF07C160", row.getString("resolvedBackground"))
+                assertEquals(details, "#FF057D47", row.getString("resolvedBackground"))
+                assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(Color.WHITE, 0xff057d47.toInt()) >= 4.5)
                 assertTrue("White path pixels must be on rendered green, not a blank white frame: $details", row.getInt("iconWhitePixels") > 8)
                 assertTrue("Actual icon region needs non-background pixels: $details", row.getInt("iconNonBackgroundPixels") > 8)
             }

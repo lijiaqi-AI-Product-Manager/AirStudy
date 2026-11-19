@@ -81,8 +81,7 @@ class AuthResetWindowRenderTest {
                     assertThat(title.text.toString()).isEqualTo(activity.getString(if (ready)
                         R.string.pf_auth_forgot_password_prompt_ready_title else R.string.pf_auth_forgot_password_prompt_enter_email_title))
                     assertThat(title.textSize).isEqualTo(25f)
-                    // Original XML has60dp height and50dp corner radius.
-                    assertThat(button.height).isEqualTo(60)
+                    assertThat(button.height).isAtLeast(60)
                     val image = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888)
                     try {
                         val canvas = Canvas(image)

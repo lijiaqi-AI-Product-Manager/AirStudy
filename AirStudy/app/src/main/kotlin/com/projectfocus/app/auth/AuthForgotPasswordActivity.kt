@@ -88,6 +88,13 @@ class AuthForgotPasswordActivity : AppCompatActivity() {
 
     private fun animateHeader() {
         for (view in listOf(headerTitle, headerSubtitle)) {
+            view.animate().cancel()
+            if (!android.animation.ValueAnimator.areAnimatorsEnabled()) {
+                view.alpha = 1f
+                view.scaleX = 1f
+                view.scaleY = 1f
+                continue
+            }
             view.alpha = 0.6f
             view.scaleX = 0.98f
             view.scaleY = 0.98f

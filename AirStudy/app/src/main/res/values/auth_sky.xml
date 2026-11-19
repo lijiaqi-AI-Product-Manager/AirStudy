@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auth_sky_brand" translatable="false">AirStudy</string>
+    <string name="auth_sky_agreement_toggle">同意用户协议和隐私政策</string>
+</resources>

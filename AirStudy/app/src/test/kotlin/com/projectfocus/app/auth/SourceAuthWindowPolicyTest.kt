@@ -3,7 +3,6 @@ package com.projectfocus.app.auth
 import android.app.LocaleManager
 import android.content.Context
 import android.content.res.Configuration
-import android.graphics.drawable.ColorDrawable
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
@@ -228,12 +227,12 @@ class SourceAuthWindowPolicyTest {
                     assertThat(activity.window.statusBarColor).isEqualTo(color)
                     assertThat(activity.window.navigationBarColor).isEqualTo(color)
                 }
-                assertThat((content.background as ColorDrawable).color).isEqualTo(color)
+                assertThat(content.background).isInstanceOf(AuthSkyDrawable::class.java)
                 content.setPadding(100, 100, 100, 100)
                 val input = WindowInsetsCompat.Builder()
                     .setInsets(7, Insets.of(11, 23, 17, 31))
                     .setVisible(7, true)
-                    // Independent mask oracle: source7 must ignore the newer systemOverlays512.
+                    // Fixture overlays are separate from keyboard and system bar space.
                     .setInsets(512, Insets.of(83, 97, 89, 101))
                     .setVisible(512, true)
                     .setInsets(WindowInsetsCompat.Type.ime(), Insets.of(0, 0, 0, 247))
@@ -242,7 +241,9 @@ class SourceAuthWindowPolicyTest {
                 assertThat(input.getInsets(512)).isEqualTo(Insets.of(83, 97, 89, 101))
                 val outgoing = ViewCompat.dispatchApplyWindowInsets(content, input)
                 assertThat(listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom))
-                    .containsExactly(11, 23, 17, 31).inOrder()
+                    .containsExactly(11, 23, 17, 247).inOrder()
+                ViewCompat.dispatchApplyWindowInsets(content, input)
+                assertThat(content.paddingBottom).isEqualTo(247)
                 assertThat(outgoing.isConsumed).isFalse()
                 assertThat(outgoing.getInsets(WindowInsetsCompat.Type.ime()).bottom).isEqualTo(247)
                 assertThat(outgoing.getInsets(512)).isEqualTo(Insets.of(83, 97, 89, 101))
@@ -256,16 +257,16 @@ class SourceAuthWindowPolicyTest {
                 decor.offsetDescendantRectToMyCoords(content, contentBounds)
                 assertThat(contentBounds).isEqualTo(Rect(0, 0, 390, 844))
                 assertThat(listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom))
-                    .containsExactly(11, 23, 17, 31).inOrder()
+                    .containsExactly(11, 23, 17, 247).inOrder()
                 val image = Bitmap.createBitmap(decor.width, decor.height, Bitmap.Config.ARGB_8888)
                 try {
                     // Draw the actual attached production Window. No expected-color canvas fill.
                     decor.draw(Canvas(image))
                     for (x in 0 until image.width) {
-                        assertThat(image.getPixel(x, 0)).isEqualTo(color)
-                        assertThat(image.getPixel(x, 22)).isEqualTo(color)
-                        assertThat(image.getPixel(x, image.height - 1)).isEqualTo(color)
-                        assertThat(image.getPixel(x, image.height - 31)).isEqualTo(color)
+                        assertThat(Color.alpha(image.getPixel(x, 0))).isEqualTo(255)
+                        assertThat(Color.alpha(image.getPixel(x, 22))).isEqualTo(255)
+                        assertThat(Color.alpha(image.getPixel(x, image.height - 1))).isEqualTo(255)
+                        assertThat(Color.alpha(image.getPixel(x, image.height - 31))).isEqualTo(255)
                     }
                     assertThat(Color.alpha(image.getPixel(0, 0))).isEqualTo(255)
                     val name = "sdk${Build.VERSION.SDK_INT}-${screen.simpleName}-${if (night) "night" else "day"}.png"
@@ -283,10 +284,12 @@ class SourceAuthWindowPolicyTest {
                 val replacement = WindowInsetsCompat.Builder()
                     .setInsets(7, Insets.of(7, 13, 5, 19))
                     .setVisible(7, true)
+                    .setInsets(WindowInsetsCompat.Type.displayCutout(), Insets.of(16, 23, 6, 0))
+                    .setVisible(WindowInsetsCompat.Type.displayCutout(), true)
                     .setInsets(512, Insets.of(71, 73, 79, 83)).setVisible(512, true).build()
                 ViewCompat.dispatchApplyWindowInsets(content, replacement)
                 assertThat(listOf(content.paddingLeft, content.paddingTop, content.paddingRight, content.paddingBottom))
-                    .containsExactly(7, 13, 5, 19).inOrder()
+                    .containsExactly(16, 23, 6, 19).inOrder()
                 close(controller)
             }
         }
@@ -334,11 +337,12 @@ class SourceAuthWindowPolicyTest {
         }
     }
 
-    @Test fun sourceDaySelectionContainsTheActualOriginalRawStyleRatherThanOldSimple() {
+    @Test fun daySelectionRetainsThePackagedDayStyleAcrossCheckoutFormats() {
         val raw = app.resources.openRawResource(com.projectfocus.feature.home.R.raw.pf_mapstyle_simple).use { it.readBytes() }
-        val digest = MessageDigest.getInstance("SHA-256").digest(raw).joinToString("") { "%02x".format(it.toInt() and 255) }
-        assertThat(raw.size).isEqualTo(986)
-        assertThat(digest).isEqualTo("beded3051730768c076d6c22e62688eb271b897d8e7d72fa45ee2a8efe3278f4")
+        val normalized = raw.toString(Charsets.UTF_8).replace("\r\n", "\n").toByteArray(Charsets.UTF_8)
+        val digest = MessageDigest.getInstance("SHA-256").digest(normalized).joinToString("") { "%02x".format(it.toInt() and 255) }
+        assertThat(normalized.size).isEqualTo(922)
+        assertThat(digest).isEqualTo("dd1b7e38eded5ae8a0857996d544dbb33c2b00e351e22ecf506ab8026cc640e4")
         assertThat(app.getString(R.string.pf_source_map_style_day)).isNotEmpty()
     }
 

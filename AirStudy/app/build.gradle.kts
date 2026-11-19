@@ -91,6 +91,7 @@ dependencies {
     implementation(project(":core:core-network"))
     implementation(project(":core:core-datastore"))
     implementation(project(":core:core-ui"))
+    implementation("com.google.android.flexbox:flexbox:3.0.0")
     implementation(project(":core:core-analytics"))
 
     implementation(project(":feature:feature-onboarding"))

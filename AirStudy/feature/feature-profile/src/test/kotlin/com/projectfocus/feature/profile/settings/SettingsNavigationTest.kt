@@ -40,8 +40,6 @@ import kotlinx.coroutines.android.asCoroutineDispatcher
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -87,8 +85,12 @@ class SettingsNavigationTest {
     fun `three choices remain equal readable and clickable at 320dp`() {
         hilt.inject()
         ActivityScenario.launch(SettingsNavigationHostActivity::class.java).use { scenario ->
+            scenario.onActivity { activity -> showSettings(activity) }
+            awaitRenderedPreference(scenario, PrefKey.ScreenOrientation, "segment initialization") {
+                it == Orientation.AUTO
+            }
             scenario.onActivity { activity ->
-                val settings = showSettings(activity)
+                val settings = activity.host.childFragmentManager.primaryNavigationFragment as SettingsFragment
                 val root = settings.requireView()
                 measureAt320dp(root)
                 val row = root.descendants().filterIsInstance<PrefRowView>()
@@ -274,7 +276,14 @@ class SettingsNavigationTest {
         try {
             return runBlocking {
                 val saved = async(Dispatchers.IO) {
-                    repository.observe(key).onEach { lastStored.set(it) }.first { matches(it) }
+                    // Re-read the saved value independently of the observer used by the screen.
+                    // A single subscription can miss the commit across DataStore initialization.
+                    var stored = repository.read(key).also(lastStored::set)
+                    while (!matches(stored)) {
+                        delay(20)
+                        stored = repository.read(key).also(lastStored::set)
+                    }
+                    stored
                 }
                 withTimeout(5_000) {
                     var modelMatches = false
@@ -293,7 +302,8 @@ class SettingsNavigationTest {
                                 .single { it.tag == key }
                             val seek = row.descendants().filterIsInstance<SeekBar>().singleOrNull()
                             lastUi = "model=$value, progress=${seek?.progress}/${seek?.max}, " +
-                                "tag=${seek?.tag}, size=${seek?.width}x${seek?.height}, enabled=${seek?.isEnabled}"
+                                "tag=${seek?.tag}, size=${seek?.width}x${seek?.height}, enabled=${seek?.isEnabled}, " +
+                                "message=${model.message.value}"
                         }
                         if (!saved.isCompleted || !modelMatches) delay(10)
                     }

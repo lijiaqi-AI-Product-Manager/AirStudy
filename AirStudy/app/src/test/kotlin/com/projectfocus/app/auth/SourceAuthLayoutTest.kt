@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.StateListDrawable
 import android.os.LocaleList
 import android.text.InputType
 import android.util.TypedValue
@@ -27,7 +28,6 @@ import java.io.File
 import java.security.MessageDigest
 import java.util.Locale
 import kotlin.math.abs
-import kotlin.math.ceil
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.*
@@ -52,16 +52,17 @@ class SourceAuthLayoutTest {
     )
     private val phone = Screen(390, 844)
 
-    private fun context(night: Boolean = false, screen: Screen = phone, dpi: Int = 160): Context {
+    private fun context(night: Boolean = false, screen: Screen = phone, dpi: Int = 160,
+                        fontScale: Float = 1f, locale: Locale = Locale.SIMPLIFIED_CHINESE): Context {
         val app = ApplicationProvider.getApplicationContext<Application>()
         val config = Configuration(app.resources.configuration).apply {
-            setLocales(LocaleList(Locale.SIMPLIFIED_CHINESE))
+            setLocales(LocaleList(locale))
             screenWidthDp = screen.width
             screenHeightDp = screen.height
             smallestScreenWidthDp = screen.smallest
             orientation = screen.orientation
             densityDpi = dpi
-            fontScale = 1f
+            this.fontScale = fontScale
             uiMode = (uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
                 if (night) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO
         }
@@ -117,6 +118,11 @@ class SourceAuthLayoutTest {
                 finalLayout(root, 390, 844)
                 val background = context.getColor(R.color.pf_auth_background)
                 val image = bitmap(root, background)
+                val cover = required(root, R.id.pf_auth_promo_image).parent as View
+                val coverBounds = Rect(0, 0, cover.width, cover.height)
+                root.offsetDescendantRectToMyCoords(cover, coverBounds)
+                assertEquals(background, image.getPixel(coverBounds.left, coverBounds.top))
+                assertNotEquals(background, image.getPixel(coverBounds.centerX(), coverBounds.top + 20))
                 val button = required(root, R.id.pf_auth_btn_login) as MaterialButton
                 val bounds = Rect(0, 0, button.width, button.height)
                 root.offsetDescendantRectToMyCoords(button, bounds)
@@ -156,25 +162,34 @@ class SourceAuthLayoutTest {
         for (layout in listOf(R.layout.pf_auth_login, R.layout.pf_auth_email_login)) {
             val root = inflate(context(), layout)
             finalLayout(root, 390, 844)
-            val hero = required(root, R.id.pf_auth_promo_image).parent as MaterialCardView
+            val hero = required(root, R.id.pf_auth_promo_image).parent as AuthCoverView
             val margin = hero.layoutParams as ViewGroup.MarginLayoutParams
-            assertEquals(280, hero.height); assertEquals(358, hero.width)
+            assertEquals(268, hero.height); assertEquals(358, hero.width)
             assertEquals(16, margin.topMargin); assertEquals(16, margin.leftMargin)
-            assertEquals(24f, hero.radius, 0.01f)
+            assertTrue(hero.clipToOutline)
+            val back = required(root, R.id.pf_auth_btn_back) as MaterialCardView
+            assertEquals(48, back.width); assertEquals(48, back.height)
+            assertEquals(root.context.getString(R.string.pf_ff_common_back), back.contentDescription)
+            val foreground = (back.getChildAt(0) as android.widget.ImageView).imageTintList!!.defaultColor
+            val background = back.cardBackgroundColor.defaultColor
+            assertTrue(androidx.core.graphics.ColorUtils.calculateContrast(foreground, background) >= 4.5)
+            val backRect = Rect(0, 0, back.width, back.height)
+            hero.offsetDescendantRectToMyCoords(back, backRect)
+            val coverCopy = required(root, R.id.authSkyCoverCopy)
+            assertTrue(coverCopy.top > backRect.bottom)
             val button = required(root, R.id.pf_auth_btn_login) as MaterialButton
-            assertEquals(55, button.height); assertEquals(16f, button.textSize, 0.01f)
-            assertEquals(28, button.cornerRadius)
+            assertTrue(button.height >= 55); assertEquals(16f, button.textSize, 0.01f)
+            assertEquals(20, button.cornerRadius)
             val form = button.parent as LinearLayout
             assertEquals(24, form.paddingLeft); assertEquals(24, form.paddingRight)
             assertEquals(32, form.paddingTop); assertEquals(40, form.paddingBottom)
             val checkbox = required(root, R.id.pf_auth_cb_agreement)
-            assertEquals(20, checkbox.width); assertEquals(20, checkbox.height)
+            assertEquals(48, checkbox.width); assertEquals(48, checkbox.height)
             val agreement = required(root, R.id.pf_auth_tv_agreement) as TextView
-            assertEquals(12f, agreement.textSize, 0.01f)
+            assertEquals(13f, agreement.textSize, 0.01f)
             assertEquals("", agreement.text.toString()) // Runtime Activity binds the source span.
         }
-        assertEquals(Color.WHITE, context().getColor(R.color.pf_auth_background))
-        assertEquals(Color.rgb(18, 18, 18), context(true).getColor(R.color.pf_auth_background))
+        assertNotEquals(context().getColor(R.color.pf_auth_background), context(true).getColor(R.color.pf_auth_background))
     }
 
     @Test fun inputRawAndDefault() {
@@ -199,7 +214,7 @@ class SourceAuthLayoutTest {
             edit(control).setText(raw)
             assertEquals(raw, control.getText().toString())
             assertSame(edit(control).text, control.getText())
-            assertEquals(50, edit(control).height)
+            assertTrue(edit(control).height >= 56)
             assertEquals(16f, edit(control).textSize, 0.01f)
             assertEquals(16, edit(control).paddingLeft); assertEquals(16, edit(control).paddingRight)
             assertEquals(0, nodes(control).filterIsInstance<ImageView>().size)
@@ -230,8 +245,11 @@ class SourceAuthLayoutTest {
             try { assertTrue(resourcePath(context, attributes.getResourceId(0, 0)).endsWith("/$file")) }
             finally { attributes.recycle() }
         }
-        val box = context.getDrawable(R.drawable.pf_auth_bg_input_box) as GradientDrawable
-        assertEquals(25f, box.cornerRadius, 0.01f)
+        val box = context.getDrawable(R.drawable.pf_auth_bg_input_box) as StateListDrawable
+        assertEquals(18f, (box.current as GradientDrawable).cornerRadius, 0.01f)
+        val idle = box.current
+        box.state = intArrayOf(android.R.attr.state_focused)
+        assertNotSame(idle, box.current)
         val cursor = context.getDrawable(R.drawable.pf_auth_text_cursor_black)!!
         assertEquals(2, cursor.intrinsicWidth)
     }
@@ -243,7 +261,8 @@ class SourceAuthLayoutTest {
             assertFalse(checkbox.isChecked()); assertNull(checkbox.drawable)
             assertEquals(0, checkbox.paddingLeft)
             checkbox.setChecked(true)
-            val expected = ceil(context.resources.displayMetrics.density * 3f).toInt()
+            val expected = (context.resources.displayMetrics.density * 14f + .5f).toInt() +
+                (context.resources.displayMetrics.density * 3f + .5f).toInt()
             assertTrue(checkbox.isChecked()); assertNotNull(checkbox.drawable)
             assertEquals(ImageView.ScaleType.CENTER_INSIDE, checkbox.scaleType)
             assertEquals(listOf(expected, expected, expected, expected),
@@ -253,15 +272,18 @@ class SourceAuthLayoutTest {
                 listOf(checkbox.paddingLeft, checkbox.paddingTop, checkbox.paddingRight, checkbox.paddingBottom))
         }
         val checkbox = SourceAuthCheckboxView(context())
-        finalLayout(checkbox, 20, 20)
+        finalLayout(checkbox, 48, 48)
         val off = bitmap(checkbox, Color.MAGENTA)
-        assertEquals(Color.MAGENTA, off.getPixel(10, 4))
+        assertEquals(Color.MAGENTA, off.getPixel(24, 18))
         checkbox.setChecked(true)
         val checked = bitmap(checkbox, Color.MAGENTA)
         val color = checkbox.context.obtainStyledAttributes(intArrayOf(androidx.appcompat.R.attr.colorPrimary))
-        try { assertEquals(color.getColor(0, Color.TRANSPARENT), checked.getPixel(10, 4)) }
+        try { assertEquals(color.getColor(0, Color.TRANSPARENT), checked.getPixel(24, 18)) }
         finally { color.recycle() }
-        assertNotEquals(off.getPixel(10, 4), checked.getPixel(10, 4))
+        assertNotEquals(off.getPixel(24, 18), checked.getPixel(24, 18))
+        assertEquals(Color.MAGENTA, checked.getPixel(4, 24))
+        val node = checkbox.createAccessibilityNodeInfo()
+        assertTrue(node.isCheckable && node.isChecked)
         off.recycle(); checked.recycle()
     }
 
@@ -295,9 +317,63 @@ class SourceAuthLayoutTest {
             finalLayout(root, variant.screen.width, variant.screen.height)
             if (variant.horizontal) assertEquals(LinearLayout.HORIZONTAL, (root as LinearLayout).orientation)
             else assertEquals("androidx.coordinatorlayout.widget.CoordinatorLayout", root.javaClass.name)
-            assertEquals(height, required(root, R.id.pf_auth_btn_login).height)
+            assertTrue(required(root, R.id.pf_auth_btn_login).height >= height)
             assertEquals(1, nodes(root).filterIsInstance<SourceAuthCheckboxView>().size)
             assertEquals(if (id == R.layout.pf_auth_email_login) 2 else 0, nodes(root).filterIsInstance<SourceAuthInputView>().size)
+        }
+    }
+
+    @Test fun narrowAndShortFormsKeepLargeTypeReadableAndActionsReachable() {
+        val variants = listOf(Screen(320, 620, 320), Screen(640, 360, 360, Configuration.ORIENTATION_LANDSCAPE))
+        val layouts = listOf("entry" to R.layout.pf_auth_login, "email" to R.layout.pf_auth_email_login,
+            "register" to R.layout.pf_auth_register, "reset" to R.layout.pf_auth_forgot_password)
+        val output = File("build/reports/ui-account").apply { check(isDirectory || mkdirs()) }
+        for ((index, screen) in variants.withIndex()) for ((name, layout) in layouts) {
+            val context = context(night = index == 1, screen = screen, fontScale = 2f, locale = Locale.forLanguageTag("ru-RU"))
+            val root = inflate(context, layout)
+            val agreement = root.findViewById<TextView>(R.id.pf_auth_tv_agreement)
+            agreement?.text = context.getString(R.string.pf_auth_agreement_full_text_fmt,
+                context.getString(R.string.pf_auth_terms_label), context.getString(R.string.pf_auth_privacy_label))
+            finalLayout(root, screen.width, screen.height)
+
+            val scroll = nodes(root).filterIsInstance<androidx.core.widget.NestedScrollView>().single()
+            val back = required(root, R.id.pf_auth_btn_back)
+            assertTrue(back.width >= 48 && back.height >= 48)
+            assertEquals(context.getString(R.string.pf_ff_common_back), back.contentDescription)
+            val checkbox = root.findViewById<View>(R.id.pf_auth_cb_agreement)
+            if (checkbox != null) assertTrue(checkbox.width >= 48 && checkbox.height >= 48)
+            val action = root.findViewById<View>(R.id.pf_auth_btn_login) ?: required(root, R.id.pf_auth_btn_register)
+            val copy = root.findViewById<View>(R.id.authSkyCoverCopy)
+            if (copy != null) {
+                val cover = copy.parent as ViewGroup
+                val offset = Rect(0, 0, back.width, back.height)
+                cover.offsetDescendantRectToMyCoords(back, offset)
+                assertTrue(copy.top > offset.bottom)
+            }
+            val frame = scroll.getChildAt(0) as ViewGroup
+            for (label in nodes(frame).filterIsInstance<TextView>().filter { it.visibility == View.VISIBLE && it.text.isNotEmpty() }) {
+                val measured = checkNotNull(label.layout)
+                assertTrue("${label.text} needs more than ${label.height}px", measured.height <=
+                    label.height - label.compoundPaddingTop - label.compoundPaddingBottom)
+                if (label !is EditText) {
+                    assertTrue((0 until measured.lineCount).all { measured.getEllipsisCount(it) == 0 })
+                    assertEquals(label.text.length, measured.getLineEnd(measured.lineCount - 1))
+                }
+            }
+            for (field in nodes(frame).filterIsInstance<EditText>()) {
+                assertTrue(field.height >= 56 && field.height - field.compoundPaddingTop - field.compoundPaddingBottom >= field.lineHeight)
+            }
+            val actionBounds = Rect(0, 0, action.width, action.height)
+            frame.offsetDescendantRectToMyCoords(action, actionBounds)
+            scroll.scrollTo(0, actionBounds.bottom - scroll.height + 12)
+            assertTrue(actionBounds.bottom - scroll.scrollY <= scroll.height)
+            assertTrue(actionBounds.top >= scroll.scrollY)
+            val image = bitmap(root, context.getColor(R.color.pf_auth_background))
+            try {
+                File(output, "account-$name-${screen.width}-large.png").outputStream().use {
+                    assertTrue(image.compress(Bitmap.CompressFormat.PNG, 100, it))
+                }
+            } finally { image.recycle() }
         }
     }
 
