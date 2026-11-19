@@ -9,6 +9,7 @@ import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
@@ -59,9 +60,13 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         view.findViewById<View>(R.id.statsBack).setOnClickListener {
             findNavController().popBackStack()
         }
-        view.findViewById<View>(R.id.statsShare).setOnClickListener {
-            shareStats()
+        view.findViewById<View>(R.id.statsShare).apply {
+            isEnabled = false
+            setOnClickListener { shareStats() }
         }
+        viewLifecycleOwner.lifecycle.addObserver(LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME || event == Lifecycle.Event.ON_PAUSE) updateShareAvailability()
+        })
         fun dateControlsActive() = this.view === view && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)
         view.findViewById<StatsDateControls>(R.id.statsDateControls).apply {
             onPeriodRequested = action@{ period ->
@@ -197,7 +202,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         root.findViewById<StatsInsightsPanel>(R.id.statsInsightsPanel).bind(state,viewModel.zone)
         root.findViewById<StatsHighlightsPanel>(R.id.statsHighlightsPanel).bind(state,viewModel.zone)
         root.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel).bind(state)
-        root.findViewById<View>(R.id.statsShare).isEnabled = !state.isLoading && current
+        updateShareAvailability()
 
         root.findViewById<StatsCareerPanel>(R.id.statsCareerPanel).bind(state)
     }
@@ -242,9 +247,22 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     }
 
     private fun shareStats() {
-        val state=lastState ?: return
-        if(state.isLoading || state.account?.isCurrent()!=true)return
+        val state = lastState ?: return
+        if (!canShare(state)) {
+            updateShareAvailability()
+            return
+        }
         sharePreview?.open(state)
+    }
+
+    private fun updateShareAvailability() {
+        view?.findViewById<View>(R.id.statsShare)?.isEnabled = lastState?.let(::canShare) == true
+    }
+
+    private fun canShare(state: StatsUiState): Boolean {
+        val account = state.account ?: return false
+        return view != null && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+            !state.isLoading && !state.readFailed && viewModel.isCurrentQuery(account, state.queryRevision)
     }
 
     private fun openDateRange() {

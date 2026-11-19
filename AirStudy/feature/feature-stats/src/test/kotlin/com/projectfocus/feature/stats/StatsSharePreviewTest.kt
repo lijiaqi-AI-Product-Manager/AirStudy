@@ -209,6 +209,7 @@ class StatsSharePreviewTest {
 
     @Test fun anUnrelatedRefreshWhileTheAccountLeaseIsBusyStillOpensTheSameStatistics() {
         val captured=current;val identity=TokenStore.snapshot()
+        content.layout(0, 0, 0, 0)
         val entered=CountDownLatch(1);val release=CountDownLatch(1)
         val held=FutureTask {
             runBlocking { TokenStore.withSnapshotLease(identity) {
@@ -223,6 +224,9 @@ class StatsSharePreviewTest {
             assertNotSame(captured,current)
             assertEquals(StatsShareSpec.from(activity,captured,shareZone),StatsShareSpec.from(activity,current,shareZone))
         } finally { release.countDown();held.get(8,TimeUnit.SECONDS) }
+        shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32))
+        assertFalse(visible)
+        layout()
         shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(32))
         pump { visible };layout()
         assertEquals(StatsShareSpec.from(activity,captured,shareZone).summary,image().contentDescription.toString())

@@ -444,6 +444,9 @@ class StatisticsDateFlowTest {
 
     @Test fun changingAccountsDismissesTheOldStatisticsImageAndDisablesItsCapturedAction() {
         launch();await { !model().state.value.isLoading }
+        scenario!!.moveToState(Lifecycle.State.STARTED)
+        assertFalse(activity.findViewById<View>(StatsR.id.statsShare).isEnabled)
+        scenario!!.moveToState(Lifecycle.State.RESUMED)
         openStatisticsArtwork()
         val oldAction=activity.findViewById<View>(StatsR.id.statsSharePreviewAction)
         val before=File(activity.cacheDir,"stats-share").listFiles().orEmpty().map { it.name }.toSet()
@@ -455,8 +458,8 @@ class StatisticsDateFlowTest {
     }
 
     private fun openStatisticsArtwork(): ImageView {
+        await { activity.findViewById<View>(StatsR.id.statsShare)?.let { it.isShown && it.isEnabled } == true }
         val share=activity.findViewById<View>(StatsR.id.statsShare)
-        assertTrue(share.isShown && share.isEnabled)
         share.performClick()
         await { activity.findViewById<ImageView>(StatsR.id.statsSharePreviewImage)!=null }
         shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300));layout()

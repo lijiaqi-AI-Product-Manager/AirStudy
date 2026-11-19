@@ -62,33 +62,39 @@ internal class StatsSharePreview(
     private var revision=0L
 
     fun open(state: StatsUiState) {
+        val account = state.account ?: return
+        val identity = TokenStore.snapshot()
+        if (state.isLoading || state.readFailed || currentState() !== state || !account.matches(identity) ||
+            !isCurrentQuery(account, state.queryRevision) || !canShow()) return
         close()
-        val account=state.account ?: return
-        val identity=TokenStore.snapshot()
-        if(state.isLoading || currentState()!==state || !account.matches(identity) || !isCurrentQuery(account,state.queryRevision) || !canShow())return
-        val capturedSpec=StatsShareSpec.from(context,state,zone)
-        val attempt=++revision
-        opening=scope.launch {
-            while(isActive && revision==attempt && canShow()) {
-                try {
-                    when(TokenStore.tryWithSnapshotLease(identity) {
-                        val latest=currentState()
-                        if(revision==attempt && latest!=null && !latest.isLoading && latest.account==account &&
-                            latest.queryRevision==state.queryRevision && isCurrentQuery(account,state.queryRevision) &&
-                            StatsShareSpec.from(context,latest,zone)==capturedSpec && canShow() && content.width>0 && content.height>0)
-                            show(latest,account,identity)
+        val attempt = revision
+        opening = scope.launch {
+            try {
+                while (isActive && revision == attempt && canShow() && isCurrentQuery(account, state.queryRevision)) {
+                    when (val result = TokenStore.tryWithSnapshotLease(identity) {
+                        val latest = currentState()
+                        if (latest?.readFailed == true) return@tryWithSnapshotLease true
+                        if (latest == null || latest.isLoading || !content.isLaidOut || content.width <= 0 || content.height <= 0) {
+                            return@tryWithSnapshotLease false
+                        }
+                        if (latest.account == account && latest.queryRevision == state.queryRevision &&
+                            isCurrentQuery(account, state.queryRevision) && canShow()) {
+                            show(latest, account, identity)
+                        }
+                        true
                     }) {
-                        is TokenStore.ImmediateSnapshot.Value -> return@launch
+                        is TokenStore.ImmediateSnapshot.Value -> if (result.value) return@launch
                         TokenStore.ImmediateSnapshot.Obsolete -> return@launch
-                        TokenStore.ImmediateSnapshot.Busy -> delay(16)
+                        TokenStore.ImmediateSnapshot.Busy -> Unit
                     }
-                } catch(error: CancellationException) { throw error }
-                catch(error: Exception) {
-                    android.util.Log.w("AirStudyShare","Unable to open statistics artwork preview",error)
-                    close()
-                    if(account.isCurrent() && canShow())message(R.string.stats_share_artwork_failed)
-                    return@launch
+                    delay(16)
                 }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Exception) {
+                android.util.Log.w("AirStudyShare", "Unable to open statistics artwork preview", error)
+                close()
+                if (account.isCurrent() && canShow()) message(R.string.stats_share_artwork_failed)
             }
         }
     }
