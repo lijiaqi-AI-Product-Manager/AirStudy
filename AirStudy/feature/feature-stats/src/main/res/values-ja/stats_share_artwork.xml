@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_share_artwork_title">集中の成果</string>
+    <string name="stats_share_artwork_subtitle">集中フライト · 成果記録</string>
+    <string name="stats_share_artwork_action">成果をシェア</string>
+    <string name="stats_share_artwork_preview">集中の成果のプレビュー</string>
+    <string name="stats_share_artwork_close">プレビューを閉じる</string>
+    <string name="stats_share_artwork_focus">合計集中時間</string>
+    <string name="stats_share_artwork_all_scenes">すべてのシーン</string>
+    <string name="stats_share_artwork_tagline">大切なことに、時間を</string>
+    <string name="stats_share_artwork_failed">画像を作成できません。もう一度お試しください。</string>
+    <string name="stats_share_artwork_no_target">画像を受信できるアプリがありません。</string>
+    <string name="stats_share_artwork_current_period">選択中の期間</string>
+    <string name="stats_share_artwork_preparing">準備中…</string>
+    <string name="stats_total_flights">フライト回数</string>
+    <string name="stats_total_distance">総距離</string>
+    <string name="stats_airports">訪れた空港</string>
+    <string name="stats_countries">訪れた国・地域</string>
+    <string name="stats_unit_flights">回</string>
+    <string name="stats_unit_airports">か所</string>
+    <string name="stats_unit_countries">か国・地域</string>
+    <string name="stats_focus_minutes_only">%1$d 分</string>
+    <plurals name="stats_share_unit_flights">
+        <item quantity="other">回</item>
+    </plurals>
+    <plurals name="stats_share_unit_airports">
+        <item quantity="other">か所</item>
+    </plurals>
+    <plurals name="stats_share_unit_countries">
+        <item quantity="other">か国・地域</item>
+    </plurals>
+</resources>

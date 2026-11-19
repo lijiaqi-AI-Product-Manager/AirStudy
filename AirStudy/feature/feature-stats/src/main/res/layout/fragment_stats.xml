@@ -38,6 +38,7 @@
             android:textSize="30sp" />
 
         <TextView
+            android:id="@+id/statsPageTitle"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="@dimen/space_xs"

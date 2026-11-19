@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_share_artwork_title">Итоги концентрации</string>
+    <string name="stats_share_artwork_subtitle">Фокус-полёт · Итоги занятий</string>
+    <string name="stats_share_artwork_action">Поделиться итогами</string>
+    <string name="stats_share_artwork_preview">Предпросмотр итогов</string>
+    <string name="stats_share_artwork_close">Закрыть предпросмотр</string>
+    <string name="stats_share_artwork_focus">Общее время концентрации</string>
+    <string name="stats_share_artwork_all_scenes">Все занятия</string>
+    <string name="stats_share_artwork_tagline">Время для того, что вы любите</string>
+    <string name="stats_share_artwork_failed">Не удалось создать изображение. Повторите попытку.</string>
+    <string name="stats_share_artwork_no_target">Нет приложения для получения изображения.</string>
+    <string name="stats_share_artwork_current_period">Выбранный период</string>
+    <string name="stats_share_artwork_preparing">Подготовка…</string>
+    <string name="stats_total_flights">Рейсы</string>
+    <string name="stats_total_distance">Расстояние</string>
+    <string name="stats_airports">Посещённые аэропорты</string>
+    <string name="stats_countries">Страны и регионы</string>
+    <string name="stats_unit_flights">рейсов</string>
+    <string name="stats_unit_airports">аэропортов</string>
+    <string name="stats_unit_countries">регионов</string>
+    <string name="stats_focus_minutes_only">%1$d мин</string>
+    <plurals name="stats_share_unit_flights">
+        <item quantity="one">рейс</item>
+        <item quantity="few">рейса</item>
+        <item quantity="many">рейсов</item>
+        <item quantity="other">рейса</item>
+    </plurals>
+    <plurals name="stats_share_unit_airports">
+        <item quantity="one">аэропорт</item>
+        <item quantity="few">аэропорта</item>
+        <item quantity="many">аэропортов</item>
+        <item quantity="other">аэропорта</item>
+    </plurals>
+    <plurals name="stats_share_unit_countries">
+        <item quantity="one">регион</item>
+        <item quantity="few">региона</item>
+        <item quantity="many">регионов</item>
+        <item quantity="other">региона</item>
+    </plurals>
+</resources>

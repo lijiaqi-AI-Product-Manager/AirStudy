@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_share_artwork_title">专注成果</string>
+    <string name="stats_share_artwork_subtitle">专注飞行 · 成果记录</string>
+    <string name="stats_share_artwork_action">分享成果图</string>
+    <string name="stats_share_artwork_preview">专注成果分享预览</string>
+    <string name="stats_share_artwork_close">关闭预览</string>
+    <string name="stats_share_artwork_focus">总专注时长</string>
+    <string name="stats_share_artwork_all_scenes">全部场景</string>
+    <string name="stats_share_artwork_tagline">把时间留给热爱</string>
+    <string name="stats_share_artwork_failed">暂时无法生成成果图，请重试</string>
+    <string name="stats_share_artwork_no_target">还没有可接收图片的应用</string>
+    <string name="stats_share_artwork_current_period">当前所选范围</string>
+    <string name="stats_share_artwork_preparing">正在生成…</string>
+    <item name="statsShareArtworkFocus" type="id" />
+    <item name="statsSharePreview" type="id" />
+    <item name="statsSharePreviewImage" type="id" />
+    <item name="statsSharePreviewAction" type="id" />
+    <item name="statsSharePreviewClose" type="id" />
+    <plurals name="stats_share_unit_flights">
+        <item quantity="other">次</item>
+    </plurals>
+    <plurals name="stats_share_unit_airports">
+        <item quantity="other">个</item>
+    </plurals>
+    <plurals name="stats_share_unit_countries">
+        <item quantity="other">个</item>
+    </plurals>
+</resources>

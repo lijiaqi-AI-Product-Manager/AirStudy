@@ -2,6 +2,9 @@ package com.projectfocus.app.route
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.drawable.BitmapDrawable
+import android.widget.ImageView
 import android.graphics.Canvas
 import android.net.Uri
 import android.os.Handler
@@ -67,9 +70,10 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDialog
 import com.projectfocus.feature.stats.R as StatsR
+import com.projectfocus.feature.record.R as RecordR
 
 @RunWith(RobolectricTestRunner::class)
-@Config(application=ProjectFocusApp::class,sdk=[34],qualifiers="zh-rCN-w432dp-h936dp-mdpi")
+@Config(application=ProjectFocusApp::class,sdk=[34],qualifiers="zh-rCN-w432dp-h936dp-mdpi",shadows=[StatisticsShareProviderHostShadow::class])
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class StatisticsDateFlowTest {
@@ -124,11 +128,12 @@ class StatisticsDateFlowTest {
         assertNull(model().state.value.hourHabits);assertNull(model().state.value.annualHeatmap)
         val retry=activity.findViewById<View>(StatsR.id.statsHistoryStatus)
         assertEquals(View.VISIBLE,retry.visibility)
-        activity.findViewById<View>(StatsR.id.statsShare).performClick()
-        val chooser=shadowOf(activity).nextStartedActivity
-        assertEquals(Intent.ACTION_CHOOSER,chooser.action)
-        val shared=chooser.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!.getStringExtra(Intent.EXTRA_TEXT)!!
+        val artwork=openStatisticsArtwork()
+        assertTrue(artwork.contentDescription.toString().contains("—"))
+        capture("statistics-share-actual-partial-preview")
+        val shared=shareStatisticsArtwork(artwork,"partial")
         assertTrue(shared.contains("—"));assertTrue(shared.contains("部分历史资料待恢复"))
+        activity.findViewById<View>(StatsR.id.statsSharePreviewClose)?.performClick()
         capture("statistics-historical-incomplete")
         val airport=PlannedAirport(1,"PEK","Airport","北京","CN",40.0,116.0)
         val archive=FlightRecordArchiveSnapshot(FlightRecordMode.DOWN,id,countdown=CountdownRecordArchive(id=id,focusType="SOLO",
@@ -373,6 +378,9 @@ class StatisticsDateFlowTest {
     private val wall = today.atStartOfDay(zone).plusHours(1).toInstant().toEpochMilli()
     @Before fun open() = runBlocking(Dispatchers.IO) {
         app=ApplicationProvider.getApplicationContext()
+        // Each host application owns a different temporary cache directory.
+        val strategies=ReflectionHelpers.getStaticField<MutableMap<String,Any>>(androidx.core.content.FileProvider::class.java,"sCache")
+        synchronized(strategies) { strategies.clear() }
         withTimeout(15_000) { app.awaitInitialAccountRestore(); app.awaitInitialAirportSeed() }
         cloud=RecordCloudHttpFixture(app.recordCloudMutations,app.recordCloudSync)
         TokenStore.setCancellable("statistics-route-owner-one")
@@ -396,6 +404,111 @@ class StatisticsDateFlowTest {
         "TSN","Tianjin Airport","天津","CN",39.0,117.0,at,at+300_000,25,5,99.25,status,
         null,"12A",false,false,false,null,false,at,at,ownerScope=owner,
         sceneSnapshotJson=PlannedFlightMetadataCodec.encodeScene(PlannedScene("statistics-study","","study",0,false)))
+
+    @Test fun aSelectedSceneAndDateShareTheActualVisibleArtworkAndItsFullText() {
+        launch()
+        controls().periodButtons[StatsPeriod.DAY.ordinal].performClick()
+        await { count()==expected(2) && !model().state.value.isLoading }
+        activity.findViewById<StatsScenePanel>(StatsR.id.statsScenePanel).legend.findViewWithTag<View>("阅读").performClick()
+        await { count()==expected(1) && model().state.value.selectedSceneKey.isNotEmpty() }
+        val period=controls().rangeLabel.text.toString()
+        val image=openStatisticsArtwork()
+        assertTrue(image.contentDescription.toString().contains(period))
+        assertTrue(image.contentDescription.toString().contains("阅读"))
+        val provider=activity.packageManager.resolveContentProvider("${activity.packageName}.statsfileprovider",
+            android.content.pm.PackageManager.GET_META_DATA)!!
+        assertEquals(com.projectfocus.feature.stats.StatsArtworkFileProvider::class.java.name,provider.name)
+        assertFalse(provider.exported);assertTrue(provider.grantUriPermissions)
+        assertEquals(StatsR.xml.stats_share_paths,provider.metaData.getInt("android.support.FILE_PROVIDER_PATHS"))
+        assertNotNull(activity.packageManager.resolveContentProvider("${activity.packageName}.fileprovider",0))
+        capture("statistics-share-actual-selected-preview")
+        val shared=shareStatisticsArtwork(image,"selected")
+        assertTrue(shared.contains(period));assertTrue(shared.contains("阅读"))
+    }
+
+    @Test fun theRecordStatisticsTabHasAVisibleSharingEntryAndBackClosesOnlyItsPreview() {
+        launch()
+        val host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+        host.navController.navigate(R.id.recordListFragment)
+        await { activity.findViewById<com.google.android.material.tabs.TabLayout>(RecordR.id.pf_record_page_main_tabs)?.tabCount==2 }
+        activity.findViewById<com.google.android.material.tabs.TabLayout>(RecordR.id.pf_record_page_main_tabs).getTabAt(1)!!.select()
+        await { activity.findViewById<View>(StatsR.id.statsShare)?.let { it.isShown && it.isEnabled }==true }
+        val destination=host.navController.currentDestination!!.id
+        openStatisticsArtwork()
+        capture("statistics-share-actual-embedded-preview")
+        activity.onBackPressedDispatcher.onBackPressed();idle()
+        assertNull(activity.findViewById<View>(StatsR.id.statsSharePreview))
+        assertEquals(destination,host.navController.currentDestination!!.id)
+        assertTrue(activity.findViewById<View>(StatsR.id.statsShare).isShown)
+    }
+
+    @Test fun changingAccountsDismissesTheOldStatisticsImageAndDisablesItsCapturedAction() {
+        launch();await { !model().state.value.isLoading }
+        openStatisticsArtwork()
+        val oldAction=activity.findViewById<View>(StatsR.id.statsSharePreviewAction)
+        val before=File(activity.cacheDir,"stats-share").listFiles().orEmpty().map { it.name }.toSet()
+        runBlocking(Dispatchers.IO) { TokenStore.setCancellable("statistics-artwork-next-owner") }
+        await { activity.findViewById<View>(StatsR.id.statsSharePreview)==null }
+        oldAction.performClick();idle()
+        assertNull(shadowOf(activity).nextStartedActivity)
+        assertEquals(before,File(activity.cacheDir,"stats-share").listFiles().orEmpty().map { it.name }.toSet())
+    }
+
+    private fun openStatisticsArtwork(): ImageView {
+        val share=activity.findViewById<View>(StatsR.id.statsShare)
+        assertTrue(share.isShown && share.isEnabled)
+        share.performClick()
+        await { activity.findViewById<ImageView>(StatsR.id.statsSharePreviewImage)!=null }
+        shadowOf(Looper.getMainLooper()).idleFor(java.time.Duration.ofMillis(300));layout()
+        return activity.findViewById<ImageView>(StatsR.id.statsSharePreviewImage).also {
+            assertTrue(it.width>=120 && it.height>=120)
+            assertTrue(activity.findViewById<View>(StatsR.id.statsSharePreviewAction).isEnabled)
+        }
+    }
+
+    private fun shareStatisticsArtwork(image: ImageView,name: String): String {
+        shadowOf(activity.packageManager).addResolveInfoForIntent(Intent(Intent.ACTION_SEND).setType("image/png"),
+            android.content.pm.ResolveInfo().apply {
+                isDefault=true
+                activityInfo=android.content.pm.ActivityInfo().apply {
+                    packageName="statistics.share.receiver";this.name="ReceiveImage";exported=true;enabled=true
+                    applicationInfo=android.content.pm.ApplicationInfo().apply { packageName="statistics.share.receiver";enabled=true }
+                }
+            })
+        val summary=image.contentDescription.toString()
+        val original=requireNotNull((image.drawable as BitmapDrawable).bitmap.copy(Bitmap.Config.ARGB_8888,false))
+        try {
+            activity.findViewById<View>(StatsR.id.statsSharePreviewAction).performClick()
+            var chooser: Intent?=null
+            try {
+                await { if(chooser==null)chooser=shadowOf(activity).nextStartedActivity;chooser!=null }
+            } catch(error: AssertionError) {
+                val logged=org.robolectric.shadows.ShadowLog.getLogsForTag("AirStudyShare").lastOrNull { it.throwable!=null }
+                throw AssertionError("Statistics image handoff failed; previewVisible="+
+                    (activity.findViewById<View>(StatsR.id.statsSharePreview)!=null)+", actionEnabled="+
+                    activity.findViewById<View>(StatsR.id.statsSharePreviewAction)?.isEnabled+", query="+
+                    model().state.value.queryRevision+", toast="+org.robolectric.shadows.ShadowToast.getTextOfLatestToast(),
+                    logged?.throwable ?: error)
+            }
+            assertEquals(Intent.ACTION_CHOOSER,chooser!!.action)
+            @Suppress("DEPRECATION")
+            val send=chooser!!.getParcelableExtra<Intent>(Intent.EXTRA_INTENT)!!
+            @Suppress("DEPRECATION")
+            val uri=send.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)!!
+            assertEquals("image/png",send.type)
+            assertEquals(summary,send.getStringExtra(Intent.EXTRA_TEXT))
+            assertTrue(send.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION!=0)
+            assertTrue(chooser!!.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION!=0)
+            assertEquals(uri,send.clipData!!.getItemAt(0).uri)
+            val bytes=activity.contentResolver.openInputStream(uri)!!.use { it.readBytes() }
+            val exported=BitmapFactory.decodeByteArray(bytes,0,bytes.size)
+            try { assertTrue(original.sameAs(exported)) } finally { exported.recycle() }
+            File("build/reports/statistics/statistics-share-actual-$name-export.png").apply { parentFile!!.mkdirs();writeBytes(bytes) }
+            activity.contentResolver.delete(uri,null,null)
+            return summary
+        } finally { original.recycle() }
+    }
+
     private fun launch() {
         scenario=ActivityScenario.launch(MainActivity::class.java)
         scenario!!.onActivity { actual ->
@@ -660,4 +773,11 @@ class StatisticsDateFlowTest {
         assertTrue(controls().periodButtons[StatsPeriod.DAY.ordinal].isSelected)
         assertEquals("2 次",panel().totalText.text.toString())
     }
+}
+
+@org.robolectric.annotation.Implements(className="androidx.core.content.FileProvider\$SimplePathStrategy",isInAndroidSdk=false)
+class StatisticsShareProviderHostShadow {
+    @org.robolectric.annotation.Implementation
+    protected fun belongsToRoot(path: String,root: String)=
+        path.replace(File.separatorChar,'/').trimEnd('/').startsWith(root.replace(File.separatorChar,'/').trimEnd('/')+"/")
 }

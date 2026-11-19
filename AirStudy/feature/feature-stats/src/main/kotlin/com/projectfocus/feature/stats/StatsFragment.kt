@@ -1,10 +1,11 @@
 package com.projectfocus.feature.stats
 
-import android.content.Intent
 import android.os.Bundle
 import android.widget.TextView
 import android.widget.Toast
 import android.view.View
+import android.view.ViewGroup
+import androidx.activity.OnBackPressedCallback
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -31,6 +32,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     private var lastState: StatsUiState? = null
     private var renderRevision = 0L
     private var dateDialog: StatsDateRangeDialog? = null
+    private var sharePreview: StatsSharePreview? = null
 
     @Inject
     lateinit var airportDao: AirportDao
@@ -38,9 +40,20 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         StatsSkyPresentation.page(view)
+        val shareBack=object: OnBackPressedCallback(false) {
+            override fun handleOnBackPressed() { sharePreview?.close() }
+        }
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner,shareBack)
+        sharePreview=StatsSharePreview(requireContext(),view as ViewGroup,viewLifecycleOwner.lifecycleScope,viewModel.zone,
+            currentState={ lastState },
+            isCurrentQuery=viewModel::isCurrentQuery,
+            canShow={ this.view===view && view.isShown && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) },
+            visibilityChanged={ shareBack.isEnabled=it })
 
         if (arguments?.getBoolean(ARG_EMBEDDED) == true) {
-            (view.findViewById<View>(R.id.statsBack).parent as? View)?.visibility = View.GONE
+            view.findViewById<View>(R.id.statsBack).visibility=View.GONE
+            view.findViewById<TextView>(R.id.statsPageTitle).setText(R.string.stats_share_artwork_title)
+            view.findViewById<View>(R.id.statsTitleBar).apply { setPadding(paddingLeft,0,paddingRight,0) }
         }
 
         view.findViewById<View>(R.id.statsBack).setOnClickListener {
@@ -166,6 +179,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
             childFragmentManager.fragments.filterIsInstance<CountryAirportsDialogFragment>().forEach { it.dismissAllowingStateLoss() }
         }
         lastState = state
+        sharePreview?.keepFor(state)
         val root = view ?: return
         val current = state.account?.isCurrent() == true
         root.findViewById<TextView>(R.id.statsHistoryStatus).apply {
@@ -228,33 +242,9 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     }
 
     private fun shareStats() {
-        val state = lastState ?: return
-        if (state.isLoading || state.account?.isCurrent() != true) return
-        val partial = !state.coverage.periodFlights || !state.coverage.periodFocus || !state.coverage.periodDistance || !state.coverage.periodTravel
-        val dash = getString(R.string.stats_placeholder)
-        val summary = if (partial) getString(R.string.stats_share_partial,
-            state.flights.toString().takeIf { state.coverage.periodFlights } ?: dash,
-            java.lang.String.format(java.util.Locale.getDefault(),"%.1f",state.distanceKm).takeIf { state.coverage.periodDistance } ?: dash,
-            state.focusMinutes.toString().takeIf { state.coverage.periodFocus } ?: dash,
-            state.airports.toString().takeIf { state.coverage.periodTravel } ?: dash,
-            state.countries.toString().takeIf { state.coverage.periodTravel } ?: dash) else getString(
-            R.string.stats_share_text,
-            state.flights,
-            state.distanceKm,
-            state.focusMinutes,
-            state.airports,
-            state.countries,
-        )
-        val dated = state.dates?.let {
-            getString(R.string.stats_share_period, StatsDateLabels.label(requireContext(), it, viewModel.zone, state.nowWallMs, false), summary)
-        } ?: summary
-        val text = if (state.selectedSceneKey.isEmpty()) dated else
-            StatsSceneLabels(requireContext()).label(state.selectedSceneKey) + "\n" + dated
-        val send = Intent(Intent.ACTION_SEND).apply {
-            type = "text/plain"
-            putExtra(Intent.EXTRA_TEXT, text)
-        }
-        withAccount(state.account, { lastState === state }) { startActivity(Intent.createChooser(send, getString(R.string.stats_share_title))) }
+        val state=lastState ?: return
+        if(state.isLoading || state.account?.isCurrent()!=true)return
+        sharePreview?.open(state)
     }
 
     private fun openDateRange() {
@@ -295,6 +285,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
     }
 
     override fun onResume() { super.onResume(); viewModel.refreshNow(); requestCloudHistory() }
+    override fun onPause() { sharePreview?.close();super.onPause() }
     override fun onStop() {
         closeDateRange()
         view?.findViewById<StatsHeatmapPanel>(R.id.statsHeatmapPanel)?.chart?.clearSelection()
@@ -302,6 +293,7 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         super.onStop()
     }
     override fun onDestroyView() {
+        sharePreview?.close();sharePreview=null
         closeDateRange()
         view?.findViewById<StatsDateControls>(R.id.statsDateControls)?.apply { onPeriodRequested = null; onMoveRequested = null; onClearSceneRequested = null }
         view?.findViewById<StatsScenePanel>(R.id.statsScenePanel)?.apply { onSceneRequested = null; interactionAllowed = { false } }

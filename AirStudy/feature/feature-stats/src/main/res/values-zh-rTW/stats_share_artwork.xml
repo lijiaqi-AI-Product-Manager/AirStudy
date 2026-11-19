@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_share_artwork_title">專注成果</string>
+    <string name="stats_share_artwork_subtitle">專注飛行 · 成果記錄</string>
+    <string name="stats_share_artwork_action">分享成果圖</string>
+    <string name="stats_share_artwork_preview">專注成果分享預覽</string>
+    <string name="stats_share_artwork_close">關閉預覽</string>
+    <string name="stats_share_artwork_focus">總專注時長</string>
+    <string name="stats_share_artwork_all_scenes">全部場景</string>
+    <string name="stats_share_artwork_tagline">把時間留給熱愛</string>
+    <string name="stats_share_artwork_failed">暫時無法產生成果圖，請重試</string>
+    <string name="stats_share_artwork_no_target">尚未有可接收圖片的應用程式</string>
+    <string name="stats_share_artwork_current_period">目前所選範圍</string>
+    <string name="stats_share_artwork_preparing">正在產生…</string>
+    <string name="stats_total_flights">總飛行</string>
+    <string name="stats_total_distance">總里程</string>
+    <string name="stats_airports">到訪機場</string>
+    <string name="stats_countries">到訪國家/地區</string>
+    <string name="stats_unit_flights">次</string>
+    <string name="stats_unit_airports">個</string>
+    <string name="stats_unit_countries">個</string>
+    <string name="stats_focus_minutes_only">%1$d 分鐘</string>
+    <plurals name="stats_share_unit_flights">
+        <item quantity="other">次</item>
+    </plurals>
+    <plurals name="stats_share_unit_airports">
+        <item quantity="other">個</item>
+    </plurals>
+    <plurals name="stats_share_unit_countries">
+        <item quantity="other">個</item>
+    </plurals>
+</resources>

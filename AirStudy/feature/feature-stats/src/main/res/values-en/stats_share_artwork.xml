@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="stats_share_artwork_title">Focus achievements</string>
+    <string name="stats_share_artwork_subtitle">FOCUS JOURNAL</string>
+    <string name="stats_share_artwork_action">Share achievements</string>
+    <string name="stats_share_artwork_preview">Focus achievement preview</string>
+    <string name="stats_share_artwork_close">Close preview</string>
+    <string name="stats_share_artwork_focus">Total focus time</string>
+    <string name="stats_share_artwork_all_scenes">All scenes</string>
+    <string name="stats_share_artwork_tagline">Make time for what you love</string>
+    <string name="stats_share_artwork_failed">Unable to create the image. Please try again.</string>
+    <string name="stats_share_artwork_no_target">No app can receive this image.</string>
+    <string name="stats_share_artwork_current_period">Selected period</string>
+    <string name="stats_share_artwork_preparing">Preparing…</string>
+    <string name="stats_total_flights">Flights</string>
+    <string name="stats_total_distance">Distance</string>
+    <string name="stats_airports">Airports visited</string>
+    <string name="stats_countries">Countries / regions</string>
+    <string name="stats_unit_flights">flights</string>
+    <string name="stats_unit_airports">airports</string>
+    <string name="stats_unit_countries">regions</string>
+    <string name="stats_focus_minutes_only">%1$d min</string>
+    <plurals name="stats_share_unit_flights">
+        <item quantity="one">flight</item>
+        <item quantity="other">flights</item>
+    </plurals>
+    <plurals name="stats_share_unit_airports">
+        <item quantity="one">airport</item>
+        <item quantity="other">airports</item>
+    </plurals>
+    <plurals name="stats_share_unit_countries">
+        <item quantity="one">region</item>
+        <item quantity="other">regions</item>
+    </plurals>
+</resources>
