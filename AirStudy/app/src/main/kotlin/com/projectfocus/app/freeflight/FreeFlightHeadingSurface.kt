@@ -28,6 +28,7 @@ internal class FreeFlightHeadingSurface(
     initial: Float,
     feedback: FreeFlightRulerFeedback,
     night: Boolean,
+    private val reserveMapSpace: Boolean,
 ) : FrameLayout(context) {
     val ruler = FreeFlightHeadingRulerView(context).apply {
         id = R.id.pf_ff_heading_ruler
@@ -108,7 +109,11 @@ internal class FreeFlightHeadingSurface(
         val height = MeasureSpec.getSize(heightMeasureSpec) - dock.paddingTop - dock.paddingBottom
         val compact = height < context.ffDp(340f)
         val split = compact && width >= context.ffDp(500f)
-        panel.layoutParams.width = minOf(width, context.ffDp(if (split) 680f else 540f))
+        (panel.layoutParams as LayoutParams).apply {
+            this.width = minOf(width, context.ffDp(if (split) 680f else 540f))
+            gravity = if (!reserveMapSpace && height >= context.ffDp(560f)) Gravity.CENTER else
+                Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+        }
         body.orientation = if (split) LinearLayout.HORIZONTAL else LinearLayout.VERTICAL
         body.gravity = if (split) Gravity.CENTER_VERTICAL else Gravity.START
         (headingText.layoutParams as LinearLayout.LayoutParams).apply {

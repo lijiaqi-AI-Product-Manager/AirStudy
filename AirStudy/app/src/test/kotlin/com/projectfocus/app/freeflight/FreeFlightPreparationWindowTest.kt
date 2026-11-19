@@ -105,10 +105,15 @@ class FreeFlightPreparationWindowTest {
         val image = Bitmap.createBitmap(ruler.width, ruler.height, Bitmap.Config.ARGB_8888)
         ruler.draw(Canvas(image))
         assertThat(image.getPixel(ruler.width / 2, ruler.height - (125f * ruler.uiScale).toInt())).isEqualTo(0xFFFFD700.toInt())
+        val center = ruler.width / 2
+        val firstWhiteRow = (0 until 34).first { y ->
+            (center - 24..center + 24).any { x -> image.getPixel(x, y) == Color.WHITE }
+        }
+        assertThat(firstWhiteRow).isAtLeast(8)
         assertThat(ruler.performAccessibilityAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD, null)).isTrue()
         assertThat(ruler.contentDescription.toString()).isEqualTo("355°")
         assertThat(ruler.performAccessibilityAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD, null)).isTrue()
-        assertThat(actions.headings.last()).isEqualTo(0f)
+        assertThat(actions.headings.last()).isEqualTo(0)
         val now = SystemClock.uptimeMillis()
         fun event(action: Int, time: Long, x: Float) = MotionEvent.obtain(now, time, action, x, 80f, 0)
         event(MotionEvent.ACTION_DOWN, now, 250f).also { ruler.dispatchTouchEvent(it);it.recycle() }

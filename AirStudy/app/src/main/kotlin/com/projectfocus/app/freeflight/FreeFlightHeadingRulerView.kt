@@ -55,6 +55,7 @@ class FreeFlightHeadingRulerView @JvmOverloads constructor(
         color = Color.WHITE;textSize = 32f;textAlign = Paint.Align.CENTER
         runCatching { ResourcesCompat.getFont(context, CoreUiR.font.jetbrainsmono_medium) }.getOrNull()?.let { typeface = it }
     }
+    private val readout = Paint(text)
     private val gold = context.getColor(R.color.pf_ff_heading_gold)
     private val pointer = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = gold;style = Paint.Style.FILL }
     private val needle = Path()
@@ -154,7 +155,13 @@ class FreeFlightHeadingRulerView @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        val scale = uiScale * density;val cx = width / 2f;val radius = width * 1.2f;val cy = height + radius - scale * 150f
+        val scale = uiScale * density
+        val cx = width / 2f
+        val radius = width * 1.2f
+        readout.textSize = 39f * scale
+        val readoutBaseline = 8f * density - readout.ascent()
+        val needleTop = max(height - 140f * scale, readoutBaseline + 4f * density)
+        val cy = radius + needleTop - 10f * scale
         val labelSize = 32f * scale;major.strokeWidth = 4f * scale;minor.strokeWidth = 2f * scale
         val layer = canvas.saveLayer(null, null)
         for (degree in floor(heading - 50f).toInt()..ceil(heading + 50f).toInt()) {
@@ -172,7 +179,7 @@ class FreeFlightHeadingRulerView @JvmOverloads constructor(
                 text.color = if (cardinal) gold else Color.WHITE
                 text.alpha = (max(.3f, min(1f, 1f - abs(delta) / 40f)) * 255f).toInt()
                 text.textSize = labelSize * if (cardinal) 1.2f else 1f
-                canvas.drawText(label, x, y + length + labelSize + 10f, text)
+                canvas.drawText(label, x, y + length + labelSize + 10f * scale, text)
             }
             canvas.restore()
         }
@@ -182,17 +189,16 @@ class FreeFlightHeadingRulerView @JvmOverloads constructor(
             mask.shader = rightMask;canvas.drawRect(width - fade, 0f, width.toFloat(), height.toFloat(), mask);mask.shader = null
         }
         canvas.restoreToCount(layer)
-        val top = height - scale * 150f + 10f;val halfWidth = scale * 20f
+        val halfWidth = scale * 20f
         centerLine.strokeWidth = scale
-        canvas.drawLine(cx, top + halfWidth, cx, height - 12f * scale, centerLine)
+        canvas.drawLine(cx, needleTop + halfWidth, cx, height - 12f * scale, centerLine)
         needle.reset()
-        needle.moveTo(cx, top)
-        needle.lineTo(cx - halfWidth, top + halfWidth * 1.5f)
-        needle.lineTo(cx + halfWidth, top + halfWidth * 1.5f)
+        needle.moveTo(cx, needleTop)
+        needle.lineTo(cx - halfWidth, needleTop + halfWidth * 1.5f)
+        needle.lineTo(cx + halfWidth, needleTop + halfWidth * 1.5f)
         needle.close()
         canvas.drawPath(needle, pointer)
-        text.color = Color.WHITE;text.alpha = 255;text.textSize = labelSize * 1.5f
-        canvas.drawText("${normalize(heading.toInt())}\u00b0", cx, top - 20f * scale, text)
+        canvas.drawText("${normalize(heading.toInt())}\u00b0", cx, readoutBaseline, readout)
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {

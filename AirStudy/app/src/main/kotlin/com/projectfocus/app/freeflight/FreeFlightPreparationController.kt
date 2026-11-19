@@ -172,11 +172,18 @@ class FreeFlightPreparationController(
     }
 
     private fun showHeading(state: FreeFlightPreparationUiState) {
-        clearViews();attach();heading = FreeFlightHeadingSurface(activity, state.heading, actions.rulerFeedback, night).also { surface ->
+        clearViews()
+        attach()
+        val map = activity.findViewById<SourceMapHostView>(R.id.sourceMap)
+        val phase = map?.state?.value?.phase
+        val reserveMapSpace = phase != null && phase != MapPhase.MISSING_CONFIGURATION && phase != MapPhase.DESTROYED
+        heading = FreeFlightHeadingSurface(activity, state.heading, actions.rulerFeedback, night, reserveMapSpace).also { surface ->
             root.addView(surface, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-            activity.findViewById<SourceMapHostView>(R.id.sourceMap)?.let { map ->
-                surface.showMapWhenLoaded(map.state.value.phase == MapPhase.LOADED)
-                headingMapJob = scope.launch { map.state.collect { surface.showMapWhenLoaded(it.phase == MapPhase.LOADED) } }
+            if (map != null) {
+                surface.showMapWhenLoaded(phase == MapPhase.LOADED)
+                headingMapJob = scope.launch {
+                    map.state.collect { surface.showMapWhenLoaded(it.phase == MapPhase.LOADED) }
+                }
             }
             surface.ruler.onHeadingChanged = coordinator::headingChanged
             surface.cancel.setOnClickListener { coordinator.dismiss(FreeFlightPreparationDismissal.HEADING_CANCEL) }
