@@ -73,8 +73,21 @@
         <action
             android:id="@+id/action_recordList_to_boardingPass"
             app:destination="@id/boardingPassFragment" />
+
+        <action
+            android:id="@+id/action_recordList_to_details"
+            app:destination="@id/recordDetailFragment" />
     </fragment>
 
+    <fragment
+        android:id="@+id/recordDetailFragment"
+        android:name="com.projectfocus.feature.record.ui.RecordDetailFragment"
+        android:label="@string/record_detail_title">
+        <argument android:name="arg_record_id" app:argType="string" />
+        <argument android:name="arg_record_kind" app:argType="string" />
+        <argument android:name="arg_record_owner" app:argType="string" />
+        <argument android:name="arg_record_start" app:argType="long" />
+    </fragment>
 
 
 

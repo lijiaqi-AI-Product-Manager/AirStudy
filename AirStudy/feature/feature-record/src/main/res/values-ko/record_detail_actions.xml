@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="record_detail_title">비행 상세 정보</string>
+    <string name="record_detail_prepare_again">다시 준비</string>
+    <string name="record_detail_replay_unavailable">공항 정보와 현재 비행을 확인한 후 다시 시도하세요.</string>
+    <string name="record_detail_retry">다시 시도</string>
+    <string name="record_detail_scene">집중 장면 · %1$s</string>
+</resources>

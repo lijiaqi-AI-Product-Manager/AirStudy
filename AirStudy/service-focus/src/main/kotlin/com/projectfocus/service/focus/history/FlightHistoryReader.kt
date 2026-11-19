@@ -2,6 +2,7 @@ package com.projectfocus.service.focus.history
 
 import com.projectfocus.core.database.dao.HistoryReadDao
 import com.projectfocus.core.database.entity.FlightHistoryEntity
+import com.projectfocus.core.database.entity.FlightRecordSceneEntity
 import com.projectfocus.core.database.entity.FreeFlightArchiveEntity
 import com.projectfocus.core.model.flight.PlannedScene
 import com.projectfocus.core.model.flight.PlannedFlightMetadataCodec
@@ -23,9 +24,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.map
 
 data class HistoryAccount(val scope: String, val generation: Long) {
     fun isCurrent(): Boolean = TokenStore.snapshot().let {
@@ -84,6 +87,28 @@ sealed interface HistoryReadState {
 class FlightHistoryReader @Inject constructor(private val dao: HistoryReadDao) {
     private val refresh = MutableStateFlow(0L)
     fun retry() { refresh.value = refresh.value + 1L }
+
+    fun record(account: HistoryAccount, key: FlightRecordKey): Flow<RecordedFlight?> {
+        if (!account.isCurrent()) return flowOf(null)
+        val scene = dao.scene(account.scope, key.kind.name, key.id)
+        return when (key.kind) {
+            FlightRecordKind.COUNTDOWN -> combine(dao.countdown(account.scope, key.id), scene) { row, edit ->
+                row?.let { RecordedFlight.Countdown(it, edit.forStart(it.startTimeMillis)) }
+            }
+            FlightRecordKind.COUNT_UP -> combine(dao.countUp(account.scope, key.id), scene) { row, edit ->
+                row?.let {
+                    val archive = decodeHistoryArchive(it)
+                    RecordedFlight.CountUp(archive, edit.forStart(archive.startedAtWallMs), it)
+                }
+            }
+        }.map { it.takeIf { account.isCurrent() } }
+    }
+
+    private fun FlightRecordSceneEntity?.forStart(startedAt: Long): RecordedScene? =
+        this?.takeIf { it.startedAtWallMs == startedAt }?.let { row ->
+            RecordedScene(requireNotNull(PlannedFlightMetadataCodec.decodeSceneOrNull(row.sceneJson)), row.revision)
+        }
+
     val records: Flow<HistoryReadState> = combine(TokenStore.identities, refresh) { identity, _ -> identity }.flatMapLatest { identity ->
         val account = HistoryAccount(TokenStore.storageScope(identity), identity.generation)
         flow<HistoryReadState> {
@@ -93,11 +118,7 @@ class FlightHistoryReader @Inject constructor(private val dao: HistoryReadDao) {
                 dao.scenes(account.scope)) { countdowns, countUps, directory, scenes ->
                 val byKey = scenes.associateBy { FlightRecordKey(FlightRecordKind.valueOf(it.recordKind), it.recordId) }
                 fun edited(kind: FlightRecordKind, id: String, startedAt: Long): RecordedScene? =
-                    byKey[FlightRecordKey(kind, id)]?.takeIf {
-                        it.ownerScope == account.scope && it.startedAtWallMs == startedAt
-                    }?.let { row ->
-                        RecordedScene(requireNotNull(PlannedFlightMetadataCodec.decodeSceneOrNull(row.sceneJson)), row.revision)
-                    }
+                    byKey[FlightRecordKey(kind, id)]?.takeIf { it.ownerScope == account.scope }.forStart(startedAt)
                 val records: List<RecordedFlight> = countdowns.map {
                     RecordedFlight.Countdown(it, edited(FlightRecordKind.COUNTDOWN, it.id, it.startTimeMillis))
                 } + countUps.map { row ->

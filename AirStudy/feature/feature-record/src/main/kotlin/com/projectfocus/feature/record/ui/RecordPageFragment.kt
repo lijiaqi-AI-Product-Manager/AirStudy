@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.tabs.TabLayout
 import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.projectfocus.core.network.di.TokenStore
+import com.projectfocus.feature.record.detail.RecordReplaySource
 import com.projectfocus.feature.record.R
 import com.projectfocus.feature.record.list.RecordPageState
 import com.projectfocus.feature.record.list.RecordPageViewModel
@@ -108,7 +109,8 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
                 }
             }
         }, onSceneEdit = if (parentFragment is RecordScenePickerHost) ::openScene else null,
-            canEdit = { !viewModel.sceneSave.value.saving && !removalModel.state.value.saving })
+            canEdit = { !viewModel.sceneSave.value.saving && !removalModel.state.value.saving },
+            onDetails = if (parentFragment is RecordDetailsHost) ::openDetails else null)
         val list = view.findViewById<RecyclerView>(R.id.pf_record_page_flight_records_list)
         list.layoutManager = GridLayoutManager(requireContext(), maxOf(1, resources.configuration.screenWidthDp / 360))
         list.isNestedScrollingEnabled = false
@@ -250,6 +252,41 @@ class RecordPageFragment : Fragment(R.layout.pf_record_page) {
         root.findViewById<TextView>(R.id.pf_record_page_text_page_indicator).text = getString(R.string.pf_record_page_page_format, state.page)
         root.findViewById<View>(R.id.pf_record_page_btn_prev_page).isEnabled = state.ready && state.page > 1
         root.findViewById<View>(R.id.pf_record_page_btn_next_page).isEnabled = state.ready && state.page < state.pageCount
+    }
+
+    private fun openDetails(item: RecordItem) {
+        val root = view ?: return
+        val host = parentFragment as? RecordDetailsHost ?: return
+        val current = rendered?.takeIf { it.ready && item in it.items } ?: return
+        val account = current.account ?: return
+        val startedAt = item.recordedAtWallMs ?: return
+        if (!account.isCurrent() || item.cloudSummary != null) return
+        val expected = TokenStore.snapshot()
+        if (expected.token.isNullOrBlank()) {
+            openLogin(item)
+            return
+        }
+        fun stillDisplayed() = view === root && account.isCurrent() &&
+            viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+            rendered?.let { it.ready && it.account == account && item in it.items } == true
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            while (isActive && stillDisplayed()) {
+                when (TokenStore.tryWithSnapshotLease(expected) {
+                    if (stillDisplayed()) {
+                        closeScene()
+                        preview?.close()
+                        removal?.close()
+                        loginGate?.close()
+                        summaryFeedback?.close()
+                        host.openRecordDetails(RecordReplaySource(account, item.key, startedAt))
+                    }
+                }) {
+                    is TokenStore.ImmediateSnapshot.Busy -> delay(16)
+                    else -> return@launch
+                }
+            }
+        }
     }
 
     private fun openScene(anchor: View, item: RecordItem) {

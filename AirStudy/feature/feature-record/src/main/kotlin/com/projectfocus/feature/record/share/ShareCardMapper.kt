@@ -5,7 +5,7 @@ import com.projectfocus.feature.completion.pass.BoardingPassData
 import com.projectfocus.feature.record.detail.RecordDetail
 import com.projectfocus.feature.record.list.RecordListBuilder
 import com.projectfocus.feature.record.list.FlightStatus
-import java.time.Instant
+import com.projectfocus.service.focus.history.RecordedFlight
 import java.time.ZoneId
 
 
@@ -46,6 +46,33 @@ import java.time.ZoneId
 
 
 object ShareCardMapper {
+    fun build(record: RecordedFlight, detail: RecordDetail, zone: ZoneId): BoardingPassData? =
+        when (record) {
+            is RecordedFlight.Countdown -> build(record.record, detail, zone)?.let { pass ->
+                pass.copy(
+                    flightNo = detail.flightNumber ?: "—",
+                    arrivalTime = if (record.record.endTimeMillis == null) "—" else pass.arrivalTime,
+                )
+            }
+            is RecordedFlight.CountUp -> {
+                val archive = record.archive
+                val end = archive.endedAtWallMs
+                if (!record.completed || !detail.canShare || end == null) null else BoardingPassData.from(
+                    departureCode = detail.fromCode,
+                    departureCity = detail.fromCity,
+                    arrivalCode = detail.toCode,
+                    arrivalCity = detail.toCity,
+                    startWallMs = archive.startedAtWallMs,
+                    endWallMs = end,
+                    zone = zone,
+                    plannedMinutes = 0,
+                    actualFocusMinutes = record.focusMinutes,
+                    distanceKm = record.distanceKm,
+                    seat = archive.seat,
+                ).copy(flightNo = detail.flightNumber ?: "—")
+            }
+        }
+
 
 
 
@@ -114,6 +141,20 @@ object ShareCardMapper {
         entity: FlightHistoryEntity,
         zone: ZoneId,
         templates: ShareCardSpec.Templates,
+    ): ShareCardSpec = spec(data, detail, entity.startTimeMillis,
+        RecordListBuilder.formatMinutes(entity.actualFocusMinutes), zone, templates)
+
+    fun spec(data: BoardingPassData, detail: RecordDetail, record: RecordedFlight, zone: ZoneId,
+        templates: ShareCardSpec.Templates): ShareCardSpec =
+        spec(data, detail, record.recordedAtWallMs, detail.actualText, zone, templates)
+
+    private fun spec(
+        data: BoardingPassData,
+        detail: RecordDetail,
+        startWallMs: Long,
+        actualText: String,
+        zone: ZoneId,
+        templates: ShareCardSpec.Templates,
     ): ShareCardSpec = ShareCardSpec(
         detail = ShareDetail(
             fromCity = detail.fromCity,
@@ -126,10 +167,10 @@ object ShareCardMapper {
 
             //   而不是登机牌上的紧凑写法（"45m"）—— 因为这段文字是
             //   给聊天窗口里的读者看的，不是给登机牌版式看的。
-            actualText = RecordListBuilder.formatMinutes(entity.actualFocusMinutes),
+            actualText = actualText,
         ),
         flightNo = data.flightNo,
-        startWallMs = Instant.ofEpochMilli(entity.startTimeMillis).toEpochMilli(),
+        startWallMs = startWallMs,
         zone = zone,
         templates = templates,
     )

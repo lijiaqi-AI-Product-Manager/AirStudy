@@ -15,6 +15,7 @@ import com.projectfocus.core.model.flight.PlannedAirport
 import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.service.focus.freeflight.*
 import com.projectfocus.service.focus.freeflight.runtime.FreeFlightRuntimePending
+import com.projectfocus.service.focus.history.HistoryAccount
 import dagger.hilt.android.EntryPointAccessors
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.*
@@ -116,6 +117,28 @@ class RetainedFreeFlightPreparationsTest {
         assertTrue(retained.prepare(handle) is FreeFlightPreparationDecision.Rejected)
         assertEquals(0, allowed.calls.get());assertNull(store.active())
         assertNull(graph.owners().captureHostAccount())
+    }
+
+    @Test fun replayUsesTheArchivedOriginAndHeadingBeforeAnyFormalStart() = runBlocking(Dispatchers.IO) {
+        val preferences = app.getSharedPreferences(HomeMapStyleSelection.FILE_NAME, Context.MODE_PRIVATE)
+        val archivedOrigin = PlannedAirport(43341, "FR-0001", "Emile Muller Hospital Heliport", "Mulhouse", "FR", 47.725328, 7.344995)
+        assertNull(app.database.airportDao().findByCode(archivedOrigin.code))
+        val identity = TokenStore.snapshot()
+        val replay = FreeFlightReplay(HistoryAccount(TokenStore.storageScope(identity), identity.generation), archivedOrigin, 127f)
+        val eligibility = Allowed()
+        val retained = retainer(eligibility)
+        val first = requireNotNull(retained.begin(replay))
+        val value = prepared(retained, first)
+        assertEquals(archivedOrigin, value.departure)
+        assertEquals(127f, value.initialHeading, 0f)
+        assertEquals("PEK", preferences.getString(HomeOriginSelection.CODE, null))
+        assertNull(retained.begin(replay))
+        assertEquals(1, eligibility.calls.get())
+        assertEquals(0, formal.calls.get())
+        assertNull(store.active())
+        assertTrue(retained.cancel(first))
+        TokenStore.setCancellable("different-replay-account")
+        assertNull(retained.begin(replay))
     }
 
     @Test fun detachedWaitKeepsOneRealPreparationAndRestorationNeverRepeatsEligibility() = runBlocking(Dispatchers.IO) {

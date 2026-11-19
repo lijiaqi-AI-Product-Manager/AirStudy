@@ -5,10 +5,15 @@ import android.view.View
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.core.app.ActivityScenario
 import com.google.common.truth.Truth.assertThat
+import com.projectfocus.core.database.dao.HistoryReadDao
+import com.projectfocus.core.database.dao.HistoryAirportReference
 import com.projectfocus.core.database.entity.FlightHistoryEntity
+import com.projectfocus.core.database.entity.FreeFlightArchiveEntity
+import com.projectfocus.core.database.entity.FlightRecordSceneEntity
 import com.projectfocus.feature.record.R
 import com.projectfocus.feature.record.detail.RecordDetailState
 import com.projectfocus.feature.record.detail.RecordDetailViewModel
+import com.projectfocus.service.focus.history.FlightHistoryReader
 import com.projectfocus.service.focus.session.TodayStatsNotifier
 import dagger.hilt.android.testing.HiltAndroidRule
 import dagger.hilt.android.testing.HiltAndroidTest
@@ -24,6 +29,8 @@ import org.robolectric.annotation.Config
 import java.time.Clock
 import java.time.Instant
 import java.time.ZoneId
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 
 
 
@@ -153,9 +160,8 @@ class RecordDetailFragmentTest {
 
 
 
-        findByIdDelayMs: Long = 0,
     ): TagProbeDetailFragment {
-        val dao = FakeFlightHistoryDao(rows).apply { this.findByIdDelayMs = findByIdDelayMs }
+        val dao = FakeFlightHistoryDao(rows)
         scenario = ActivityScenario.launch(RecordHostActivity::class.java)
         lateinit var frag: TagProbeDetailFragment
         scenario!!.onActivity { act ->
@@ -606,7 +612,7 @@ class RecordDetailFragmentTest {
     @Test
     fun `点重飞把可执行入参交给宿主`() {
         // 计划 45 分钟，实际只专注了 30 分钟
-        val f = launch(listOf(entity(planned = 45, actual = 30)), findByIdDelayMs = 5)
+        val f = launch(listOf(entity(planned = 45, actual = 30)))
         val got = mutableListOf<com.projectfocus.feature.record.detail.ReplayIntent>()
         f.onReplayIntent = { got += it }
 
@@ -636,7 +642,7 @@ class RecordDetailFragmentTest {
 
     @Test
     fun `隔一会儿再点重飞仍然有效`() {
-        val f = launch(listOf(entity(planned = 45, actual = 30)), findByIdDelayMs = 2)
+        val f = launch(listOf(entity(planned = 45, actual = 30)))
         val got = mutableListOf<com.projectfocus.feature.record.detail.ReplayIntent>()
         f.onReplayIntent = { got += it }
 
@@ -744,14 +750,21 @@ class TagProbeDetailFragment(
 
     override fun createViewModel(): RecordDetailViewModel =
         RecordDetailViewModel(
-            dao = dao,
+            history = FlightHistoryReader(object : HistoryReadDao {
+                override fun countdowns(owner: String) = dao.rows
+                override fun countUps(owner: String) = flowOf(emptyList<FreeFlightArchiveEntity>())
+                override fun countdown(owner: String, id: String) = dao.observeById(id).map { row ->
+                    row?.takeIf { it.ownerScope == owner || owner == "local" && it.ownerScope == null }
+                }
+                override fun countUp(owner: String, id: String) = flowOf<FreeFlightArchiveEntity?>(null)
+                override fun scenes(owner: String) = flowOf(emptyList<FlightRecordSceneEntity>())
+                override fun scene(owner: String, kind: String, id: String) = flowOf<FlightRecordSceneEntity?>(null)
+                override fun airportDirectory() = flowOf(emptyList<HistoryAirportReference>())
+            }),
             clock = clock,
             zone = zone,
             savedState = SavedStateHandle(),
 
-            //   但用一个真的（而不是 mock）能顺带守住"构造函数里允许传真的"这条 ——
-            //   若哪天 Notifier 变成需要 Context 的类，这条会立刻红。
-            todayNotifier = TodayStatsNotifier(),
             deletion = com.projectfocus.feature.record.testHistoryDeletion(dao, TodayStatsNotifier()),
         )
 

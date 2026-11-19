@@ -25,6 +25,7 @@ data class OrdinaryFlightContext(
     val originCode: String,
     val destinationCode: String,
     val originMarker: String?,
+    val replayRoute: FlightLegPlan? = null,
 )
 
 data class OrdinarySeatChoice(val seat: String, val scene: SeatSceneChoice)
@@ -81,9 +82,8 @@ class OrdinaryFlightPreparationCoordinator(
 
     fun selectedContext(): OrdinaryFlightContext = actions.context()
 
-    fun begin() {
+    fun begin(context: OrdinaryFlightContext = actions.context()) {
         if (state.value.active) return
-        val context = actions.context()
         val ticket = ++operation
         val request = UUID.randomUUID().toString()
         if (!actions.available(context)) { unavailable(OrdinaryPreparationError.CHANGED); return }

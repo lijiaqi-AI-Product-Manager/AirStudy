@@ -9,6 +9,7 @@ internal class RecordPageAdapter(
     private val onOpen: (RecordCardView, RecordItem) -> Unit,
     private val onSceneEdit: ((View, RecordItem) -> Unit)? = null,
     private val canEdit: () -> Boolean = { true },
+    private val onDetails: ((RecordItem) -> Unit)? = null,
 ) :
     RecyclerView.Adapter<RecordPageAdapter.Holder>() {
     private var items = emptyList<RecordItem>()
@@ -17,7 +18,7 @@ internal class RecordPageAdapter(
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) = Holder(RecordCardView(parent.context))
     override fun onBindViewHolder(holder: Holder, position: Int) {
         val item = items[position]
-        holder.card.bind(item, onSceneEdit, canEdit())
+        holder.card.bind(item, onSceneEdit, canEdit(), onDetails)
         holder.card.setOnClickListener {
             val index = holder.bindingAdapterPosition
             if (index != RecyclerView.NO_POSITION && items.getOrNull(index)?.displayKey == item.displayKey) onOpen(holder.card, item)

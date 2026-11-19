@@ -1,6 +1,7 @@
 package com.projectfocus.feature.record.ui
 
 import android.app.AlertDialog
+import android.content.res.ColorStateList
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -10,307 +11,69 @@ import android.widget.Toast
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import com.projectfocus.core.common.nav.SeatDraftRequests
 import com.projectfocus.core.common.nav.SeatSelectionResult
-import com.projectfocus.core.ui.R as UiR
 import com.projectfocus.core.ui.nav.AirportNavigator
+import com.projectfocus.core.ui.sky.SkyPressFeedback
+import com.projectfocus.core.ui.sky.SkySurfaces
 import com.projectfocus.feature.completion.pass.BoardingPassData
 import com.projectfocus.feature.completion.pass.BoardingPassDialogFragment
 import com.projectfocus.feature.record.R
 import com.projectfocus.feature.record.databinding.FragmentRecordDetailBinding
 import com.projectfocus.feature.record.detail.RecordDetail
-import com.projectfocus.feature.record.detail.ReplayIntent
 import com.projectfocus.feature.record.detail.RecordDetailBuilder
 import com.projectfocus.feature.record.detail.RecordDetailState
 import com.projectfocus.feature.record.detail.RecordDetailViewModel
-import com.projectfocus.feature.record.share.ShareLauncher
+import com.projectfocus.feature.record.detail.RecordReplaySource
+import com.projectfocus.feature.record.detail.ReplayIntent
+import com.projectfocus.feature.record.detail.ReplayIntentBuilder
+import com.projectfocus.feature.record.list.FlightStatus
 import com.projectfocus.feature.record.share.ShareCardMapper
+import com.projectfocus.feature.record.share.ShareLauncher
 import com.projectfocus.feature.record.share.shareTemplates
+import com.projectfocus.service.focus.history.FlightRecordKind
 import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import timber.log.Timber
-import javax.inject.Inject
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+import com.projectfocus.core.ui.R as UiR
 
 @AndroidEntryPoint
 open class RecordDetailFragment : Fragment() {
-
-
-
-
-
-
-
-
-
     private var _binding: FragmentRecordDetailBinding? = null
     protected val binding get() = requireNotNull(_binding) { "binding 在 onDestroyView 后被访问" }
-    private var removalRevision = 0L
-    private var removalDialog: AlertDialog? = null
-
-
-
-
-
-
-
-
-
-    protected open fun createViewModel(): RecordDetailViewModel =
-        androidx.lifecycle.ViewModelProvider(this)[RecordDetailViewModel::class.java]
-
+    protected open fun createViewModel(): RecordDetailViewModel = ViewModelProvider(this)[RecordDetailViewModel::class.java]
     private val viewModel: RecordDetailViewModel by lazy { createViewModel() }
 
+    @Inject internal lateinit var shareLauncher: ShareLauncher
 
-
-
-
-
-
-
-
-
-    @Inject
-    internal lateinit var shareLauncher: ShareLauncher
-
-
-
-
-
-
-
-
-
-
-
-
-    private fun shareLauncherOrNull(): ShareLauncher? {
-        if (::shareLauncher.isInitialized) return shareLauncher
-        Timber.w("ShareLauncher 未注入（宿主未启用 Hilt），分享不可用")
-        return null
-    }
-
-    /** 当前分享任务。界面销毁时取消，避免"退回列表页后突然弹分享面板"。 */
+    private var removalRevision = 0L
+    private var removalDialog: AlertDialog? = null
     private var shareJob: Job? = null
     private var boardingPassJob: Job? = null
+    private var replayNavigation: Job? = null
 
-    // ─────────────────────────────────────────────────────────
-    // 宿主回调
-    // ─────────────────────────────────────────────────────────
-
-    /** 点返回。默认 `popBackStack`。 */
     open var onBack: () -> Unit = {
-        parentFragmentManager.takeIf { it.backStackEntryCount > 0 }?.popBackStack()
+        val nav = runCatching { findNavController() }.getOrNull()
+        if (nav != null) nav.popBackStack()
+        else if (parentFragmentManager.backStackEntryCount > 0) parentFragmentManager.popBackStack()
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    open var onReplayIntent: (ReplayIntent) -> Unit = { _ ->
-        android.widget.Toast
-            .makeText(
-                requireContext(),
-                R.string.record_detail_replay_pending,
-                android.widget.Toast.LENGTH_SHORT,
-            )
-            .show()
-    }
-
-    /** 分享。默认同上。 */
-    open var onShare: (RecordDetail) -> Unit = { _ ->
-        performShare()
-    }
-
-
-
-
-
-
-
+    open var onReplayIntent: (ReplayIntent) -> Unit = ::openReplay
+    open var onShare: (RecordDetail) -> Unit = ::performShare
     open var onOpenBoardingPass: ((BoardingPassData) -> Unit)? = null
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    private fun performShare() {
-        val detail = (viewModel.state.value as? RecordDetailState.Content)?.detail ?: return
-        if (!detail.canShare) return
-        val launcher = shareLauncherOrNull()
-        if (launcher == null) {
-
-            //   而不是静默不响应 —— 点了没反应比一句错误提示更让人困惑。
-            android.widget.Toast
-                .makeText(requireContext(), R.string.record_share_failed, android.widget.Toast.LENGTH_SHORT)
-                .show()
-            return
-        }
-
-        showSharePreparing(true)
-
-        //   界面销毁就该取消。ViewModel 活得比界面久，放那边会出现
-        //   "已经退到列表页了，突然弹出一个系统分享面板"。
-        shareJob?.cancel()
-        shareJob = viewLifecycleOwner.lifecycleScope.launch {
-            val result = viewModel.prepareShare(detail)
-            showSharePreparing(false)
-            if (result == null) {
-
-                //   "记录在点击与查库之间被删了"，此时详情页会自动切到
-                //   「这条记录不在了」，再弹一个失败 Toast 是双重噪音。
-                Timber.w("分享：记录已不存在，跳过")
-                return@launch
-            }
-
-            //   ShareLauncher 已经把它翻译成 NoTarget（=「没有可接收图片的应用」）。
-            //   在这里拦一道只会多一条永远不会执行的 catch。
-
-            val spec = ShareCardMapper.spec(
-                data = result.pass,
-                detail = result.detail,
-                entity = result.entity,
-                zone = result.zone,
-                templates = requireContext().shareTemplates(),
-            )
-            val outcome = launcher.share(
-                spec = spec,
-                data = result.pass,
-                startActivity = ::startActivity,
-            )
-            ShareLauncher.toastFor(requireContext(), outcome, launcher)
-        }
-    }
-
-
-
-
-
-
-
-
-
-
-    private fun showSharePreparing(preparing: Boolean) {
-        if (_binding == null) return
-        binding.btnShare.isEnabled = !preparing
-        binding.btnShare.setText(
-            if (preparing) R.string.record_share_preparing else R.string.record_detail_share,
-        )
-    }
-
-    /** 删除确认。默认走系统 `AlertDialog`；测试里替换成"直接确认"以避开弹窗。 */
-    open var onConfirmDelete: (confirm: () -> Unit) -> Unit = { confirm ->
-        showDeleteDialog(confirm)
-    }
-
-    /** 删除成功后的提示 + 返回。默认 Toast 后返回。 */
+    open var onConfirmDelete: (() -> Unit) -> Unit = ::showDeleteDialog
     open var onDeleted: () -> Unit = {
-        android.widget.Toast
-            .makeText(requireContext(), R.string.record_deleted_toast, android.widget.Toast.LENGTH_SHORT)
-            .show()
+        notice(R.string.record_deleted_toast)
         onBack()
     }
+    open var onDeleteFailed: () -> Unit = { notice(R.string.record_detail_delete_failed) }
 
-    /** 删除失败时的提示。 */
-    open var onDeleteFailed: () -> Unit = {
-        android.widget.Toast
-            .makeText(requireContext(), R.string.record_detail_delete_failed, android.widget.Toast.LENGTH_SHORT)
-            .show()
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // 生命周期
-    // ─────────────────────────────────────────────────────────
-
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?,
-    ): View {
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentRecordDetailBinding.inflate(inflater, container, false)
         return binding.root
     }
@@ -318,362 +81,283 @@ open class RecordDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         bindArguments()
+        style()
         setupActions()
-        observeState()
-        observeReplayIntent()
-        observeDeleteResult()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        boardingPassJob?.cancel()
-        _binding = null
+        render(RecordDetailState.Loading)
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                launch { viewModel.state.collect(::render) }
+                launch {
+                    viewModel.deleteResult.collect { result ->
+                        if (result == null) return@collect
+                        val current = viewModel.isDeleteResultCurrent()
+                        viewModel.consumeDeleteResult()
+                        if (current) {
+                            if (result) onDeleted() else onDeleteFailed()
+                        }
+                    }
+                }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                viewModel.replayIntent.collect { intent ->
+                    if (intent == null) return@collect
+                    viewModel.consumeReplayIntent()
+                    if (intent.source?.let(::isViewing) == true) onReplayIntent(intent)
+                }
+            }
+        }
     }
 
     override fun onPause() {
         ++removalRevision
         removalDialog?.dismiss()
         removalDialog = null
+        viewModel.cancelReplay()
+        replayNavigation?.cancel()
+        replayNavigation = null
+        boardingPassJob?.cancel()
+        boardingPassJob = null
+        shareJob?.cancel()
+        shareJob = null
+        showSharePreparing(false)
         super.onPause()
     }
 
-    // ─────────────────────────────────────────────────────────
-    // 装配
-    // ─────────────────────────────────────────────────────────
-
-
-
-
-
-
-
-
-
-
-
-
-
+    override fun onDestroyView() {
+        _binding = null
+        super.onDestroyView()
+    }
 
     private fun bindArguments() {
-        val id = arguments?.getString(ARG_RECORD_ID)
-        val recordId = id.orEmpty()
-        viewModel.start(recordId)
-
-        if (recordId.isNotBlank()) {
-            parentFragmentManager.setFragmentResultListener(
-                SeatDraftRequests.SELECTION,
-                viewLifecycleOwner,
-            ) { _, bundle ->
-                val result = bundle.getSerializable(SeatDraftRequests.RESULT_DATA)
-                    as? SeatSelectionResult ?: return@setFragmentResultListener
-                if (result.recordId == recordId) {
-                    // 选座页已经写库；先立即回显，Room Flow 随后会再发一次权威值。
-                    binding.seatText.isVisible = true
-                    binding.seatText.text = getString(R.string.record_detail_seat, result.seat)
-                }
+        val args = arguments
+        val mode = args?.getString(ARG_RECORD_KIND)
+        val kind = if (mode == null) FlightRecordKind.COUNTDOWN else FlightRecordKind.entries.firstOrNull { it.name == mode }
+        val id = args?.getString(ARG_RECORD_ID).orEmpty()
+        val startedAt = args?.takeIf { it.containsKey(ARG_RECORD_START) }?.getLong(ARG_RECORD_START)
+        val owner = args?.getString(ARG_RECORD_OWNER)
+        viewModel.start(
+            if (kind == null) "" else id,
+            kind ?: FlightRecordKind.COUNTDOWN,
+            owner ?: com.projectfocus.core.network.di.TokenStore.storageScope(),
+            startedAt,
+        )
+        if (kind != FlightRecordKind.COUNTDOWN || id.isBlank()) return
+        parentFragmentManager.setFragmentResultListener(SeatDraftRequests.SELECTION, viewLifecycleOwner) { _, bundle ->
+            val result = bundle.getSerializable(SeatDraftRequests.RESULT_DATA) as? SeatSelectionResult
+                ?: return@setFragmentResultListener
+            val current = viewModel.currentContent()?.takeIf { it.source.key.id == result.recordId }
+                ?: return@setFragmentResultListener
+            if (current.detail.kind == FlightRecordKind.COUNTDOWN) {
+                binding.seatText.isVisible = true
+                binding.seatText.text = getString(R.string.record_detail_seat, result.seat)
             }
         }
+    }
+
+    private fun style() {
+        val context = requireContext()
+        SkySurfaces.card(binding.routeCard, 26f, 6f)
+        SkySurfaces.secondary(binding.btnBack, 20f)
+        binding.btnBack.imageTintList = ColorStateList.valueOf(context.getColor(UiR.color.sky_ink))
+        binding.modeText.background = SkySurfaces.shape(context, 14f)
+        listOf(binding.btnBoardingPass, binding.btnShare, binding.btnDelete, binding.btnStateBack).forEach {
+            SkySurfaces.secondary(it, 18f)
+            SkyPressFeedback.install(it)
+        }
+        for (button in listOf(binding.btnReplay, binding.btnRetry)) {
+            SkySurfaces.action(button)
+            SkyPressFeedback.install(button)
+        }
+        SkyPressFeedback.install(binding.btnBack)
+        binding.btnReplay.setText(R.string.record_detail_prepare_again)
     }
 
     private fun setupActions() {
         binding.btnBack.setOnClickListener { onBack() }
         binding.btnStateBack.setOnClickListener { onBack() }
-        binding.btnBoardingPass.setOnClickListener {
-            val detail = (viewModel.state.value as? RecordDetailState.Content)?.detail
-                ?: return@setOnClickListener
-            // 与分享同一道门：只有真正完成的航班才有登机牌。
-            if (!detail.canShare) return@setOnClickListener
-            if (parentFragmentManager.findFragmentByTag(BoardingPassDialogFragment.TAG) != null) {
-                return@setOnClickListener
-            }
-            boardingPassJob?.cancel()
-            boardingPassJob = viewLifecycleOwner.lifecycleScope.launch {
-                val payload = viewModel.prepareShare(detail) ?: return@launch
-                if (!isAdded || parentFragmentManager.isStateSaved) return@launch
-                val host = onOpenBoardingPass
-                if (host != null) {
-                    // R6：宿主已接导航图，走正式目的地，不叠浮层。
-                    host(payload.pass)
-                } else {
-                    BoardingPassDialogFragment.newInstance(payload.pass)
-                        .show(parentFragmentManager, BoardingPassDialogFragment.TAG)
-                }
-            }
-        }
-        binding.btnReplay.setOnClickListener {
+        binding.btnRetry.setOnClickListener { viewModel.retry() }
+        binding.btnReplay.setOnClickListener { if (replayNavigation?.isActive != true) viewModel.replay() }
+        binding.btnShare.setOnClickListener { viewModel.currentContent()?.let { onShare(it.detail) } }
+        binding.btnBoardingPass.setOnClickListener { openBoardingPass() }
+        binding.btnDelete.setOnClickListener { askToDelete() }
+        binding.fromCode.setOnClickListener { openAirportDetail(viewModel.currentContent()?.detail?.fromCode) }
+        binding.toCode.setOnClickListener { openAirportDetail(viewModel.currentContent()?.detail?.toCode) }
+        binding.seatText.setOnClickListener { openSeatChoice() }
+    }
 
-            //   算的活归 ViewModel（它才有原始数值），见 `replay()` 的注释。
-            viewModel.replay()
-        }
-        binding.btnShare.setOnClickListener {
-            (viewModel.state.value as? RecordDetailState.Content)?.let { onShare(it.detail) }
-        }
-        binding.btnDelete.setOnClickListener {
-            val root = view
-            val request = ++removalRevision
-            viewLifecycleOwner.lifecycleScope.launch {
-                val target = try { viewModel.prepareDelete() } catch (error: Exception) {
-                    if (error is kotlinx.coroutines.CancellationException) throw error
-                    if (view === root) onDeleteFailed()
-                    null
-                } ?: return@launch
-                if (view === root && removalRevision == request && target.account.isCurrent() &&
-                    viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) {
-                    onConfirmDelete {
-                        if (view === root && removalRevision == request && target.account.isCurrent() &&
-                            viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) viewModel.delete(target)
-                    }
-                }
+    private fun openReplay(intent: ReplayIntent) {
+        val source = intent.source ?: return
+        if (replayNavigation?.isActive == true || !isViewing(source)) return
+        val host = activity as? RecordReplayHost ?: return notice(R.string.record_detail_replay_unavailable)
+        binding.btnReplay.isEnabled = false
+        replayNavigation = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                if (!host.prepareRecordReplay(intent) && isViewing(source)) notice(R.string.record_detail_replay_unavailable)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                if (isViewing(source)) notice(R.string.record_detail_replay_unavailable)
+            } finally {
+                if (isViewing(source)) binding.btnReplay.isEnabled = viewModel.currentContent()?.detail?.canReplay == true
             }
         }
-        // 出发/到达三字码 = 机场详情入口。只对已完成记录有 airport 数据，
-        // 未完成记录 fromCode/toCode 可能为空，openAirportDetail 会直接返回。
-        binding.fromCode.setOnClickListener {
-            openAirportDetail((viewModel.state.value as? RecordDetailState.Content)?.detail?.fromCode)
+    }
+
+    private fun performShare(detail: RecordDetail) {
+        if (!detail.canShare || shareJob?.isActive == true) return
+        if (!::shareLauncher.isInitialized) return notice(R.string.record_share_failed)
+        showSharePreparing(true)
+        shareJob = viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val result = viewModel.prepareShare(detail) ?: return@launch
+                if (!isViewing(result.source)) return@launch
+                val spec = ShareCardMapper.spec(result.pass, result.detail, result.record, result.zone,
+                    requireContext().shareTemplates())
+                val outcome = shareLauncher.share(spec, result.pass, startActivity = { intent ->
+                    if (!isViewing(result.source)) throw IllegalStateException("Record is no longer visible")
+                    startActivity(intent)
+                })
+                if (isViewing(result.source)) ShareLauncher.toastFor(requireContext(), outcome, shareLauncher)
+            } finally {
+                showSharePreparing(false)
+            }
         }
-        binding.toCode.setOnClickListener {
-            openAirportDetail((viewModel.state.value as? RecordDetailState.Content)?.detail?.toCode)
+    }
+
+    private fun showSharePreparing(preparing: Boolean) {
+        val button = _binding?.btnShare ?: return
+        button.isEnabled = !preparing && viewModel.currentContent()?.detail?.canShare == true
+        button.setText(if (preparing) R.string.record_share_preparing else R.string.record_detail_share)
+    }
+
+    private fun openBoardingPass() {
+        val detail = viewModel.currentContent()?.detail?.takeIf { it.canShare } ?: return
+        if (boardingPassJob?.isActive == true ||
+            parentFragmentManager.findFragmentByTag(BoardingPassDialogFragment.TAG) != null) return
+        boardingPassJob = viewLifecycleOwner.lifecycleScope.launch {
+            val payload = viewModel.prepareShare(detail) ?: return@launch
+            if (!isViewing(payload.source) || parentFragmentManager.isStateSaved) return@launch
+            val host = onOpenBoardingPass
+            if (host != null) host(payload.pass) else
+                BoardingPassDialogFragment.newInstance(payload.pass).show(parentFragmentManager, BoardingPassDialogFragment.TAG)
         }
-        // 点“座位 12A”= 改座位；只有已有座位的记录可见，未完成的记录不显示。
-        binding.seatText.setOnClickListener {
-            val detail = (viewModel.state.value as? RecordDetailState.Content)?.detail
-                ?: return@setOnClickListener
-            if (detail.seat == null) return@setOnClickListener
-            val uri = Uri.parse(
-                "projectfocus://seat?flightNo=&from=${Uri.encode(detail.fromCode)}" +
-                    "&to=${Uri.encode(detail.toCode)}&recordId=${Uri.encode(detail.id)}" +
-                    "&seat=${Uri.encode(detail.seat.orEmpty())}" +
-                    "&draftKey=${Uri.encode(detail.id)}",
-            )
-            runCatching { findNavController().navigate(uri) }
-                .onFailure {
-                    Toast.makeText(
-                        requireContext(),
-                        R.string.record_detail_airport_failed,
-                        Toast.LENGTH_SHORT,
-                    ).show()
-                }
+    }
+
+    private fun askToDelete() {
+        val root = view ?: return
+        val request = ++removalRevision
+        viewLifecycleOwner.lifecycleScope.launch {
+            val record = viewModel.prepareDelete() ?: return@launch
+            val source = RecordReplaySource(record.account, record.record.key, record.record.recordedAtWallMs)
+            fun current() = view === root && removalRevision == request && isViewing(source)
+            if (current()) onConfirmDelete { if (current()) viewModel.delete(record) }
         }
     }
 
     private fun openAirportDetail(code: String?) {
-        if (!AirportNavigator.open(this, code)) {
-            Toast.makeText(
-                requireContext(),
-                R.string.record_detail_airport_failed,
-                Toast.LENGTH_SHORT,
-            ).show()
-        }
+        if (!AirportNavigator.open(this, code)) notice(R.string.record_detail_airport_failed)
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-    private fun observeReplayIntent() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.replayIntent.collect { intent ->
-                    if (intent == null) return@collect
-                    onReplayIntent(intent)
-
-                    //   consume 不执行 → 意图保留。用户再点一次仍然有效。
-                    viewModel.consumeReplayIntent()
-                }
-            }
-        }
+    private fun openSeatChoice() {
+        val detail = viewModel.currentContent()?.detail ?: return
+        if (detail.kind != FlightRecordKind.COUNTDOWN || detail.seat == null) return
+        val uri = Uri.Builder().scheme("projectfocus").authority("seat")
+            .appendQueryParameter("flightNo", detail.flightNumber.orEmpty())
+            .appendQueryParameter("from", detail.fromCode).appendQueryParameter("to", detail.toCode)
+            .appendQueryParameter("recordId", detail.id).appendQueryParameter("seat", detail.seat)
+            .appendQueryParameter("draftKey", detail.id).build()
+        runCatching { findNavController().navigate(uri) }.onFailure { notice(R.string.record_detail_airport_failed) }
     }
-
-    private fun observeState() {
-        viewLifecycleOwner.lifecycleScope.launch {
-
-            //   Fragment 的 viewLifecycle 在 `onStop` 之后仍可能短暂存活，
-            //   裸 collect 会在后台继续更新 View（浪费 CPU，且可能在
-            //   View 已 detach 的瞬间触发一次绘制）。
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.state.collect { render(it) }
-            }
-        }
-    }
-
-    private fun observeDeleteResult() {
-        viewLifecycleOwner.lifecycleScope.launch {
-            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.deleteResult.collect { result ->
-                    if (result != null && !viewModel.isDeleteResultCurrent()) {
-                        viewModel.consumeDeleteResult()
-                        return@collect
-                    }
-                    when (result) {
-                        null -> Unit
-                        true -> {
-
-                            //   顺序反了的话：onDeleted() 里 pop 掉本页 →
-                            //   viewLifecycleOwner 销毁 → 收集器取消 →
-                            //   `consumeDeleteResult()` 永远不会执行 →
-                            //   旋转屏幕时 StateFlow 重放 true → 再 pop 一次。
-
-                            viewModel.consumeDeleteResult()
-                            onDeleted()
-                        }
-                        false -> {
-                            viewModel.consumeDeleteResult()
-                            onDeleteFailed()
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // 渲染
-    // ─────────────────────────────────────────────────────────
 
     private fun render(state: RecordDetailState) {
-        val isContent = state is RecordDetailState.Content
-        binding.detailScroll.isVisible = isContent
-        binding.actionBlock.isVisible = isContent
+        val content = (state as? RecordDetailState.Content)?.takeIf { it.source.account.isCurrent() }
+        binding.detailScroll.isVisible = content != null
+        binding.actionBlock.isVisible = content != null
+        binding.statePanel.isVisible = content == null
+        binding.btnRetry.isVisible = state is RecordDetailState.Error
+        if (content != null) {
+            binding.stateTitle.text = ""
+            binding.stateBody.text = ""
+            binding.stateBody.isVisible = false
+            renderContent(content.detail)
+            return
+        }
+        val (title, body) = when (state) {
+            RecordDetailState.Loading -> R.string.record_detail_loading to ""
+            is RecordDetailState.Error -> R.string.record_detail_error_title to state.message
+            else -> R.string.record_detail_not_found_title to getString(R.string.record_detail_not_found_body)
+        }
+        binding.stateTitle.setText(title)
+        binding.stateTitle.visibility = View.VISIBLE
+        binding.stateBody.text = body
+        binding.stateBody.isVisible = body.isNotEmpty()
+        binding.btnStateBack.isVisible = state != RecordDetailState.Loading
+    }
 
-        when (state) {
-            is RecordDetailState.Content -> {
-
-
-                //   这里不做的话，TalkBack 会在内容页上念出上一次的"这条记录不在了"。
-                binding.statePanel.isVisible = false
-                binding.stateTitle.text = ""
-                binding.stateBody.text = ""
-                binding.stateBody.isVisible = false
-                renderContent(state.detail)
-            }
-
-            RecordDetailState.Loading -> renderMessage(
-                title = getString(R.string.record_detail_loading),
-                body = "",
-            )
-
-            RecordDetailState.NotFound -> renderMessage(
-                title = getString(R.string.record_detail_not_found_title),
-                body = getString(R.string.record_detail_not_found_body),
-            )
-
-            is RecordDetailState.Error -> renderMessage(
-                title = getString(R.string.record_detail_error_title),
-                body = state.message,
-            )
+    private fun renderContent(detail: RecordDetail) {
+        with(binding) {
+            val countUp = detail.kind == FlightRecordKind.COUNT_UP
+            modeText.setText(if (countUp) R.string.pf_record_card_archive_badge_countup else R.string.pf_record_card_archive_badge_countdown)
+            flightNumberText.text = detail.flightNumber.orEmpty()
+            flightNumberText.isVisible = detail.flightNumber != null
+            fromCode.text = detail.fromCode
+            toCode.text = detail.toCode
+            fromCode.isClickable = detail.fromCode != ReplayIntentBuilder.UNKNOWN_CODE
+            toCode.isClickable = detail.toCode != ReplayIntentBuilder.UNKNOWN_CODE
+            fromCity.text = detail.fromCity
+            toCity.text = detail.toCity
+            airportNames.text = listOf(detail.fromAirportName, detail.toAirportName).filter(String::isNotBlank).joinToString(" → ")
+            airportNames.isVisible = airportNames.text.isNotEmpty()
+            dateText.text = detail.dateText
+            timeRangeText.text = detail.timeRangeText
+            statusText.text = detail.statusText
+            statusText.setTextColor(requireContext().getColor(when {
+                detail.statusText.contains("异常") -> UiR.color.semantic_error
+                detail.status == FlightStatus.CANCELLED -> UiR.color.text_tertiary
+                detail.status == FlightStatus.ONGOING -> UiR.color.accent_primary
+                else -> UiR.color.semantic_success
+            }))
+            plannedRow.isVisible = !countUp
+            plannedText.text = detail.plannedText
+            actualText.text = detail.actualText
+            diffText.isVisible = !countUp
+            diffText.text = detail.diffText
+            diffText.setTextColor(requireContext().getColor(if (detail.diffText == RecordDetailBuilder.DIFF_EXACT)
+                UiR.color.text_secondary else UiR.color.semantic_warning))
+            percentRow.isVisible = detail.completionPercent != null
+            percentText.text = detail.completionPercent?.let { getString(R.string.record_detail_percent, it) }.orEmpty()
+            distanceText.text = getString(R.string.record_detail_distance_value, detail.distanceText)
+            cruiseEquivalentText.text = detail.cruiseEquivalentText
+            cruiseEquivalentText.isVisible = detail.cruiseEquivalentText != "—"
+            routeEquivalentText.text = detail.routeEquivalentText
+            routeEquivalentText.isVisible = detail.routeEquivalentText != "—"
+            sceneText.text = detail.sceneTitle?.let { getString(R.string.record_detail_scene, it) }.orEmpty()
+            sceneText.isVisible = detail.sceneTitle != null
+            seatText.text = detail.seat?.let { getString(R.string.record_detail_seat, it) }.orEmpty()
+            seatText.isVisible = detail.seat != null
+            seatText.isClickable = !countUp && detail.seat != null
+            participantText.text = detail.participantCount?.let { getString(R.string.record_detail_participants, it) }.orEmpty()
+            participantText.isVisible = detail.participantCount != null
+            quoteBlock.isVisible = detail.quote != null
+            quoteText.text = detail.quote.orEmpty()
+            quoteAuthorText.isVisible = detail.quoteAuthor != null
+            quoteAuthorText.text = detail.quoteAuthor?.let { "—— $it" }.orEmpty()
+            btnBoardingPass.isEnabled = detail.canShare
+            btnReplay.isEnabled = detail.canReplay && replayNavigation?.isActive != true
+            btnReplay.alpha = if (detail.canReplay) 1f else .56f
+            btnShare.isEnabled = detail.canShare && shareJob?.isActive != true
+            btnDelete.isEnabled = detail.status == FlightStatus.COMPLETED || detail.status == FlightStatus.CANCELLED
+            detailScroll.contentDescription = detail.spokenHeader
         }
     }
 
+    private fun isViewing(source: RecordReplaySource): Boolean = view != null &&
+        viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED) &&
+        viewModel.currentContent()?.source == source
 
-
-
-
-
-
-
-    private fun renderMessage(title: String, body: String) {
-        binding.statePanel.isVisible = true
-        binding.stateTitle.text = title
-        binding.stateTitle.visibility = View.VISIBLE
-
-        //   `layout_marginTop` 那 8dp，标题看起来会偏上。
-        binding.stateBody.text = body
-        binding.stateBody.isVisible = body.isNotEmpty()
-        binding.btnStateBack.isVisible = true
-    }
-
-    private fun renderContent(d: RecordDetail) {
-        binding.fromCode.text = d.fromCode
-        binding.toCode.text = d.toCode
-        binding.fromCity.text = d.fromCity
-        binding.toCity.text = d.toCity
-
-        // 机场全名：两个都为空时整行 GONE（不能显示 " → " 这种空箭头）
-        val names = listOf(d.fromAirportName, d.toAirportName).filter { it.isNotBlank() }
-        binding.airportNames.isVisible = names.isNotEmpty()
-        binding.airportNames.text = names.joinToString(" → ")
-
-        binding.dateText.text = d.dateText
-        binding.timeRangeText.text = d.timeRangeText
-        binding.statusText.text = d.statusText
-
-
-        //     （values-night 的覆盖会失效）。必须走 ContextCompat。
-        binding.statusText.setTextColor(
-            androidx.core.content.ContextCompat.getColor(
-                requireContext(),
-                statusColorRes(d),
-            ),
-        )
-
-        binding.plannedText.text = d.plannedText
-        binding.actualText.text = d.actualText
-        binding.diffText.text = d.diffText
-
-
-        //    字面量散落两处，改文案时颜色判断会**静默失效**（不报错，只是变黄）。
-        binding.diffText.setTextColor(
-            androidx.core.content.ContextCompat.getColor(
-                requireContext(),
-                if (d.diffText == RecordDetailBuilder.DIFF_EXACT) UiR.color.text_secondary
-                else UiR.color.semantic_warning,
-            ),
-        )
-
-        val percent = d.completionPercent
-        binding.percentRow.isVisible = percent != null
-
-        //   （法语是「93 %」带不换行空格），且 lint 的 SetTextI18n 会持续报。
-        binding.percentText.text = percent?.let { getString(R.string.record_detail_percent, it) }.orEmpty()
-
-
-        binding.distanceText.text = getString(R.string.record_detail_distance_value, d.distanceText)
-        binding.cruiseEquivalentText.text = d.cruiseEquivalentText
-
-        binding.cruiseEquivalentText.isVisible = d.cruiseEquivalentText != "—"
-        binding.routeEquivalentText.text = d.routeEquivalentText
-        binding.routeEquivalentText.isVisible = d.routeEquivalentText != "—"
-
-        binding.seatText.isVisible = d.seat != null
-        binding.seatText.text = d.seat?.let { getString(R.string.record_detail_seat, it) }.orEmpty()
-
-        binding.participantText.isVisible = d.participantCount != null
-        binding.participantText.text = d.participantCount
-            ?.let { getString(R.string.record_detail_participants, it) }
-            .orEmpty()
-
-        val hasQuote = d.quote != null
-        binding.quoteBlock.isVisible = hasQuote
-        binding.quoteText.text = d.quote.orEmpty()
-
-        binding.quoteAuthorText.isVisible = d.quoteAuthor != null
-        binding.quoteAuthorText.text = d.quoteAuthor?.let { "—— $it" }.orEmpty()
-
-        // 操作可用性
-        binding.btnBoardingPass.isEnabled = d.canShare
-        binding.btnReplay.isEnabled = d.canReplay
-        binding.btnShare.isEnabled = d.canShare
-
-        //   而重飞/分享依赖"这趟真的完成了"，不能给。
-
-        // 整页无障碍：让 TalkBack 一次读完头信息，而不是逐行读
-        binding.detailScroll.contentDescription = d.spokenHeader
-    }
-
-    private fun statusColorRes(d: RecordDetail): Int = when {
-        d.statusText.contains("异常") -> UiR.color.semantic_error
-        d.status == com.projectfocus.feature.record.list.FlightStatus.CANCELLED -> UiR.color.text_tertiary
-        d.status == com.projectfocus.feature.record.list.FlightStatus.ONGOING -> UiR.color.accent_primary
-        else -> UiR.color.semantic_success
-    }
+    private fun notice(label: Int) { context?.let { Toast.makeText(it, label, Toast.LENGTH_SHORT).show() } }
 
     private fun showDeleteDialog(confirm: () -> Unit) {
         removalDialog?.dismiss()
@@ -685,21 +369,14 @@ open class RecordDetailFragment : Fragment() {
             .show()
     }
 
-    // ─────────────────────────────────────────────────────────
-    // 测试钩子
-    // ─────────────────────────────────────────────────────────
-
-    @androidx.annotation.VisibleForTesting
     internal fun requireViewForTest(): View = binding.root
-
-    @androidx.annotation.VisibleForTesting
     internal fun stateForTest(): RecordDetailState = viewModel.state.value
-
-    @androidx.annotation.VisibleForTesting
     internal fun detailViewModelForTest(): RecordDetailViewModel = viewModel
 
     companion object {
-        /** 记录 id 的参数键。写在 feature 模块内，宿主壳直接引用。 */
         const val ARG_RECORD_ID = "arg_record_id"
+        const val ARG_RECORD_KIND = "arg_record_kind"
+        const val ARG_RECORD_OWNER = "arg_record_owner"
+        const val ARG_RECORD_START = "arg_record_start"
     }
 }

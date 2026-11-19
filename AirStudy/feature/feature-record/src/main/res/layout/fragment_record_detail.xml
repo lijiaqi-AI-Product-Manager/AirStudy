@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical">
+    android:layout_height="match_parent">
+
+    <com.projectfocus.core.ui.sky.SkyBackdropView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:importantForAccessibility="no" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
     <!-- ══════════════ 顶栏 ══════════════ -->
     <LinearLayout
@@ -59,11 +68,40 @@
 
             <!-- ────────── 主卡片 ────────── -->
             <LinearLayout
+                android:id="@+id/routeCard"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_record_detail_card"
                 android:orientation="vertical"
                 android:padding="@dimen/space_xl">
+
+                <com.google.android.flexbox.FlexboxLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="@dimen/space_l"
+                    app:alignItems="center"
+                    app:flexWrap="wrap"
+                    app:justifyContent="space_between">
+
+                    <TextView
+                        android:id="@+id/modeText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="4dp"
+                        android:textAppearance="@style/TextAppearance.Pf.Caption"
+                        android:textColor="@color/sky_primary" />
+
+                    <TextView
+                        android:id="@+id/flightNumberText"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:fontFamily="@font/jetbrainsmono_medium"
+                        android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                        android:textColor="@color/sky_ink_secondary"
+                        android:visibility="gone" />
+                </com.google.android.flexbox.FlexboxLayout>
 
                 <!-- ① 航线：三字码 + 箭头 -->
                 <LinearLayout
@@ -99,15 +137,11 @@
                     </LinearLayout>
 
                     
-                    <TextView
-                        android:id="@+id/routeArrow"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginHorizontal="@dimen/space_m"
-                        android:contentDescription="@null"
-                        android:text="@string/record_detail_arrow"
-                        android:textColor="@color/accent_text"
-                        android:textSize="20sp" />
+                    <com.projectfocus.feature.record.ui.RecordRouteMotifView
+                        android:layout_width="0dp"
+                        android:layout_height="40dp"
+                        android:layout_weight="0.9"
+                        android:paddingHorizontal="4dp" />
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -146,13 +180,13 @@
                     android:textColor="@color/text_tertiary"
                     tools:text="北京首都国际机场 → 上海浦东国际机场" />
 
-                <!-- ② 时间与状态 -->
-                <LinearLayout
+                <!-- 时间与状态在窄屏上可换行。 -->
+                <com.google.android.flexbox.FlexboxLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_l"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
+                    app:alignItems="center"
+                    app:flexWrap="wrap">
 
                     <TextView
                         android:id="@+id/dateText"
@@ -164,10 +198,11 @@
 
                     <TextView
                         android:id="@+id/timeRangeText"
-                        android:layout_width="0dp"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="@dimen/space_s"
-                        android:layout_weight="1"
+                        android:layout_marginEnd="@dimen/space_s"
+                        app:layout_flexGrow="1"
                         android:textAppearance="@style/TextAppearance.Pf.BodyM"
                         android:textColor="@color/text_secondary"
                         tools:text="08:30 — 10:45" />
@@ -179,7 +214,7 @@
                         android:textAppearance="@style/TextAppearance.Pf.Caption"
                         android:textColor="@color/text_secondary"
                         tools:text="已完成" />
-                </LinearLayout>
+                </com.google.android.flexbox.FlexboxLayout>
 
                 <!-- ③ 核心数据 -->
                 <View
@@ -190,6 +225,7 @@
 
                 <!-- 计划时长 -->
                 <LinearLayout
+                    android:id="@+id/plannedRow"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/space_l"
@@ -326,6 +362,15 @@
 
                 <!-- 座位 / 同行人数（可选） -->
                 <TextView
+                    android:id="@+id/sceneText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/space_m"
+                    android:textAppearance="@style/TextAppearance.Pf.BodyM"
+                    android:textColor="@color/sky_ink_secondary"
+                    android:visibility="gone" />
+
+                <TextView
                     android:id="@+id/seatText"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -388,23 +433,25 @@
                 android:orientation="vertical">
 
                 <androidx.appcompat.widget.AppCompatButton
-                    android:id="@+id/btnBoardingPass"
-                    android:layout_width="match_parent"
-                    android:layout_height="48dp"
-                    android:layout_marginBottom="@dimen/space_m"
-                    android:background="@drawable/bg_record_detail_secondary"
-                    android:text="@string/record_detail_boarding_pass"
-                    android:textAppearance="@style/TextAppearance.Pf.Button"
-                    android:textColor="@color/text_primary" />
-
-                <androidx.appcompat.widget.AppCompatButton
                     android:id="@+id/btnReplay"
                     android:layout_width="match_parent"
-                    android:layout_height="52dp"
+                    android:layout_height="wrap_content"
+                    android:minHeight="52dp"
+                    android:layout_marginBottom="@dimen/space_m"
                     android:background="@drawable/bg_record_detail_primary"
                     android:text="@string/record_detail_replay"
                     android:textAppearance="@style/TextAppearance.Pf.Button"
                     android:textColor="@color/text_on_accent" />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:id="@+id/btnBoardingPass"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:minHeight="48dp"
+                    android:background="@drawable/bg_record_detail_secondary"
+                    android:text="@string/record_detail_boarding_pass"
+                    android:textAppearance="@style/TextAppearance.Pf.Button"
+                    android:textColor="@color/text_primary" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -415,7 +462,8 @@
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btnShare"
                         android:layout_width="0dp"
-                        android:layout_height="48dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
                         android:layout_weight="1"
                         android:background="@drawable/bg_record_detail_secondary"
                         android:text="@string/record_detail_share"
@@ -425,7 +473,8 @@
                     <androidx.appcompat.widget.AppCompatButton
                         android:id="@+id/btnDelete"
                         android:layout_width="0dp"
-                        android:layout_height="48dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="48dp"
                         android:layout_marginStart="@dimen/space_m"
                         android:layout_weight="1"
                         android:background="@drawable/bg_record_detail_secondary"
@@ -472,9 +521,21 @@
             tools:visibility="visible" />
 
         <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnRetry"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/space_m"
+            android:minHeight="48dp"
+            android:paddingHorizontal="@dimen/space_xl"
+            android:text="@string/record_detail_retry"
+            android:textColor="@color/text_on_accent"
+            android:visibility="gone" />
+
+        <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnStateBack"
             android:layout_width="wrap_content"
-            android:layout_height="44dp"
+            android:layout_height="wrap_content"
+            android:minHeight="48dp"
             android:layout_marginTop="@dimen/space_xl"
             android:background="@drawable/bg_record_detail_secondary"
             android:paddingHorizontal="@dimen/space_xl"
@@ -482,4 +543,5 @@
             android:textAppearance="@style/TextAppearance.Pf.Button"
             android:textColor="@color/text_primary" />
     </LinearLayout>
-</LinearLayout>
+    </LinearLayout>
+</FrameLayout>

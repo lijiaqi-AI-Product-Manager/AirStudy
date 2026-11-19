@@ -1,5 +1,10 @@
 package com.projectfocus.feature.record.detail
 
+import com.projectfocus.service.focus.history.FlightRecordKey
+import com.projectfocus.service.focus.history.HistoryAccount
+
+data class RecordReplaySource(val account: HistoryAccount, val key: FlightRecordKey, val startedAtWallMs: Long)
+
 
 
 
@@ -49,6 +54,7 @@ data class ReplayIntent(
 
 
     val departureCode: String?,
+    val source: RecordReplaySource? = null,
 ) {
     companion object {
 

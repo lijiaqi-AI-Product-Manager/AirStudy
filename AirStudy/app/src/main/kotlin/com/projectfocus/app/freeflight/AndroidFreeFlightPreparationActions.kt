@@ -31,6 +31,11 @@ class AndroidFreeFlightPreparationActionsFactory @Inject constructor(
         val handle = if (restoringPreparationId == null) retained.begin() else retained.restore(restoringPreparationId, null) ?: return null
         return AndroidFreeFlightPreparationActions(activity, retained, handle, maps, feedback, runtime)
     }
+
+    internal fun createReplay(activity: MainActivity, replay: FreeFlightReplay): FreeFlightPreparationActions? {
+        val handle = retained.begin(replay) ?: return null
+        return AndroidFreeFlightPreparationActions(activity, retained, handle, maps, feedback, runtime)
+    }
 }
 
 internal class AndroidFreeFlightPreparationActions(

@@ -145,7 +145,8 @@ class AirportSearchHostFragment : Fragment() {
 
 @dagger.hilt.android.AndroidEntryPoint
 class RecordListHostFragment : Fragment(com.projectfocus.feature.record.R.layout.pf_record_screen),
-    com.projectfocus.feature.record.ui.RecordScenePickerHost, com.projectfocus.feature.record.ui.RecordLoginHost {
+    com.projectfocus.feature.record.ui.RecordScenePickerHost, com.projectfocus.feature.record.ui.RecordLoginHost,
+    com.projectfocus.feature.record.ui.RecordDetailsHost {
     @javax.inject.Inject lateinit var sceneAccess: com.projectfocus.core.network.content.SceneAccessResolver
     @javax.inject.Inject lateinit var sceneContent: com.projectfocus.core.network.content.SceneContentChecker
     private val viewModel: com.projectfocus.feature.record.list.RecordPageViewModel by viewModels()
@@ -154,6 +155,17 @@ class RecordListHostFragment : Fragment(com.projectfocus.feature.record.R.layout
 
     override fun openRecordLogin() {
         startActivity(android.content.Intent(requireContext(), com.projectfocus.app.auth.AuthLoginActivity::class.java))
+    }
+
+    override fun openRecordDetails(source: com.projectfocus.feature.record.detail.RecordReplaySource) {
+        val nav = findNavController()
+        if (!source.account.isCurrent() || nav.currentDestination?.id != R.id.recordListFragment) return
+        nav.navigate(R.id.action_recordList_to_details, Bundle().apply {
+            putString(com.projectfocus.feature.record.ui.RecordDetailFragment.ARG_RECORD_ID, source.key.id)
+            putString(com.projectfocus.feature.record.ui.RecordDetailFragment.ARG_RECORD_KIND, source.key.kind.name)
+            putString(com.projectfocus.feature.record.ui.RecordDetailFragment.ARG_RECORD_OWNER, source.account.scope)
+            putLong(com.projectfocus.feature.record.ui.RecordDetailFragment.ARG_RECORD_START, source.startedAtWallMs)
+        })
     }
 
     override fun showRecordScenePicker(anchor: View, item: com.projectfocus.feature.record.list.RecordItem,

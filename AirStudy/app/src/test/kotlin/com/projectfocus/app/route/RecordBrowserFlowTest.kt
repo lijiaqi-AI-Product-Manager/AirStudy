@@ -18,6 +18,9 @@ import com.google.android.material.textfield.MaterialAutoCompleteTextView
 import com.projectfocus.app.MainActivity
 import com.projectfocus.app.ProjectFocusApp
 import com.projectfocus.app.R
+import com.projectfocus.app.countdown.OrdinaryFlightPreparationViewModel
+import com.projectfocus.app.countdown.OrdinaryPreparationStep
+import com.projectfocus.app.home.HomeMapStyleSelection
 import com.projectfocus.app.testing.shutdownRealApplicationAfterTest
 import com.projectfocus.core.database.entity.FlightHistoryEntity
 import com.projectfocus.core.model.flight.PlannedAirport
@@ -31,6 +34,7 @@ import com.projectfocus.feature.record.ui.RecordDeleteDialog
 import com.projectfocus.core.ui.scene.AnchoredScenePickerDialog
 import com.projectfocus.core.ui.R as UiR
 import com.projectfocus.service.focus.freeflight.RoomFreeFlightArchiveStore
+import com.projectfocus.service.focus.session.SessionState
 import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
@@ -110,11 +114,14 @@ class RecordBrowserFlowTest {
         payload = completed
     }
 
-    private fun showRecords() {
+    private fun showRecords(fromHome: Boolean = false) {
         scenario = ActivityScenario.launch(MainActivity::class.java)
         scenario!!.onActivity { actual ->
             activity = actual
             val navHost = actual.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
+            if (fromHome && navHost.navController.currentDestination?.id == R.id.permissionGuideFragment) {
+                navHost.navController.navigate(R.id.action_permission_to_home)
+            }
             navHost.navController.navigate(R.id.recordListFragment)
         }
         idle()
@@ -144,7 +151,7 @@ class RecordBrowserFlowTest {
         val end = System.nanoTime()+TimeUnit.SECONDS.toNanos(15)
         while (!condition() && System.nanoTime()<end) { idle(); Thread.sleep(10) }
         idle()
-        assertTrue(diagnostics(),condition())
+        if (!condition()) fail(if (host.isAdded) diagnostics() else "Record host detached at destination ${currentDestination()}")
         layout()
     }
 
@@ -167,6 +174,75 @@ class RecordBrowserFlowTest {
             "currentGeneration=${TokenStore.snapshot().generation}, sameModel=${hostModel===pageModel}, pageItems=${pageModel?.state?.value?.items?.size}, " +
             "sceneSave=${hostModel.sceneSave.value.failure}, savingScene=${hostModel.sceneSave.value.saving}, requests=${cloud.requestCount}, recovery=${hostModel.recoveryStatus.value}, " +
             "lease=$lease, hint=${page?.view?.findViewById<TextView>(RecordR.id.pf_record_page_empty_records_hint)?.text}"
+    }
+
+    private fun currentDestination() =
+        (activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment)
+            .navController.currentDestination?.id
+
+    private fun openDetail(position: Int) {
+        val action = card(position).findViewById<View>(RecordR.id.pf_record_card_detail)
+        assertTrue(action.isShown)
+        scenario!!.onActivity { action.performClick() }
+        await { currentDestination() == R.id.recordDetailFragment &&
+            activity.findViewById<View>(RecordR.id.detailScroll)?.isShown == true }
+    }
+
+    private fun detailField(id: Int): TextView = activity.findViewById(id)
+
+    @Test fun detailsKeepBothRecordsWithTheSameIdSeparateAndClearAfterAccountChange() {
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(countdown("shared-id").copy(flightNumber = "AS2701"))
+            saveIndependentRecord()
+        }
+        showRecords()
+        await { list().adapter?.itemCount == 2 }
+        openDetail(0)
+        assertEquals("AS42", detailField(RecordR.id.flightNumberText).text.toString())
+        assertEquals(activity.getString(RecordR.string.pf_record_card_archive_badge_countup), detailField(RecordR.id.modeText).text)
+        assertTrue(detailField(RecordR.id.sceneText).text.toString().contains("阅读"))
+        assertFalse(activity.findViewById<View>(RecordR.id.plannedRow).isShown)
+        capture("record-detail-count-up")
+
+        scenario!!.onActivity { activity.findViewById<View>(RecordR.id.btnBack).performClick() }
+        await { currentDestination() == R.id.recordListFragment && host.view != null &&
+            host.childFragmentManager.fragments.filterIsInstance<RecordPageFragment>().any { it.view != null } }
+        await { list().adapter?.itemCount == 2 }
+        openDetail(1)
+        assertEquals("AS2701", detailField(RecordR.id.flightNumberText).text.toString())
+        assertTrue(activity.findViewById<View>(RecordR.id.plannedRow).isShown)
+        capture("record-detail-countdown")
+        runBlocking(Dispatchers.IO) { TokenStore.setCancellable("record-detail-account-two") }
+        await { activity.findViewById<View>(RecordR.id.statePanel)?.isShown == true &&
+            !activity.findViewById<View>(RecordR.id.detailScroll).isShown }
+        assertFalse(activity.findViewById<View>(RecordR.id.btnReplay).isShown)
+    }
+
+    @Test fun replayFromTheVisibleRecordPreparesItsRouteBeforeStartingAnyFlight() {
+        val preferences = app.getSharedPreferences(HomeMapStyleSelection.FILE_NAME, android.content.Context.MODE_PRIVATE)
+        assertTrue(preferences.edit().putString("origin_code", "PVG").putString("destination_code", "SZX").commit())
+        runBlocking(Dispatchers.IO) {
+            app.database.flightHistoryDao().insert(countdown("replay-record").copy(flightNumber = "AS321"))
+        }
+        showRecords(fromHome = true)
+        await { list().adapter?.itemCount == 1 }
+        openDetail(0)
+        scenario!!.onActivity {
+            detailField(RecordR.id.btnReplay).performClick()
+            detailField(RecordR.id.btnReplay).performClick()
+        }
+        val preparation = androidx.lifecycle.ViewModelProvider(activity)[OrdinaryFlightPreparationViewModel::class.java].coordinator
+        await { currentDestination() == R.id.homeFragment && preparation.state.value.step == OrdinaryPreparationStep.SEAT }
+        val route = requireNotNull(preparation.state.value.route)
+        assertEquals("PEK", route.departure.code)
+        assertEquals("TSN", route.destination.code)
+        assertNull(route.seat)
+        assertTrue(activity.sessionRepository.state.value is SessionState.Idle)
+        assertEquals("PVG", preferences.getString("origin_code", null))
+        assertEquals("SZX", preferences.getString("destination_code", null))
+        runBlocking(Dispatchers.IO) {
+            assertEquals(listOf("replay-record"), app.database.flightHistoryDao().getAll().map { it.id })
+        }
     }
 
     @Test fun cloudRecordsRestoreAndReceiveRemoteChangesThroughTheNormalPage() {

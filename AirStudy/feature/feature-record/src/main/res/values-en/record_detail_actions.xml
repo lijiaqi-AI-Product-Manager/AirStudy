@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="record_detail_title">Flight details</string>
+    <string name="record_detail_prepare_again">Prepare again</string>
+    <string name="record_detail_replay_unavailable">Check the airport information and current flight, then try again.</string>
+    <string name="record_detail_retry">Retry</string>
+    <string name="record_detail_scene">Focus scene · %1$s</string>
+</resources>

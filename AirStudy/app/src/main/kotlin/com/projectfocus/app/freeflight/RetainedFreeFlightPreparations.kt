@@ -62,7 +62,7 @@ class RetainedFreeFlightPreparations @Inject constructor(
     private val keepAlive: FreeFlightPreparationServiceOperations,
     private val runtime: FreeFlightRuntimeRegistry,
 ) {
-    private class Entry(val handle: FreeFlightPreparationHandle) {
+    private class Entry(val handle: FreeFlightPreparationHandle, val replay: FreeFlightReplay?) {
         lateinit var preparation: Deferred<FreeFlightPreparationDecision>
         var owner: FreeFlightOwnerToken? = null
         var prepared: FreeFlightPrepared? = null
@@ -88,14 +88,19 @@ class RetainedFreeFlightPreparations @Inject constructor(
         }
     }
 
-    fun begin(): FreeFlightPreparationHandle = synchronized(lock) {
+    fun begin(): FreeFlightPreparationHandle = checkNotNull(begin(null))
+
+    internal fun begin(replay: FreeFlightReplay?): FreeFlightPreparationHandle? = synchronized(lock) {
+        if (replay?.account?.isCurrent() == false) return@synchronized null
         retained?.takeIf(::finishedSubmission)?.let { it.closed = true }
-        retained?.takeUnless { it.closed || it.rejected }?.let { return it.handle }
+        retained?.takeUnless { it.closed || it.rejected }?.let {
+            return@synchronized if (replay == null) it.handle else null
+        }
         retained?.takeIf { it.rejected && !it.closed }?.let { old ->
             old.closed = true
             old.owner?.let { owner -> retirePreparation(old, owner) }
         }
-        val entry = Entry(FreeFlightPreparationHandle(UUID.randomUUID().toString()))
+        val entry = Entry(FreeFlightPreparationHandle(UUID.randomUUID().toString()), replay)
         entry.preparation = scope.async(Dispatchers.IO, start = CoroutineStart.LAZY) { prepareOwned(entry) }
         retained = entry
         entry.handle
@@ -199,17 +204,22 @@ class RetainedFreeFlightPreparations @Inject constructor(
         try {
             val app = context.applicationContext as? ProjectFocusApp ?: return unavailable()
             app.awaitInitialAccountRestore()
-            val seed = app.awaitInitialAirportSeed()
-            if (seed == null || seed is AirportSeeder.Result.Failed)
-                return FreeFlightPreparationDecision.Unavailable("机场数据暂未就绪，请先重试加载")
+            val replay = entry.replay
+            if (replay == null) {
+                val seed = app.awaitInitialAirportSeed()
+                if (seed == null || seed is AirportSeeder.Result.Failed)
+                    return FreeFlightPreparationDecision.Unavailable("机场数据暂未就绪，请先重试加载")
+            }
             if (archives.active() != null)
                 return FreeFlightPreparationDecision.Unavailable("还有一趟飞行需要恢复，请先处理原飞行")
             val preferences = context.getSharedPreferences(HomeMapStyleSelection.FILE_NAME, Context.MODE_PRIVATE)
-            val code = preferences.getString(HomeOriginSelection.CODE, null)?.takeIf(String::isNotBlank)
+            val code = replay?.departure?.code ?: preferences.getString(HomeOriginSelection.CODE, null)?.takeIf(String::isNotBlank)
                 ?: return FreeFlightPreparationDecision.Rejected("请先选择出发机场")
             val account = TokenStore.snapshot()
+            if (replay != null && (account.generation != replay.account.generation ||
+                    TokenStore.storageScope(account) != replay.account.scope)) return unavailable()
             val marker = preferences.getString(HomeOriginSelection.MARKER,null)
-            val departure = HomeOriginSelection.selectedSnapshot(preferences,code,account)
+            val departure = replay?.departure ?: HomeOriginSelection.selectedSnapshot(preferences,code,account)
                 ?: airports.findByCode(code)?.snapshot()
                 ?: return FreeFlightPreparationDecision.Unavailable("找不到所选出发机场，请重新选择")
             val owner = hostOpening.withLock {
@@ -224,12 +234,12 @@ class RetainedFreeFlightPreparations @Inject constructor(
                 FreeFlightPreparationResult.Allowed -> Unit
             }
             if (!hosts.isCurrent(owner) || !entryCurrent(entry) || TokenStore.snapshot() != account ||
-                preferences.getString(HomeOriginSelection.CODE, null) != code ||
-                preferences.getString(HomeOriginSelection.MARKER,null) != marker)
+                (replay == null && (preferences.getString(HomeOriginSelection.CODE, null) != code ||
+                    preferences.getString(HomeOriginSelection.MARKER,null) != marker)))
                 return unavailable()
             val selectedCategory = settings.read(PrefKey.SelectedCategoryId).takeIf { it >= 0L }
             val prepared = FreeFlightPrepared(entry.handle.preparationId, owner, UUID.randomUUID().toString(), departure,
-                SourceFlightNumber.generate(departure.code, "FREE", true), selectedCategory)
+                SourceFlightNumber.generate(departure.code, "FREE", true), selectedCategory, replay?.initialHeading ?: 0f)
             if (!hosts.isCurrent(owner)) return unavailable()
             synchronized(lock) {
                 if (current(entry.handle) !== entry) return unavailable()

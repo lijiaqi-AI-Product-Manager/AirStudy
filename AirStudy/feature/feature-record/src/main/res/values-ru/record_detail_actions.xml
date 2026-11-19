@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="record_detail_title">Сведения о полёте</string>
+    <string name="record_detail_prepare_again">Подготовиться снова</string>
+    <string name="record_detail_replay_unavailable">Проверьте данные аэропорта и текущий полёт, затем повторите попытку.</string>
+    <string name="record_detail_retry">Повторить</string>
+    <string name="record_detail_scene">Сценарий фокусировки · %1$s</string>
+</resources>

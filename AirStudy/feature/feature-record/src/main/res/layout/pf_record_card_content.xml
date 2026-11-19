@@ -50,4 +50,18 @@
         <TextView android:textAppearance="@style/TextAppearance.Material3.BodyMedium" android:textSize="13.0sp" android:textColor="@android:color/white" android:id="@+id/pf_record_card_text_seat" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/pf_record_card_common_na" android:fontFamily="@font/jetbrainsmono_medium" />
         </LinearLayout>
     </com.projectfocus.feature.record.ui.RecordMetadataLayout>
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/pf_record_card_detail"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="end"
+        android:minWidth="72dp"
+        android:minHeight="48dp"
+        android:paddingHorizontal="12dp"
+        android:text="@string/record_detail_title"
+        android:textAllCaps="false"
+        android:textColor="@color/sky_primary"
+        android:textSize="13sp"
+        android:visibility="gone" />
 </LinearLayout>

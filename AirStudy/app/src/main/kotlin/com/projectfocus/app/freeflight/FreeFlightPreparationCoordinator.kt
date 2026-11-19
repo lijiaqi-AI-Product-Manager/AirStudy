@@ -132,7 +132,8 @@ class FreeFlightPreparationCoordinator(
                     else -> FreeFlightPreparationStep.HEADING
                 }
                 val submitted = saved?.submitted == true || identityOf(actions.startState.value) == FreeFlightStartIdentity(context.owner, context.sessionId)
-                mutableState.value = FreeFlightPreparationUiState(step, context, saved?.heading?.takeIf { it.isFinite() } ?: 0f, saved?.selection, submitted)
+                val heading = saved?.heading?.takeIf(Float::isFinite) ?: context.initialHeading
+                mutableState.value = FreeFlightPreparationUiState(step, context, heading, saved?.selection, submitted)
                 actions.preparationShown(context)
                 actions.headingChanged(context, normalize(state.value.heading))
                 if (submitted) {

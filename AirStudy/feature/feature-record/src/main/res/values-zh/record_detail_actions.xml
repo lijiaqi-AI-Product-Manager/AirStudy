@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="record_detail_title">飞行详情</string>
+    <string name="record_detail_prepare_again">再次准备</string>
+    <string name="record_detail_replay_unavailable">请确认机场资料和当前飞行状态，稍后再试。</string>
+    <string name="record_detail_retry">重试</string>
+    <string name="record_detail_scene">专注场景 · %1$s</string>
+</resources>

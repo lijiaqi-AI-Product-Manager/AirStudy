@@ -34,11 +34,13 @@ class SessionOrdinaryFlightPreparationActions @Inject constructor(
             code(saved.getString("destination_code", null)), saved.getString(HomeOriginSelection.MARKER, null))
     }
 
-    override fun available(context: OrdinaryFlightContext): Boolean = this.context() == context &&
+    override fun available(context: OrdinaryFlightContext): Boolean =
+        (if (context.replayRoute == null) this.context() == context else TokenStore.snapshot() == context.account) &&
         sessions.state.value is SessionState.Idle && freeFlightRuntime.target.value == null && !completion.blocksPreparation()
 
     override suspend fun loadRoute(context: OrdinaryFlightContext): FlightLegPlan? {
         if (!available(context) || context.originCode.isEmpty() || context.destinationCode.isEmpty()) return null
+        context.replayRoute?.let { return it }
         (application.applicationContext as? com.projectfocus.app.ProjectFocusApp)?.awaitInitialAirportSeed()
         if (!available(context)) return null
         val origin = HomeOriginSelection.selectedSnapshot(preferences, context.originCode)

@@ -1,8 +1,11 @@
 package com.projectfocus.feature.record.detail
 
 import com.projectfocus.core.database.entity.FlightHistoryEntity
+import com.projectfocus.core.model.flight.PlannedFlightMetadataCodec
 import com.projectfocus.feature.record.list.FlightStatus
 import com.projectfocus.feature.record.list.RecordListBuilder
+import com.projectfocus.service.focus.history.FlightRecordKind
+import com.projectfocus.service.focus.history.RecordedFlight
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -73,6 +76,63 @@ object RecordDetailBuilder {
 
     /** 差额不可计算（计划时长缺失）时的占位符 */
     const val DIFF_UNKNOWN: String = "—"
+
+    fun build(record: RecordedFlight, zone: ZoneId, nowMillis: Long): RecordDetail =
+        when (record) {
+            is RecordedFlight.Countdown -> {
+                val entity = record.record
+                val start = Instant.ofEpochMilli(entity.startTimeMillis).atZone(zone)
+                val end = entity.endTimeMillis?.let { Instant.ofEpochMilli(it).atZone(zone) }
+                val scene = record.editedScene?.snapshot
+                    ?: PlannedFlightMetadataCodec.decodeSceneOrNull(entity.sceneSnapshotJson)
+                build(entity, zone, nowMillis).copy(
+                    timeRangeText = timeRangeText(start, end, 0),
+                    flightNumber = entity.flightNumber?.trim()?.takeIf(String::isNotEmpty),
+                    sceneTitle = scene?.displayName?.takeIf(String::isNotBlank) ?: scene?.name?.takeIf(String::isNotBlank),
+                )
+            }
+            is RecordedFlight.CountUp -> {
+                val archive = record.archive
+                val origin = archive.departure
+                val landing = archive.landingAirport
+                val start = Instant.ofEpochMilli(archive.startedAtWallMs).atZone(zone)
+                val end = archive.endedAtWallMs?.let { Instant.ofEpochMilli(it).atZone(zone) }
+                val status = FlightStatus.fromDb(archive.status.name)
+                val scene = record.editedScene?.snapshot
+                RecordDetail(
+                    id = archive.sessionId,
+                    fromCode = origin.code,
+                    toCode = landing?.code ?: ReplayIntentBuilder.UNKNOWN_CODE,
+                    fromCity = origin.displayCity.ifBlank { origin.code },
+                    toCity = landing?.let { it.displayCity.ifBlank { it.code } }.orEmpty(),
+                    fromAirportName = origin.displayName,
+                    toAirportName = landing?.displayName.orEmpty(),
+                    fromCountry = origin.country,
+                    toCountry = landing?.country.orEmpty(),
+                    dateText = dateText(start, Instant.ofEpochMilli(nowMillis).atZone(zone)),
+                    timeRangeText = timeRangeText(start, end, 0),
+                    statusText = status.label,
+                    status = status,
+                    plannedText = "",
+                    actualText = RecordListBuilder.formatMinutes(record.focusMinutes),
+                    diffText = "",
+                    completionPercent = null,
+                    distanceText = RecordListBuilder.km(archive.cumulativeDistanceKm),
+                    cruiseEquivalentText = cruiseEquivalentText(archive.cumulativeDistanceKm),
+                    routeEquivalentText = routeEquivalentText(archive.cumulativeDistanceKm),
+                    seat = archive.seat,
+                    quote = null,
+                    quoteAuthor = null,
+                    isGroupFlight = false,
+                    participantCount = null,
+                    payloadJson = null,
+                    kind = FlightRecordKind.COUNT_UP,
+                    flightNumber = archive.flightNumber?.trim()?.takeIf(String::isNotEmpty),
+                    sceneTitle = (scene?.displayName?.takeIf(String::isNotBlank) ?: scene?.name
+                        ?: archive.scene.title)?.takeIf(String::isNotBlank),
+                )
+            }
+        }
 
 
 
@@ -303,6 +363,9 @@ data class RecordDetail(
     val participantCount: Int?,
     /** 原始 logJson（导出用；界面不直接显示） */
     val payloadJson: String?,
+    val kind: FlightRecordKind = FlightRecordKind.COUNTDOWN,
+    val flightNumber: String? = null,
+    val sceneTitle: String? = null,
 ) {
     /** 是否可以「重飞这趟」。取消与状态异常的记录不给重飞。 */
     val canReplay: Boolean

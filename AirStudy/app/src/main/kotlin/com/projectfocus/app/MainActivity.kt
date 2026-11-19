@@ -17,6 +17,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.NavHostFragment
 import com.projectfocus.app.route.EntryAction
 import com.projectfocus.app.route.EntryActionParser
+import com.projectfocus.app.countdown.OrdinaryFlightContext
+import com.projectfocus.app.freeflight.FreeFlightPreparationActions
+import com.projectfocus.app.freeflight.FreeFlightReplay
 import com.projectfocus.app.scene.AppSceneCatalog
 import com.projectfocus.app.scene.AppSceneEditorSession
 import com.projectfocus.app.widget.DayChangeDetector
@@ -25,24 +28,35 @@ import com.projectfocus.core.datastore.PrefKey
 import com.projectfocus.core.datastore.Orientation
 import com.projectfocus.core.datastore.SettingsRepository
 import com.projectfocus.core.datastore.ThemeMode
+import com.projectfocus.core.model.flight.FlightLegPlan
+import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.core.network.content.SceneAccessResolver
 import com.projectfocus.core.network.content.SceneContentChecker
 import com.projectfocus.feature.booking.seat.SeatSceneChoices
 import com.projectfocus.feature.booking.seat.SeatSceneChoicesHost
 import com.projectfocus.feature.booking.seat.SeatSceneEditorSession
+import com.projectfocus.feature.record.detail.ReplayIntent
+import com.projectfocus.feature.record.ui.RecordReplayHost
+import com.projectfocus.service.focus.freeflight.runtime.FreeFlightRuntimeRegistry
+import com.projectfocus.service.focus.history.FlightHistoryReader
+import com.projectfocus.service.focus.history.RecordedFlight
 import com.projectfocus.service.focus.monitor.FocusMonitorService
 import com.projectfocus.service.focus.session.SessionRepository
 import com.projectfocus.service.focus.session.SessionState
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /** Hosts navigation, system insets, theme changes and session side effects. */
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity(), SeatSceneChoicesHost, com.projectfocus.core.ui.nav.FreeFlightPreparationHost,
-    com.projectfocus.core.ui.nav.OrdinaryFlightPreparationHost {
+    com.projectfocus.core.ui.nav.OrdinaryFlightPreparationHost, RecordReplayHost {
+
+    @Inject lateinit var recordHistory: FlightHistoryReader
+    @Inject lateinit var recordReplayRuntime: FreeFlightRuntimeRegistry
 
     private var freeFlightPreparationController: com.projectfocus.app.freeflight.FreeFlightPreparationController? = null
     private var ordinaryPreparationController: com.projectfocus.app.countdown.OrdinaryFlightPreparationController? = null
@@ -67,10 +81,48 @@ class MainActivity : AppCompatActivity(), SeatSceneChoicesHost, com.projectfocus
             })
             return true
         }
+        showOrdinaryPreparation(selected)
+        return true
+    }
+
+    private fun showOrdinaryPreparation(context: OrdinaryFlightContext) {
+        val coordinator = ordinaryPreparation.coordinator
         ordinaryPreparationController?.detach()
         ordinaryPreparationController = com.projectfocus.app.countdown.OrdinaryFlightPreparationController(this, coordinator)
-        coordinator.begin()
-        return true
+        coordinator.begin(context)
+    }
+
+    override suspend fun prepareRecordReplay(intent: ReplayIntent): Boolean {
+        val source = intent.source ?: return false
+        val nav = (supportFragmentManager.findFragmentById(R.id.nav_host_container) as? NavHostFragment)
+            ?.navController ?: return false
+        val entry = nav.currentBackStackEntry?.takeIf { it.destination.id == R.id.recordDetailFragment } ?: return false
+        fun available() = nav.currentBackStackEntry === entry && source.account.isCurrent() &&
+            sessionRepository.state.value is SessionState.Idle && recordReplayRuntime.target.value == null &&
+            !ordinaryPreparation.coordinator.state.value.active && freeFlightPreparationController?.isActive != true
+        if (!available()) return false
+        val record = recordHistory.record(source.account, source.key).first()
+            ?.takeIf { it.completed && it.recordedAtWallMs == source.startedAtWallMs } ?: return false
+        if (!available()) return false
+        return when (record) {
+            is RecordedFlight.Countdown -> {
+                val origin = sessionRepository.findAirportForPlan(record.record.departureAirportCode) ?: return false
+                val destination = sessionRepository.findAirportForPlan(record.record.destinationAirportCode) ?: return false
+                val route = runCatching { FlightLegPlan.between(origin, destination) }.getOrNull() ?: return false
+                if (!available() || recordHistory.record(source.account, source.key).first() != record || !available()) return false
+                val identity = TokenStore.snapshot()
+                if (identity.generation != source.account.generation || !returnHomeForFreeFlight()) return false
+                showOrdinaryPreparation(OrdinaryFlightContext(identity, origin.code, destination.code, null, route))
+                true
+            }
+            is RecordedFlight.CountUp -> {
+                val heading = record.archive.requestedHeadingDegrees?.let { ((it % 360 + 360) % 360).toFloat() } ?: 0f
+                val factory = (application as? ProjectFocusApp)?.freeFlightPreparationFactory ?: return false
+                val actions = factory.createReplay(this, FreeFlightReplay(source.account, record.archive.departure, heading))
+                    ?: return false
+                showFreeFlightPreparation(actions)
+            }
+        }
     }
 
     private fun ensureOrdinaryPreparationSurface() {
@@ -96,6 +148,10 @@ class MainActivity : AppCompatActivity(), SeatSceneChoicesHost, com.projectfocus
         if (freeFlightPreparationController?.isActive == true) return returnHomeForFreeFlight()
         val actions = (application as? com.projectfocus.app.freeflight.FreeFlightPreparationActionsProvider)
             ?.freeFlightPreparationActions(this, null) ?: return false
+        return showFreeFlightPreparation(actions)
+    }
+
+    private fun showFreeFlightPreparation(actions: FreeFlightPreparationActions): Boolean {
         if (actions.unavailableReason != null || !returnHomeForFreeFlight()) {
             actions.dismissed(null, false, com.projectfocus.app.freeflight.FreeFlightPreparationDismissal.HEADING_CANCEL)
             (actions as? java.io.Closeable)?.close()

@@ -7,6 +7,7 @@ import com.projectfocus.service.focus.freeflight.FreeFlightCommandResult
 import com.projectfocus.service.focus.freeflight.FreeFlightOwnerToken
 import com.projectfocus.service.focus.freeflight.FreeFlightStartState
 import com.projectfocus.service.focus.freeflight.runtime.FreeFlightRuntimeObservation
+import com.projectfocus.service.focus.history.HistoryAccount
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.Flow
 
@@ -18,12 +19,16 @@ data class FreeFlightPrepared(
     val departure: PlannedAirport,
     val flightNumber: String?,
     val shieldingCategoryId: Long?,
+    val initialHeading: Float = 0f,
 ) {
     init {
         require(preparationId.isNotBlank() && sessionId.isNotBlank())
         require(shieldingCategoryId == null || shieldingCategoryId >= 0L)
+        require(initialHeading.isFinite())
     }
 }
+
+internal data class FreeFlightReplay(val account: HistoryAccount, val departure: PlannedAirport, val initialHeading: Float)
 
 sealed interface FreeFlightPreparationDecision {
     data class Prepared(val value: FreeFlightPrepared) : FreeFlightPreparationDecision

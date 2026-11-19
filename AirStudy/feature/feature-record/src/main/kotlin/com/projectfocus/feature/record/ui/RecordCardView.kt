@@ -52,14 +52,17 @@ class RecordCardView @JvmOverloads constructor(
     private val focusContainer = findViewById<View>(R.id.pf_record_card_container_focus_duration)
     private val sceneEdit = findViewById<View>(R.id.pf_record_card_img_focus_scene_edit)
     private val cloud = findViewById<View>(R.id.pf_record_card_img_archive_cloud_icon)
+    private val details = findViewById<View>(R.id.pf_record_card_detail)
 
     init {
         RecordSkyPresentation.ticket(this)
+        com.projectfocus.core.ui.sky.SkySurfaces.secondary(details, 14f)
+        com.projectfocus.core.ui.sky.SkyPressFeedback.install(details)
         bind(null)
     }
 
     fun bind(item: RecordItem?, onSceneEdit: ((View, RecordItem) -> Unit)? = null,
-             sceneEditingEnabled: Boolean = true) {
+             sceneEditingEnabled: Boolean = true, onDetails: ((RecordItem) -> Unit)? = null) {
         val unknown = context.getString(R.string.pf_record_card_common_na)
         setCardBackgroundColor(color(UiR.color.sky_card_solid))
         strokeColor = color(UiR.color.sky_divider)
@@ -70,6 +73,8 @@ class RecordCardView @JvmOverloads constructor(
         sceneEdit.visibility = View.GONE
         sceneEdit.setOnClickListener(null)
         sceneEdit.isEnabled = false
+        details.visibility = View.GONE
+        details.setOnClickListener(null)
         contentDescription = item?.spokenSummary.orEmpty()
         visibility = if (item == null) View.INVISIBLE else View.VISIBLE
         if (item == null) {
@@ -81,6 +86,10 @@ class RecordCardView @JvmOverloads constructor(
             sceneIcon.visibility = View.GONE
             focusContainer.visibility = View.GONE
             return
+        }
+        if (item.cloudSummary == null && item.recordedAtWallMs != null && onDetails != null) {
+            details.visibility = View.VISIBLE
+            details.setOnClickListener { onDetails(item) }
         }
         distance.text = item.distanceText
         mode.setText(if (item.kind == FlightRecordKind.COUNT_UP) R.string.pf_record_card_archive_badge_countup
