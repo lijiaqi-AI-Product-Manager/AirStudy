@@ -283,11 +283,24 @@ class StatisticsDateFlowTest {
             app.database.flightHistoryDao().insert(legacy("career-next-owner",wall,TokenStore.storageScope(TokenStore.Snapshot(nextToken,0))))
             TokenStore.setCancellable(nextToken)
         }
-        await { model().state.value.career?.completedFlights==1 && model().state.value.selectedSceneKey.isEmpty() && panel().countryRows.childCount==1 }
+        val nextIdentity = TokenStore.snapshot()
+        val nextAccount = HistoryAccount(TokenStore.storageScope(nextIdentity), nextIdentity.generation)
+        await {
+            val state = model().state.value
+            state.account == nextAccount && !state.isLoading && state.career?.completedFlights == 1 &&
+                state.selectedSceneKey.isEmpty()
+        }
         oldRow.performClick();idle()
         val host=activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
         val page=host.childFragmentManager.primaryNavigationFragment as StatsFragment
         assertTrue(page.childFragmentManager.fragments.none { it is com.projectfocus.feature.stats.CountryAirportsDialogFragment })
+
+        val refresh = activity.findViewById<View>(StatsR.id.statsHistoryStatus)
+        await { panel().countryRows.childCount == 1 || refresh.isShown }
+        if (panel().countryRows.childCount == 0) {
+            assertTrue(refresh.performClick())
+        }
+        await { model().state.value.account == nextAccount && model().state.value.coverage.allCountries && panel().countryRows.childCount == 1 }
         assertEquals(99.25,model().state.value.career!!.distanceKm,0.0)
     }
 
@@ -536,7 +549,9 @@ class StatisticsDateFlowTest {
     private fun await(condition: () -> Boolean) {
         val end=System.nanoTime()+TimeUnit.SECONDS.toNanos(15)
         while(!condition() && System.nanoTime()<end) { idle();Thread.sleep(10) }
-        idle();assertTrue("Statistics date state did not reach the expected page result; " + stateDiagnostic(),condition());layout()
+        idle()
+        if (!condition()) fail("Statistics date state did not reach the expected page result; " + stateDiagnostic())
+        layout()
     }
     private fun stateDiagnostic(): String = runCatching {
         val host = activity.supportFragmentManager.findFragmentById(R.id.nav_host_container) as NavHostFragment
@@ -547,7 +562,7 @@ class StatisticsDateFlowTest {
             "career=${state.career?.completedFlights}, scene=${state.selectedSceneKey}, allCountries=${state.coverage.allCountries}, " +
             "renderedAccount=${rendered?.account}, renderedCareer=${rendered?.career?.completedFlights}, " +
             "rows=${activity.findViewById<StatsCareerPanel>(StatsR.id.statsCareerPanel).countryRows.childCount}, " +
-            "lifecycle=${page.viewLifecycleOwner.lifecycle.currentState}"
+             "lifecycle=${page.viewLifecycleOwner.lifecycle.currentState}, recordRequests=${cloud.requestCount}"
     }.getOrElse { it.toString() }
 
     private fun layout() {

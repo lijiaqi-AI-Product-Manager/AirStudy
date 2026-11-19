@@ -24,6 +24,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.flow.collect
 import com.projectfocus.core.network.di.TokenStore
 import com.projectfocus.service.focus.history.HistoryAccount
+import com.projectfocus.service.focus.history.RecordCloudWorkerOwner
 
 /** Statistics for the current account and selected local date range. */
 @AndroidEntryPoint
@@ -141,7 +142,15 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
                         closeDateRange()
                         render(StatsUiState())
                     }
-                    if (observed == TokenStore.snapshot() && viewLifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) requestCloudHistory()
+                }
+            }
+        }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                TokenStore.identities.collect { identity ->
+                    if (identity.token.isNullOrBlank() || identity != TokenStore.snapshot()) return@collect
+                    val owner = context?.applicationContext as? RecordCloudWorkerOwner ?: return@collect
+                    owner.retryRecordCloudSync(HistoryAccount(TokenStore.storageScope(identity), identity.generation))
                 }
             }
         }
@@ -291,18 +300,13 @@ class StatsFragment : Fragment(R.layout.fragment_stats) {
         old?.dismiss()
     }
 
-    private fun requestCloudHistory() {
-        if (!TokenStore.snapshot().token.isNullOrBlank())
-            (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.requestRecordCloudSync()
-    }
-
     private fun retryData() {
         viewModel.retry()
         val account = lastState?.account ?: return
-        if (account.isCurrent()) (context?.applicationContext as? com.projectfocus.service.focus.history.RecordCloudWorkerOwner)?.retryRecordCloudSync(account)
+        if (account.isCurrent()) (context?.applicationContext as? RecordCloudWorkerOwner)?.retryRecordCloudSync(account)
     }
 
-    override fun onResume() { super.onResume(); viewModel.refreshNow(); requestCloudHistory() }
+    override fun onResume() { super.onResume(); viewModel.refreshNow() }
     override fun onPause() { sharePreview?.close();super.onPause() }
     override fun onStop() {
         closeDateRange()
